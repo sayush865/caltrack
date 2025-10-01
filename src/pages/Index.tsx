@@ -25,6 +25,8 @@ const Index = () => {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
+      console.log('Starting analysis...');
+      
       const response = await fetch(`${supabaseUrl}/functions/v1/analyze-food`, {
         method: 'POST',
         headers: {
@@ -41,6 +43,8 @@ const Index = () => {
         throw new Error('Failed to start analysis');
       }
 
+      console.log('Response received, starting to read stream...');
+
       const reader = response.body?.getReader();
       if (!reader) {
         throw new Error('No response body');
@@ -48,40 +52,52 @@ const Index = () => {
 
       const decoder = new TextDecoder();
       let streamedContent = '';
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
         
-        if (done) break;
+        if (done) {
+          console.log('Stream complete');
+          break;
+        }
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+        console.log('Received chunk, size:', value.length);
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
+          if (line.trim() === '' || !line.startsWith('data: ')) {
+            continue;
+          }
+          
+          const data = line.slice(6);
+          
+          try {
+            const parsed = JSON.parse(data);
+            console.log('Parsed event:', parsed.type);
             
-            try {
-              const parsed = JSON.parse(data);
-              
-              if (parsed.type === 'content') {
-                streamedContent += parsed.content;
-                // Update the display with partial content
-                setAnalysisBreakdown({ streaming: streamedContent });
-              } else if (parsed.type === 'complete') {
-                setNutritionData(parsed.data);
-                setAnalysisBreakdown(parsed.analysis);
-                setAnalyzing(false);
-                toast({
-                  title: 'Food analyzed!',
-                  description: 'Nutrition data has been saved to your log.',
-                });
-              } else if (parsed.type === 'error') {
-                throw new Error(parsed.error);
-              }
-            } catch (e) {
-              console.error('Error parsing stream chunk:', e);
+            if (parsed.type === 'content') {
+              streamedContent += parsed.content;
+              console.log('Content chunk received, total length:', streamedContent.length);
+              // Update the display with partial content
+              setAnalysisBreakdown({ streaming: streamedContent });
+            } else if (parsed.type === 'complete') {
+              console.log('Analysis complete');
+              setNutritionData(parsed.data);
+              setAnalysisBreakdown(parsed.analysis);
+              setAnalyzing(false);
+              toast({
+                title: 'Food analyzed!',
+                description: 'Nutrition data has been saved to your log.',
+              });
+            } else if (parsed.type === 'error') {
+              throw new Error(parsed.error);
             }
+          } catch (e) {
+            console.error('Error parsing stream chunk:', e, 'Data:', data);
           }
         }
       }

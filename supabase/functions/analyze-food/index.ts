@@ -134,17 +134,23 @@ Return your analysis in this exact JSON format:
     const decoder = new TextDecoder();
     
     let fullContent = '';
+    let buffer = '';
     
     const stream = new ReadableStream({
       async start(controller) {
+        console.log('Starting stream...');
+        
         try {
           while (true) {
             const { done, value } = await reader.read();
             
             if (done) {
+              console.log('Stream complete, full content length:', fullContent.length);
+              
               // When streaming is complete, save to database
               try {
                 const cleanContent = fullContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                console.log('Parsing nutrition data...');
                 const nutritionData = JSON.parse(cleanContent);
                 
                 // Upload image to storage
@@ -156,7 +162,7 @@ Return your analysis in this exact JSON format:
                 const imageData = imageBase64.split(',')[1];
                 const buffer = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
 
-                const { data: uploadData, error: uploadError } = await supabase.storage
+                const { error: uploadError } = await supabase.storage
                   .from('food-images')
                   .upload(fileName, buffer, {
                     contentType: 'image/jpeg',
@@ -171,6 +177,8 @@ Return your analysis in this exact JSON format:
                 const { data: { publicUrl } } = supabase.storage
                   .from('food-images')
                   .getPublicUrl(fileName);
+
+                console.log('Image uploaded:', publicUrl);
 
                 // Insert food log
                 const { data: logData, error: logError } = await supabase
@@ -197,6 +205,7 @@ Return your analysis in this exact JSON format:
                   .single();
 
                 if (!logError && logData) {
+                  console.log('Food log saved successfully');
                   // Send final complete event
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                     type: 'complete',
@@ -207,6 +216,8 @@ Return your analysis in this exact JSON format:
                       nutritional_reasoning: nutritionData.nutritional_reasoning
                     }
                   })}\n\n`));
+                } else {
+                  console.error('Database insert error:', logError);
                 }
               } catch (error) {
                 console.error('Error saving data:', error);
@@ -220,15 +231,23 @@ Return your analysis in this exact JSON format:
               break;
             }
 
-            // Parse SSE chunks from OpenAI
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n').filter(line => line.trim() !== '');
+            // Decode and buffer the chunk
+            buffer += decoder.decode(value, { stream: true });
+            
+            // Process complete lines from buffer
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ''; // Keep incomplete line in buffer
             
             for (const line of lines) {
+              if (line.trim() === '' || line.startsWith(':')) {
+                continue;
+              }
+              
               if (line.startsWith('data: ')) {
                 const data = line.slice(6);
                 
                 if (data === '[DONE]') {
+                  console.log('Received [DONE] signal');
                   continue;
                 }
                 
@@ -238,14 +257,17 @@ Return your analysis in this exact JSON format:
                   
                   if (content) {
                     fullContent += content;
-                    // Forward the streaming chunk to client
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    console.log('Streaming chunk, content length:', content.length);
+                    
+                    // Forward the streaming chunk to client immediately
+                    const message = `data: ${JSON.stringify({
                       type: 'content',
                       content: content
-                    })}\n\n`));
+                    })}\n\n`;
+                    controller.enqueue(encoder.encode(message));
                   }
                 } catch (e) {
-                  console.error('Error parsing SSE chunk:', e);
+                  console.error('Error parsing SSE chunk:', e, 'Data:', data);
                 }
               }
             }
