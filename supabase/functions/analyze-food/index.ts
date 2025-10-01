@@ -26,7 +26,7 @@ serve(async (req) => {
 
     console.log('Analyzing food image with AI...');
 
-    // Call Lovable AI with vision capabilities using GPT-5
+    // Call Lovable AI with vision capabilities using GPT-5 with streaming
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -35,6 +35,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'openai/gpt-5',
+        stream: true, // Enable streaming
         messages: [
           {
             role: 'system',
@@ -123,107 +124,151 @@ Return your analysis in this exact JSON format:
       throw new Error(`AI API error: ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log('Full AI Response:', JSON.stringify(data, null, 2));
+    // Create a streaming response
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body');
+    }
+
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
     
-    // Check for various possible response structures
-    let content = data.choices?.[0]?.message?.content;
+    let fullContent = '';
     
-    // If no content in message, check if it's in a different structure
-    if (!content && data.choices?.[0]?.text) {
-      content = data.choices[0].text;
-    }
-    
-    if (!content) {
-      console.error('No content found in AI response.');
-      console.error('Response structure:', JSON.stringify(data, null, 2));
-      console.error('Choices:', data.choices);
-      console.error('First choice:', data.choices?.[0]);
-      console.error('Message:', data.choices?.[0]?.message);
-      throw new Error(`No content in AI response. Response: ${JSON.stringify(data)}`);
-    }
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) {
+              // When streaming is complete, save to database
+              try {
+                const cleanContent = fullContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                const nutritionData = JSON.parse(cleanContent);
+                
+                // Upload image to storage
+                const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+                const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+                const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('AI Response content:', content);
+                const fileName = `${userId}/${Date.now()}.jpg`;
+                const imageData = imageBase64.split(',')[1];
+                const buffer = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
 
-    // Parse the JSON response
-    let nutritionData;
-    try {
-      // Remove markdown code blocks if present
-      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      nutritionData = JSON.parse(cleanContent);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', content);
-      throw new Error('Failed to parse nutrition data from AI response');
-    }
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                  .from('food-images')
+                  .upload(fileName, buffer, {
+                    contentType: 'image/jpeg',
+                    upsert: false
+                  });
 
-    // Upload image to storage
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+                if (uploadError) {
+                  console.error('Storage upload error:', uploadError);
+                  throw new Error('Failed to upload image');
+                }
 
-    const fileName = `${userId}/${Date.now()}.jpg`;
-    const imageData = imageBase64.split(',')[1];
-    const buffer = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
+                const { data: { publicUrl } } = supabase.storage
+                  .from('food-images')
+                  .getPublicUrl(fileName);
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('food-images')
-      .upload(fileName, buffer, {
-        contentType: 'image/jpeg',
-        upsert: false
-      });
+                // Insert food log
+                const { data: logData, error: logError } = await supabase
+                  .from('food_logs')
+                  .insert({
+                    user_id: userId,
+                    image_url: publicUrl,
+                    food_name: nutritionData.food_name,
+                    calories: nutritionData.calories,
+                    protein: nutritionData.protein,
+                    carbs: nutritionData.carbs,
+                    fat: nutritionData.fat,
+                    fiber: nutritionData.fiber,
+                    sugar: nutritionData.sugar,
+                    sodium: nutritionData.sodium,
+                    vitamin_a: nutritionData.vitamin_a,
+                    vitamin_c: nutritionData.vitamin_c,
+                    calcium: nutritionData.calcium,
+                    iron: nutritionData.iron,
+                    meal_type: nutritionData.meal_type,
+                    logged_at: new Date().toISOString()
+                  })
+                  .select()
+                  .single();
 
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError);
-      throw new Error('Failed to upload image');
-    }
+                if (!logError && logData) {
+                  // Send final complete event
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    type: 'complete',
+                    data: logData,
+                    analysis: {
+                      visual_analysis: nutritionData.visual_analysis,
+                      portion_estimation: nutritionData.portion_estimation,
+                      nutritional_reasoning: nutritionData.nutritional_reasoning
+                    }
+                  })}\n\n`));
+                }
+              } catch (error) {
+                console.error('Error saving data:', error);
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  type: 'error',
+                  error: error instanceof Error ? error.message : 'Failed to save data'
+                })}\n\n`));
+              }
+              
+              controller.close();
+              break;
+            }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('food-images')
-      .getPublicUrl(fileName);
-
-    console.log('Image uploaded:', publicUrl);
-
-    // Insert food log
-    const { data: logData, error: logError } = await supabase
-      .from('food_logs')
-      .insert({
-        user_id: userId,
-        image_url: publicUrl,
-        food_name: nutritionData.food_name,
-        calories: nutritionData.calories,
-        protein: nutritionData.protein,
-        carbs: nutritionData.carbs,
-        fat: nutritionData.fat,
-        fiber: nutritionData.fiber,
-        sugar: nutritionData.sugar,
-        sodium: nutritionData.sodium,
-        vitamin_a: nutritionData.vitamin_a,
-        vitamin_c: nutritionData.vitamin_c,
-        calcium: nutritionData.calcium,
-        iron: nutritionData.iron,
-        meal_type: nutritionData.meal_type,
-        logged_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (logError) {
-      console.error('Database insert error:', logError);
-      throw new Error('Failed to save food log');
-    }
-
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        data: logData,
-        analysis: {
-          visual_analysis: nutritionData.visual_analysis,
-          portion_estimation: nutritionData.portion_estimation,
-          nutritional_reasoning: nutritionData.nutritional_reasoning
+            // Parse SSE chunks from OpenAI
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n').filter(line => line.trim() !== '');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                
+                if (data === '[DONE]') {
+                  continue;
+                }
+                
+                try {
+                  const parsed = JSON.parse(data);
+                  const content = parsed.choices?.[0]?.delta?.content;
+                  
+                  if (content) {
+                    fullContent += content;
+                    // Forward the streaming chunk to client
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      type: 'content',
+                      content: content
+                    })}\n\n`));
+                  }
+                } catch (e) {
+                  console.error('Error parsing SSE chunk:', e);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Stream error:', error);
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'error',
+            error: error instanceof Error ? error.message : 'Stream error'
+          })}\n\n`));
+          controller.close();
         }
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      }
+    });
 
   } catch (error) {
     console.error('Error in analyze-food function:', error);

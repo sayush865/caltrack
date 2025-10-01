@@ -19,24 +19,71 @@ const Index = () => {
     setLastImageData(imageData);
     setAnalyzing(true);
     setNutritionData(null);
+    setAnalysisBreakdown(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-food', {
-        body: {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/analyze-food`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
           imageBase64: imageData,
           userId: '00000000-0000-0000-0000-000000000000'
-        }
+        })
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to start analysis');
+      }
 
-      if (data?.data) {
-        setNutritionData(data.data);
-        setAnalysisBreakdown(data.analysis);
-        toast({
-          title: 'Food analyzed!',
-          description: 'Nutrition data has been saved to your log.',
-        });
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let streamedContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            
+            try {
+              const parsed = JSON.parse(data);
+              
+              if (parsed.type === 'content') {
+                streamedContent += parsed.content;
+                // Update the display with partial content
+                setAnalysisBreakdown({ streaming: streamedContent });
+              } else if (parsed.type === 'complete') {
+                setNutritionData(parsed.data);
+                setAnalysisBreakdown(parsed.analysis);
+                setAnalyzing(false);
+                toast({
+                  title: 'Food analyzed!',
+                  description: 'Nutrition data has been saved to your log.',
+                });
+              } else if (parsed.type === 'error') {
+                throw new Error(parsed.error);
+              }
+            } catch (e) {
+              console.error('Error parsing stream chunk:', e);
+            }
+          }
+        }
       }
     } catch (error: any) {
       console.error('Analysis error:', error);
@@ -45,7 +92,6 @@ const Index = () => {
         description: error.message || 'Failed to analyze food. Please try again.',
         variant: 'destructive',
       });
-    } finally {
       setAnalyzing(false);
     }
   };
@@ -113,12 +159,20 @@ const Index = () => {
             </div>
 
             {analyzing && (
-              <div className="flex flex-col items-center justify-center py-24 gap-6 bg-card rounded-xl border border-border">
-                <Loader2 className="w-12 h-12 animate-spin text-foreground" />
-                <div className="text-center space-y-2">
-                  <p className="text-lg font-semibold">Analyzing Food</p>
-                  <p className="text-sm text-muted-foreground">Processing with GPT-5...</p>
+              <div className="flex flex-col gap-6 bg-card rounded-xl border border-border p-6">
+                <div className="flex items-center gap-4">
+                  <Loader2 className="w-8 h-8 animate-spin text-foreground" />
+                  <div>
+                    <p className="text-lg font-semibold">Analyzing Food</p>
+                    <p className="text-sm text-muted-foreground">AI is analyzing your meal...</p>
+                  </div>
                 </div>
+                
+                {analysisBreakdown?.streaming && (
+                  <div className="bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                    <p className="text-sm whitespace-pre-wrap font-mono">{analysisBreakdown.streaming}</p>
+                  </div>
+                )}
               </div>
             )}
 
