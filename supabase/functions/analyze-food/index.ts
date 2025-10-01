@@ -34,7 +34,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'openai/gpt-5-mini',
         messages: [
           {
             role: 'system',
@@ -98,7 +98,7 @@ Return your analysis in this exact JSON format:
             ]
           }
         ],
-        max_completion_tokens: 16000,
+        max_completion_tokens: 2000,
         stream: true
       }),
     });

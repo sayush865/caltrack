@@ -173,11 +173,26 @@ const Index = () => {
             </div>
 
             {analyzing && (
-              <div className="flex flex-col items-center justify-center py-20 gap-4 bg-card rounded-xl border shadow-sm">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                <div className="text-center">
-                  <p className="font-medium">Analyzing your food...</p>
+              <div className="bg-card rounded-xl border shadow-sm p-6 space-y-4 animate-in fade-in-50">
+                <div className="flex items-center gap-3 border-b pb-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <p className="font-semibold">Analyzing with GPT-5...</p>
                 </div>
+                
+                {analysisBreakdown?.visual_analysis && (
+                  <div className="space-y-3">
+                    <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+                      <h3 className="font-semibold mb-2 text-sm text-primary flex items-center gap-2">
+                        <span className="inline-block w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                        AI Analysis Streaming
+                      </h3>
+                      <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                        {analysisBreakdown.visual_analysis}
+                        <span className="inline-block w-1.5 h-4 bg-primary ml-1 animate-pulse"></span>
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
