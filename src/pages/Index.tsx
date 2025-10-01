@@ -14,6 +14,8 @@ const Index = () => {
   const [nutritionData, setNutritionData] = useState<any>(null);
   const [analysisBreakdown, setAnalysisBreakdown] = useState<any>(null);
   const [lastImageData, setLastImageData] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const handleCapture = async (imageData: string) => {
     setLastImageData(imageData);
@@ -89,9 +91,10 @@ const Index = () => {
               setNutritionData(parsed.data);
               setAnalysisBreakdown(parsed.analysis);
               setAnalyzing(false);
+              setShowConfirmation(true);
               toast({
-                title: 'Food analyzed!',
-                description: 'Nutrition data has been saved to your log.',
+                title: 'Analysis complete!',
+                description: 'Review the results and confirm to save.',
               });
             } else if (parsed.type === 'error') {
               throw new Error(parsed.error);
@@ -114,8 +117,69 @@ const Index = () => {
 
   const handleReanalyze = () => {
     if (lastImageData) {
+      setShowConfirmation(false);
       handleCapture(lastImageData);
     }
+  };
+
+  const handleSave = async () => {
+    if (!nutritionData) return;
+    
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: 'Not logged in',
+          description: 'Please log in to save your food log.',
+          variant: 'destructive',
+        });
+        navigate('/auth');
+        return;
+      }
+
+      // Save to database
+      const { error } = await supabase.from('food_logs').insert({
+        user_id: user.id,
+        food_name: nutritionData.food_name,
+        calories: nutritionData.calories,
+        protein: nutritionData.protein,
+        carbs: nutritionData.carbs,
+        fat: nutritionData.fat,
+        fiber: nutritionData.fiber,
+        sugar: nutritionData.sugar,
+        sodium: nutritionData.sodium,
+        image_data: lastImageData,
+        analysis_breakdown: analysisBreakdown,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Saved!',
+        description: 'Food log has been saved successfully.',
+      });
+      
+      setShowConfirmation(false);
+      setNutritionData(null);
+      setAnalysisBreakdown(null);
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast({
+        title: 'Save failed',
+        description: error.message || 'Failed to save food log.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setShowConfirmation(false);
+    setNutritionData(null);
+    setAnalysisBreakdown(null);
   };
 
   return (
@@ -193,7 +257,54 @@ const Index = () => {
             )}
 
             {nutritionData && !analyzing && (
-              <NutritionDisplay data={nutritionData} analysis={analysisBreakdown} />
+              <div className="space-y-4">
+                <NutritionDisplay data={nutritionData} analysis={analysisBreakdown} />
+                
+                {showConfirmation && (
+                  <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold">Confirm Analysis</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Review the nutritional data above. Does it look accurate?
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-3">
+                      <Button 
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="flex-1"
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          'Save to Log'
+                        )}
+                      </Button>
+                      
+                      <Button 
+                        variant="outline"
+                        onClick={handleReanalyze}
+                        disabled={saving}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Re-analyze
+                      </Button>
+                      
+                      <Button 
+                        variant="outline"
+                        onClick={handleCancel}
+                        disabled={saving}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {!nutritionData && !analyzing && (
