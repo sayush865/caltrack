@@ -19,25 +19,85 @@ const Index = () => {
     setLastImageData(imageData);
     setAnalyzing(true);
     setNutritionData(null);
+    setAnalysisBreakdown({ visual_analysis: '', portion_estimation: '', nutritional_reasoning: '' });
 
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-food', {
+      const response = await fetch(
+        `https://misnkzxiahkxmrfinknn.supabase.co/functions/v1/analyze-food`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+          },
+          body: JSON.stringify({
+            imageBase64: imageData,
+            userId: '00000000-0000-0000-0000-000000000000'
+          })
+        }
+      );
+
+      if (!response.ok) throw new Error('Analysis failed');
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.content) {
+                  fullContent += data.content;
+                  // Update UI with partial content for immediate feedback
+                  setAnalysisBreakdown({ 
+                    visual_analysis: fullContent,
+                    portion_estimation: '',
+                    nutritional_reasoning: ''
+                  });
+                }
+              } catch (e) {
+                console.error('Parse error:', e);
+              }
+            }
+          }
+        }
+      }
+
+      // Parse the complete JSON response
+      const cleanContent = fullContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const nutritionData = JSON.parse(cleanContent);
+
+      // Save to database
+      const { data: saveData, error: saveError } = await supabase.functions.invoke('save-food-log', {
         body: {
           imageBase64: imageData,
-          userId: '00000000-0000-0000-0000-000000000000'
+          userId: '00000000-0000-0000-0000-000000000000',
+          nutritionData
         }
       });
 
-      if (error) throw error;
+      if (saveError) throw saveError;
 
-      if (data?.data) {
-        setNutritionData(data.data);
-        setAnalysisBreakdown(data.analysis);
-        toast({
-          title: 'Food analyzed!',
-          description: 'Nutrition data has been saved to your log.',
-        });
-      }
+      setNutritionData(saveData.data);
+      setAnalysisBreakdown({
+        visual_analysis: nutritionData.visual_analysis,
+        portion_estimation: nutritionData.portion_estimation,
+        nutritional_reasoning: nutritionData.nutritional_reasoning
+      });
+
+      toast({
+        title: 'Food analyzed!',
+        description: 'Nutrition data has been saved to your log.',
+      });
     } catch (error: any) {
       console.error('Analysis error:', error);
       toast({
