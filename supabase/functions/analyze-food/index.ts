@@ -126,11 +126,21 @@ Return your analysis in this exact JSON format:
     const data = await response.json();
     console.log('Full AI Response:', JSON.stringify(data, null, 2));
     
-    const content = data.choices?.[0]?.message?.content;
+    // Check for various possible response structures
+    let content = data.choices?.[0]?.message?.content;
+    
+    // If no content in message, check if it's in a different structure
+    if (!content && data.choices?.[0]?.text) {
+      content = data.choices[0].text;
+    }
     
     if (!content) {
-      console.error('No content in AI response. Full response:', JSON.stringify(data, null, 2));
-      throw new Error('No content in AI response');
+      console.error('No content found in AI response.');
+      console.error('Response structure:', JSON.stringify(data, null, 2));
+      console.error('Choices:', data.choices);
+      console.error('First choice:', data.choices?.[0]);
+      console.error('Message:', data.choices?.[0]?.message);
+      throw new Error(`No content in AI response. Response: ${JSON.stringify(data)}`);
     }
 
     console.log('AI Response content:', content);
