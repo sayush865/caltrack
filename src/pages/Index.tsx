@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { History, Loader2, Apple } from 'lucide-react';
+import { History, Loader2, Apple, RefreshCw } from 'lucide-react';
 import CameraCapture from '@/components/CameraCapture';
 import NutritionDisplay from '@/components/NutritionDisplay';
 
@@ -13,9 +13,10 @@ const Index = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [nutritionData, setNutritionData] = useState<any>(null);
   const [analysisBreakdown, setAnalysisBreakdown] = useState<any>(null);
+  const [lastImageData, setLastImageData] = useState<string | null>(null);
 
   const handleCapture = async (imageData: string) => {
-
+    setLastImageData(imageData);
     setAnalyzing(true);
     setNutritionData(null);
 
@@ -49,6 +50,12 @@ const Index = () => {
     }
   };
 
+  const handleReanalyze = () => {
+    if (lastImageData) {
+      handleCapture(lastImageData);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       <div className="container max-w-4xl mx-auto px-4 py-6 space-y-8">
@@ -63,14 +70,28 @@ const Index = () => {
               <p className="text-sm text-muted-foreground">AI-Powered Nutrition Analysis</p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate('/daily-log')}
-            className="h-10 w-10 rounded-xl"
-          >
-            <History className="w-5 h-5" />
-          </Button>
+          <div className="flex gap-2">
+            {lastImageData && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleReanalyze}
+                disabled={analyzing}
+                className="h-10 w-10 rounded-xl"
+                title="Reanalyze last image"
+              >
+                <RefreshCw className={`w-5 h-5 ${analyzing ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate('/daily-log')}
+              className="h-10 w-10 rounded-xl"
+            >
+              <History className="w-5 h-5" />
+            </Button>
+          </div>
         </header>
 
         {/* Main Content */}
