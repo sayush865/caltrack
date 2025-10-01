@@ -64,22 +64,22 @@ export default function NutritionDisplay({ data, analysis }: NutritionDisplayPro
   ];
 
   return (
-    <Card className="shadow-md border-border/50">
+    <Card className="border border-border bg-card">
       <CardHeader className="pb-4 space-y-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle className="text-2xl mb-1">{data.food_name}</CardTitle>
+            <CardTitle className="text-2xl mb-2">{data.food_name}</CardTitle>
             <Badge variant="secondary" className="capitalize font-medium">
               {data.meal_type}
             </Badge>
           </div>
         </div>
-        <Separator />
+        <Separator className="bg-border" />
         <div className="flex items-baseline gap-2">
-          <div className="text-4xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
+          <div className="text-5xl font-bold text-foreground">
             {data.calories}
           </div>
-          <span className="text-base font-medium text-muted-foreground">calories</span>
+          <span className="text-lg font-medium text-muted-foreground">calories</span>
         </div>
       </CardHeader>
       
@@ -87,8 +87,8 @@ export default function NutritionDisplay({ data, analysis }: NutritionDisplayPro
         {/* AI Analysis Breakdown */}
         {analysis && (
           <>
-            <div className="space-y-3 p-4 rounded-lg bg-accent/10 border border-accent/20">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-accent">AI Analysis</h3>
+            <div className="space-y-3 p-4 rounded-lg bg-muted border border-border">
+              <h3 className="text-sm font-semibold uppercase tracking-wide">AI Analysis</h3>
               
               <div className="space-y-3 text-sm">
                 <div>
@@ -96,14 +96,14 @@ export default function NutritionDisplay({ data, analysis }: NutritionDisplayPro
                   <p className="text-foreground leading-relaxed">{analysis.visual_analysis}</p>
                 </div>
                 
-                <Separator className="bg-accent/20" />
+                <Separator className="bg-border" />
                 
                 <div>
                   <p className="font-medium text-muted-foreground mb-1">Portion Estimation:</p>
                   <p className="text-foreground leading-relaxed">{analysis.portion_estimation}</p>
                 </div>
                 
-                <Separator className="bg-accent/20" />
+                <Separator className="bg-border" />
                 
                 <div>
                   <p className="font-medium text-muted-foreground mb-1">Nutritional Calculation:</p>

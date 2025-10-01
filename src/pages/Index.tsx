@@ -57,27 +57,27 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-      <div className="container max-w-4xl mx-auto px-4 py-6 space-y-8">
+    <div className="min-h-screen bg-background">
+      <div className="container max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* Header */}
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
-              <Apple className="w-7 h-7 text-primary-foreground" />
+        <header className="flex items-center justify-between border-b border-border pb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center">
+              <Apple className="w-8 h-8 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">NutraVision</h1>
-              <p className="text-sm text-muted-foreground">AI-Powered Nutrition Analysis</p>
+              <h1 className="text-3xl font-bold tracking-tight">NutraVision</h1>
+              <p className="text-sm text-muted-foreground">AI-Powered Food Analysis</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {lastImageData && (
               <Button
                 variant="outline"
                 size="icon"
                 onClick={handleReanalyze}
                 disabled={analyzing}
-                className="h-10 w-10 rounded-xl"
+                className="h-11 w-11 border-border hover:bg-muted"
                 title="Reanalyze last image"
               >
                 <RefreshCw className={`w-5 h-5 ${analyzing ? 'animate-spin' : ''}`} />
@@ -87,7 +87,7 @@ const Index = () => {
               variant="outline"
               size="icon"
               onClick={() => navigate('/daily-log')}
-              className="h-10 w-10 rounded-xl"
+              className="h-11 w-11 border-border hover:bg-muted"
             >
               <History className="w-5 h-5" />
             </Button>
@@ -95,28 +95,29 @@ const Index = () => {
         </header>
 
         {/* Main Content */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-8 lg:grid-cols-2">
           {/* Camera Section */}
-          <div className="space-y-3">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight">Capture Your Meal</h2>
-              <p className="text-sm text-muted-foreground">Take a photo for instant nutrition analysis</p>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-semibold">Capture Meal</h2>
+              <p className="text-muted-foreground">Take or upload a photo for instant analysis</p>
             </div>
             <CameraCapture onCapture={handleCapture} disabled={analyzing} />
           </div>
 
           {/* Results Section */}
-          <div className="space-y-3">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight">Nutrition Analysis</h2>
-              <p className="text-sm text-muted-foreground">Detailed breakdown powered by AI</p>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-semibold">Analysis Results</h2>
+              <p className="text-muted-foreground">Comprehensive nutritional breakdown</p>
             </div>
 
             {analyzing && (
-              <div className="flex flex-col items-center justify-center py-20 gap-4 bg-card rounded-xl border shadow-sm">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                <div className="text-center">
-                  <p className="font-medium">Analyzing your food...</p>
+              <div className="flex flex-col items-center justify-center py-24 gap-6 bg-card rounded-xl border border-border">
+                <Loader2 className="w-12 h-12 animate-spin text-foreground" />
+                <div className="text-center space-y-2">
+                  <p className="text-lg font-semibold">Analyzing Food</p>
+                  <p className="text-sm text-muted-foreground">Processing with GPT-5...</p>
                 </div>
               </div>
             )}
@@ -126,13 +127,13 @@ const Index = () => {
             )}
 
             {!nutritionData && !analyzing && (
-              <div className="flex flex-col items-center justify-center py-20 gap-4 bg-card rounded-xl border shadow-sm">
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                  <Apple className="w-8 h-8 text-muted-foreground" />
+              <div className="flex flex-col items-center justify-center py-24 gap-6 bg-card rounded-xl border border-border">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+                  <Apple className="w-10 h-10 text-muted-foreground" />
                 </div>
-                <div className="text-center">
-                  <p className="font-medium">No analysis yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">Capture a meal to get started</p>
+                <div className="text-center space-y-2">
+                  <p className="text-lg font-semibold">No Analysis Yet</p>
+                  <p className="text-sm text-muted-foreground">Capture or upload an image to begin</p>
                 </div>
               </div>
             )}

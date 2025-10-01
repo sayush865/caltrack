@@ -18,12 +18,12 @@ interface FoodLogItemProps {
 
 export default function FoodLogItem({ log }: FoodLogItemProps) {
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow border-border/50">
+    <Card className="overflow-hidden hover:border-foreground/20 transition-all border border-border bg-card">
       <div className="flex gap-4 p-4">
         <img 
           src={log.image_url} 
           alt={log.food_name}
-          className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
+          className="w-28 h-28 rounded-lg object-cover flex-shrink-0 border border-border"
         />
         <CardContent className="flex-1 p-0 space-y-2">
           <div className="flex items-start justify-between gap-2">

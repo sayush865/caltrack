@@ -70,10 +70,10 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
   };
 
   return (
-    <Card className="overflow-hidden shadow-md border-border/50">
+    <Card className="overflow-hidden border border-border bg-card">
       {preview ? (
         <div className="space-y-0">
-          <div className="relative aspect-[4/3] bg-muted">
+          <div className="relative aspect-[4/3] bg-muted border-b border-border">
             <img 
               src={preview} 
               alt="Food preview" 
@@ -88,7 +88,7 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
                 if (cameraInputRef.current) cameraInputRef.current.value = '';
               }}
               variant="outline"
-              className="w-full"
+              className="w-full h-11 border-border"
             >
               <Camera className="w-4 h-4 mr-2" />
               Take Another Photo
@@ -98,25 +98,25 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
       ) : (
         <div className="p-6 space-y-4">
           <div 
-            className={`aspect-[4/3] bg-gradient-to-br from-muted to-muted/50 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 text-muted-foreground transition-all ${
+            className={`aspect-[4/3] bg-muted rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-all ${
               isDragging 
-                ? 'border-primary bg-primary/5 scale-[1.02]' 
-                : 'border-border hover:border-primary/50'
+                ? 'border-foreground bg-muted/80 scale-[1.01]' 
+                : 'border-border hover:border-foreground/40'
             }`}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Camera className="w-8 h-8 text-primary" />
+            <div className="w-20 h-20 rounded-full bg-foreground/10 flex items-center justify-center">
+              <Camera className="w-10 h-10 text-foreground" />
             </div>
-            <div className="text-center px-4 pointer-events-none">
-              <p className="font-medium text-foreground">
-                {isDragging ? 'Drop image here' : 'Ready to analyze'}
+            <div className="text-center px-6 pointer-events-none">
+              <p className="font-semibold text-foreground text-lg">
+                {isDragging ? 'Drop image here' : 'Ready to Analyze'}
               </p>
-              <p className="text-sm mt-1">
-                {isDragging ? 'Release to upload' : 'Drag & drop, snap a photo, or upload from gallery'}
+              <p className="text-sm text-muted-foreground mt-2">
+                {isDragging ? 'Release to upload' : 'Drag & drop, snap a photo, or upload'}
               </p>
             </div>
           </div>
@@ -124,7 +124,7 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
             <Button
               onClick={() => cameraInputRef.current?.click()}
               disabled={disabled}
-              className="w-full h-12"
+              className="w-full h-12 text-base"
               variant="default"
             >
               <Camera className="w-5 h-5 mr-2" />
@@ -134,7 +134,7 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled}
               variant="outline"
-              className="w-full h-12"
+              className="w-full h-12 text-base border-border"
             >
               <Upload className="w-5 h-5 mr-2" />
               Upload

@@ -73,62 +73,63 @@ export default function DailyLog() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-accent/20 to-background">
-      <div className="container max-w-2xl mx-auto p-4 pb-20 space-y-4">
-        <div className="flex items-center gap-3 pt-2">
+    <div className="min-h-screen bg-background">
+      <div className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
+        <div className="flex items-center gap-4 border-b border-border pb-6">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate('/')}
-            className="rounded-full"
+            className="h-11 w-11 hover:bg-muted"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold">Daily Log</h1>
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              {format(new Date(), 'EEEE, MMMM d')}
+            <h1 className="text-3xl font-bold tracking-tight">Daily Log</h1>
+            <p className="text-muted-foreground flex items-center gap-2 mt-1">
+              <Calendar className="w-4 h-4" />
+              {format(new Date(), 'EEEE, MMMM d, yyyy')}
             </p>
           </div>
         </div>
 
-        <Card className="shadow-md border-border/50 bg-gradient-to-br from-primary/5 to-secondary/5">
+        <Card className="border border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-lg">Today's Totals</CardTitle>
+            <CardTitle className="text-xl">Today's Nutrition</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{Math.round(dailyTotals.calories)}</div>
-              <div className="text-xs text-muted-foreground">Calories</div>
+          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="space-y-1">
+              <div className="text-3xl font-bold">{Math.round(dailyTotals.calories)}</div>
+              <div className="text-sm text-muted-foreground">Calories</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-chart-1">{Math.round(dailyTotals.protein)}</div>
-              <div className="text-xs text-muted-foreground">Protein</div>
+            <div className="space-y-1">
+              <div className="text-3xl font-bold">{Math.round(dailyTotals.protein)}g</div>
+              <div className="text-sm text-muted-foreground">Protein</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-chart-2">{Math.round(dailyTotals.carbs)}</div>
-              <div className="text-xs text-muted-foreground">Carbs</div>
+            <div className="space-y-1">
+              <div className="text-3xl font-bold">{Math.round(dailyTotals.carbs)}g</div>
+              <div className="text-sm text-muted-foreground">Carbs</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-chart-3">{Math.round(dailyTotals.fat)}</div>
-              <div className="text-xs text-muted-foreground">Fat</div>
+            <div className="space-y-1">
+              <div className="text-3xl font-bold">{Math.round(dailyTotals.fat)}g</div>
+              <div className="text-sm text-muted-foreground">Fat</div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Meal History</h2>
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Loading your meals...
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading meals...</p>
             </div>
           ) : logs.length === 0 ? (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No meals logged today</p>
+            <Card className="border border-border bg-card p-12 text-center">
+              <p className="text-lg text-muted-foreground mb-4">No meals logged today</p>
               <Button
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="mt-4"
+                className="border-border"
               >
                 Log Your First Meal
               </Button>
