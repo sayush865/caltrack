@@ -117,7 +117,6 @@ const Index = () => {
                 <Loader2 className="w-10 h-10 animate-spin text-primary" />
                 <div className="text-center">
                   <p className="font-medium">Analyzing your food...</p>
-                  <p className="text-sm text-muted-foreground mt-1">Using GPT-5 for accurate results</p>
                 </div>
               </div>
             )}
