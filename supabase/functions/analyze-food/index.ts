@@ -39,54 +39,70 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert nutritionist and dietitian with advanced food recognition capabilities. Your task is to provide highly accurate nutritional analysis with detailed reasoning.
+            content: `You are an expert nutritionist with access to USDA FoodData Central and standard nutritional databases. Your task is to provide CONSISTENT and ACCURATE nutritional analysis.
 
-CRITICAL INSTRUCTIONS:
-1. Analyze the food image step-by-step
-2. Explain what you see in detail
-3. Estimate portions and quantities precisely
-4. Use your knowledge of standard serving sizes and nutritional databases
-5. Provide accurate nutritional values with reasoning
-6. Return ONLY valid JSON without any markdown formatting
+CRITICAL CONSISTENCY RULES:
+1. ALWAYS use USDA Standard Reference values as your baseline
+2. Round portions to standard serving sizes (e.g., 100g, 1 cup, 1 piece)
+3. For common foods, use the most typical preparation method
+4. Cross-reference multiple database entries and use the median value
+5. Be deterministic - the same food should yield the same nutritional values
+6. For mixed dishes, break down each component and sum the values
+7. Return ONLY valid JSON without any markdown formatting
 
-Be precise, detailed, and thorough in your analysis.`
+ANALYSIS PROCESS:
+1. Identify the specific food items and their preparation method
+2. Estimate portion size using visual cues (plate size, utensils, etc.)
+3. Look up standard nutritional values from USDA database
+4. Calculate totals based on estimated portions
+5. Double-check your math and ensure values are realistic
+
+Be precise, consistent, and reference-based in your analysis.`
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: `Analyze this food image in detail and provide a comprehensive breakdown:
+                text: `Analyze this food image using USDA FoodData Central standard values:
 
-STEP 1 - VISUAL IDENTIFICATION:
-Describe what you see in the image. What foods are present? What containers or serving vessels? Any garnishes or accompaniments?
+STEP 1 - IDENTIFY FOOD & PREPARATION:
+List each food item and its preparation method (e.g., "grilled chicken breast", "steamed white rice").
 
-STEP 2 - PORTION ESTIMATION:
-Estimate the quantity and portion sizes. For example: "1 bowl approximately 300ml capacity", "2 pieces of bread approximately 60g each", "garnish approximately 20g". Be specific about your estimations.
+STEP 2 - ESTIMATE PORTIONS (Round to standard sizes):
+Use visual references to estimate portions in standard units:
+- Compare to typical plate size (usually 10 inches)
+- Use utensils for scale reference
+- Round to: 100g, 1 cup (240ml), 1 oz (28g), 1 piece, etc.
 
-STEP 3 - NUTRITIONAL ANALYSIS:
-Based on the portions identified, calculate accurate nutritional values using standard nutritional databases (USDA, etc.). Explain your reasoning for the calorie count.
+STEP 3 - LOOK UP USDA VALUES:
+For each food component, reference USDA SR Legacy values:
+- Search for exact food match in USDA database
+- Use "raw" or "cooked" values matching the preparation
+- For mixed dishes, break into components
 
-STEP 4 - FINAL CLASSIFICATION:
-Determine the meal type based on the food composition.
+STEP 4 - CALCULATE & VERIFY:
+Sum all nutritional values and verify they're realistic:
+- Calories should match macro totals (4 cal/g protein+carbs, 9 cal/g fat)
+- Check values against similar foods for consistency
 
-Return your analysis in this exact JSON format:
+Return ONLY this JSON (no markdown):
 {
-  "visual_analysis": "detailed description of what you see",
-  "portion_estimation": "detailed breakdown of estimated quantities with reasoning",
-  "nutritional_reasoning": "explanation of how you calculated the nutritional values",
+  "visual_analysis": "specific foods and preparation methods identified",
+  "portion_estimation": "portions in standard units with visual reference reasoning",
+  "nutritional_reasoning": "USDA database references and calculation steps",
   "food_name": "specific food name(s)",
   "calories": number,
-  "protein": number (grams),
-  "carbs": number (grams),
-  "fat": number (grams),
-  "fiber": number (grams),
-  "sugar": number (grams),
-  "sodium": number (milligrams),
-  "vitamin_a": number (mcg RAE),
-  "vitamin_c": number (milligrams),
-  "calcium": number (milligrams),
-  "iron": number (milligrams),
+  "protein": number,
+  "carbs": number,
+  "fat": number,
+  "fiber": number,
+  "sugar": number,
+  "sodium": number,
+  "vitamin_a": number,
+  "vitamin_c": number,
+  "calcium": number,
+  "iron": number,
   "meal_type": "breakfast/lunch/dinner/snack"
 }`
               },
