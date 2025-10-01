@@ -26,7 +26,7 @@ serve(async (req) => {
 
     console.log('Analyzing food image with AI...');
 
-    // Call Lovable AI with vision capabilities using Gemini Flash
+    // Call Lovable AI with vision capabilities using GPT-5
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -34,7 +34,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'openai/gpt-5',
         messages: [
           {
             role: 'system',
