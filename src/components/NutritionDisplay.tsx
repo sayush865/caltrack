@@ -19,9 +19,14 @@ interface NutritionDisplayProps {
     iron: number;
     meal_type: string;
   };
+  analysis?: {
+    visual_analysis: string;
+    portion_estimation: string;
+    nutritional_reasoning: string;
+  };
 }
 
-export default function NutritionDisplay({ data }: NutritionDisplayProps) {
+export default function NutritionDisplay({ data, analysis }: NutritionDisplayProps) {
   const totalMacros = data.protein + data.carbs + data.fat;
   
   const macros = [
@@ -79,6 +84,38 @@ export default function NutritionDisplay({ data }: NutritionDisplayProps) {
       </CardHeader>
       
       <CardContent className="space-y-6">
+        {/* AI Analysis Breakdown */}
+        {analysis && (
+          <>
+            <div className="space-y-3 p-4 rounded-lg bg-accent/10 border border-accent/20">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-accent">AI Analysis</h3>
+              
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="font-medium text-muted-foreground mb-1">What I See:</p>
+                  <p className="text-foreground leading-relaxed">{analysis.visual_analysis}</p>
+                </div>
+                
+                <Separator className="bg-accent/20" />
+                
+                <div>
+                  <p className="font-medium text-muted-foreground mb-1">Portion Estimation:</p>
+                  <p className="text-foreground leading-relaxed">{analysis.portion_estimation}</p>
+                </div>
+                
+                <Separator className="bg-accent/20" />
+                
+                <div>
+                  <p className="font-medium text-muted-foreground mb-1">Nutritional Calculation:</p>
+                  <p className="text-foreground leading-relaxed">{analysis.nutritional_reasoning}</p>
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+          </>
+        )}
+
         {/* Macronutrients with Progress Bars */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Macronutrients</h3>

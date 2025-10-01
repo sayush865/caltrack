@@ -38,48 +38,42 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert nutritionist and dietitian with advanced food recognition capabilities. Your task is to provide highly accurate nutritional analysis based on precise portion size estimation.
+            content: `You are an expert nutritionist and dietitian with advanced food recognition capabilities. Your task is to provide highly accurate nutritional analysis with detailed reasoning.
 
 CRITICAL INSTRUCTIONS:
-1. First, carefully analyze the food image to identify ALL items present
-2. Estimate portion sizes by examining:
-   - Visual size of the food items
-   - Comparison with standard serving sizes
-   - Container/plate dimensions if visible
-   - Density and volume of the food
-3. Provide ACCURATE nutritional values based on the SPECIFIC portion visible, not generic averages
-4. If multiple food items are present, calculate combined nutritional values
-5. Return ONLY valid JSON without any markdown formatting, explanations, or code blocks
+1. Analyze the food image step-by-step
+2. Explain what you see in detail
+3. Estimate portions and quantities precisely
+4. Use your knowledge of standard serving sizes and nutritional databases
+5. Provide accurate nutritional values with reasoning
+6. Return ONLY valid JSON without any markdown formatting
 
-Be precise and thorough in your analysis.`
+Be precise, detailed, and thorough in your analysis.`
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: `Perform a complete analysis of this food image:
+                text: `Analyze this food image in detail and provide a comprehensive breakdown:
 
-STEP 1 - VISUAL ANALYSIS:
-- Identify all food items in the image
-- Note the presentation style (plated, bowl, packaged, etc.)
-- Observe any reference objects for scale
+STEP 1 - VISUAL IDENTIFICATION:
+Describe what you see in the image. What foods are present? What containers or serving vessels? Any garnishes or accompaniments?
 
 STEP 2 - PORTION ESTIMATION:
-- Estimate the weight/volume of each food component
-- Consider the density and composition of foods
-- Account for hidden portions (food under toppings, etc.)
+Estimate the quantity and portion sizes. For example: "1 bowl approximately 300ml capacity", "2 pieces of bread approximately 60g each", "garnish approximately 20g". Be specific about your estimations.
 
-STEP 3 - NUTRITIONAL CALCULATION:
-- Calculate accurate nutritional values for the SPECIFIC portions visible
-- Include all macronutrients and key micronutrients
-- Use current USDA nutritional database standards
+STEP 3 - NUTRITIONAL ANALYSIS:
+Based on the portions identified, calculate accurate nutritional values using standard nutritional databases (USDA, etc.). Explain your reasoning for the calorie count.
 
-STEP 4 - MEAL CLASSIFICATION:
-- Determine the most appropriate meal type based on food composition and typical eating patterns
+STEP 4 - FINAL CLASSIFICATION:
+Determine the meal type based on the food composition.
 
-Return your analysis in this exact JSON format (all values must be numbers, no strings for numeric fields):
+Return your analysis in this exact JSON format:
 {
+  "visual_analysis": "detailed description of what you see",
+  "portion_estimation": "detailed breakdown of estimated quantities with reasoning",
+  "nutritional_reasoning": "explanation of how you calculated the nutritional values",
   "food_name": "specific food name(s)",
   "calories": number,
   "protein": number (grams),
@@ -208,7 +202,12 @@ Return your analysis in this exact JSON format (all values must be numbers, no s
     return new Response(
       JSON.stringify({ 
         success: true,
-        data: logData
+        data: logData,
+        analysis: {
+          visual_analysis: nutritionData.visual_analysis,
+          portion_estimation: nutritionData.portion_estimation,
+          nutritional_reasoning: nutritionData.nutritional_reasoning
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

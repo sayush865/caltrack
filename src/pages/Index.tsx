@@ -12,6 +12,7 @@ const Index = () => {
   const { toast } = useToast();
   const [analyzing, setAnalyzing] = useState(false);
   const [nutritionData, setNutritionData] = useState<any>(null);
+  const [analysisBreakdown, setAnalysisBreakdown] = useState<any>(null);
 
   const handleCapture = async (imageData: string) => {
 
@@ -30,6 +31,7 @@ const Index = () => {
 
       if (data?.data) {
         setNutritionData(data.data);
+        setAnalysisBreakdown(data.analysis);
         toast({
           title: 'Food analyzed!',
           description: 'Nutrition data has been saved to your log.',
@@ -100,7 +102,7 @@ const Index = () => {
             )}
 
             {nutritionData && !analyzing && (
-              <NutritionDisplay data={nutritionData} />
+              <NutritionDisplay data={nutritionData} analysis={analysisBreakdown} />
             )}
 
             {!nutritionData && !analyzing && (
