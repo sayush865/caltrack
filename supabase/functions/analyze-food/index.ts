@@ -26,7 +26,7 @@ serve(async (req) => {
 
     console.log('Analyzing food image with AI...');
 
-    // Call Lovable AI with vision capabilities using GPT-5
+    // Call Lovable AI with vision capabilities using Gemini
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -34,7 +34,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -124,13 +124,16 @@ Return your analysis in this exact JSON format:
     }
 
     const data = await response.json();
+    console.log('Full AI Response:', JSON.stringify(data, null, 2));
+    
     const content = data.choices?.[0]?.message?.content;
     
     if (!content) {
+      console.error('No content in AI response. Full response:', JSON.stringify(data, null, 2));
       throw new Error('No content in AI response');
     }
 
-    console.log('AI Response:', content);
+    console.log('AI Response content:', content);
 
     // Parse the JSON response
     let nutritionData;
