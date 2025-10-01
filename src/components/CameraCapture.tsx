@@ -30,16 +30,30 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
     processFile(file);
   };
 
-  const handleDragOver = (event: React.DragEvent) => {
+  const handleDragEnter = (event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
     if (!disabled) setIsDragging(true);
   };
 
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   const handleDragLeave = (event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    setIsDragging(false);
+    // Only reset if we're leaving the drop zone entirely
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    if (
+      event.clientX < rect.left ||
+      event.clientX >= rect.right ||
+      event.clientY < rect.top ||
+      event.clientY >= rect.bottom
+    ) {
+      setIsDragging(false);
+    }
   };
 
   const handleDrop = (event: React.DragEvent) => {
@@ -89,6 +103,7 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
                 ? 'border-primary bg-primary/5 scale-[1.02]' 
                 : 'border-border hover:border-primary/50'
             }`}
+            onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
