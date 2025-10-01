@@ -26,7 +26,7 @@ serve(async (req) => {
 
     console.log('Analyzing food image with AI...');
 
-    // Call Lovable AI with vision capabilities
+    // Call Lovable AI with vision capabilities using GPT-5
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -34,18 +34,66 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'openai/gpt-5',
         messages: [
           {
             role: 'system',
-            content: 'You are a nutrition expert. Analyze food images and provide detailed nutritional information. Return ONLY valid JSON without any markdown formatting or code blocks.'
+            content: `You are an expert nutritionist and dietitian with advanced food recognition capabilities. Your task is to provide highly accurate nutritional analysis based on precise portion size estimation.
+
+CRITICAL INSTRUCTIONS:
+1. First, carefully analyze the food image to identify ALL items present
+2. Estimate portion sizes by examining:
+   - Visual size of the food items
+   - Comparison with standard serving sizes
+   - Container/plate dimensions if visible
+   - Density and volume of the food
+3. Provide ACCURATE nutritional values based on the SPECIFIC portion visible, not generic averages
+4. If multiple food items are present, calculate combined nutritional values
+5. Return ONLY valid JSON without any markdown formatting, explanations, or code blocks
+
+Be precise and thorough in your analysis.`
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Analyze this food image and provide nutritional information. Estimate portion size and return data in this exact JSON format: {"food_name": "name", "calories": number, "protein": number, "carbs": number, "fat": number, "fiber": number, "sugar": number, "sodium": number, "vitamin_a": number, "vitamin_c": number, "calcium": number, "iron": number, "meal_type": "breakfast/lunch/dinner/snack"}'
+                text: `Perform a complete analysis of this food image:
+
+STEP 1 - VISUAL ANALYSIS:
+- Identify all food items in the image
+- Note the presentation style (plated, bowl, packaged, etc.)
+- Observe any reference objects for scale
+
+STEP 2 - PORTION ESTIMATION:
+- Estimate the weight/volume of each food component
+- Consider the density and composition of foods
+- Account for hidden portions (food under toppings, etc.)
+
+STEP 3 - NUTRITIONAL CALCULATION:
+- Calculate accurate nutritional values for the SPECIFIC portions visible
+- Include all macronutrients and key micronutrients
+- Use current USDA nutritional database standards
+
+STEP 4 - MEAL CLASSIFICATION:
+- Determine the most appropriate meal type based on food composition and typical eating patterns
+
+Return your analysis in this exact JSON format (all values must be numbers, no strings for numeric fields):
+{
+  "food_name": "specific food name(s)",
+  "calories": number,
+  "protein": number (grams),
+  "carbs": number (grams),
+  "fat": number (grams),
+  "fiber": number (grams),
+  "sugar": number (grams),
+  "sodium": number (milligrams),
+  "vitamin_a": number (mcg RAE),
+  "vitamin_c": number (milligrams),
+  "calcium": number (milligrams),
+  "iron": number (milligrams),
+  "meal_type": "breakfast/lunch/dinner/snack"
+}`
               },
               {
                 type: 'image_url',
@@ -55,7 +103,8 @@ serve(async (req) => {
               }
             ]
           }
-        ]
+        ],
+        max_completion_tokens: 1000
       }),
     });
 
