@@ -12,11 +12,9 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const processFile = (file: File) => {
     const reader = new FileReader();
     reader.onloadend = () => {
       const result = reader.result as string;
@@ -24,6 +22,37 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
       onCapture(result);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    processFile(file);
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!disabled) setIsDragging(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+    
+    if (disabled) return;
+    
+    const file = event.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      processFile(file);
+    }
   };
 
   return (
@@ -54,13 +83,26 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
         </div>
       ) : (
         <div className="p-6 space-y-4">
-          <div className="aspect-[4/3] bg-gradient-to-br from-muted to-muted/50 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-3 text-muted-foreground transition-colors hover:border-primary/50">
+          <div 
+            className={`aspect-[4/3] bg-gradient-to-br from-muted to-muted/50 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 text-muted-foreground transition-all ${
+              isDragging 
+                ? 'border-primary bg-primary/5 scale-[1.02]' 
+                : 'border-border hover:border-primary/50'
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
               <Camera className="w-8 h-8 text-primary" />
             </div>
-            <div className="text-center px-4">
-              <p className="font-medium text-foreground">Ready to analyze</p>
-              <p className="text-sm mt-1">Snap a photo or upload from gallery</p>
+            <div className="text-center px-4 pointer-events-none">
+              <p className="font-medium text-foreground">
+                {isDragging ? 'Drop image here' : 'Ready to analyze'}
+              </p>
+              <p className="text-sm mt-1">
+                {isDragging ? 'Release to upload' : 'Drag & drop, snap a photo, or upload from gallery'}
+              </p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
