@@ -42,14 +42,18 @@ const Index = () => {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
+      let buffer = '';
 
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
+          const chunk = decoder.decode(value, { stream: true });
+          buffer += chunk;
+          
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
@@ -72,9 +76,25 @@ const Index = () => {
         }
       }
 
-      // Parse the complete JSON response
-      const cleanContent = fullContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const nutritionData = JSON.parse(cleanContent);
+      console.log('Full streamed content:', fullContent);
+
+      // Parse the complete JSON response with better error handling
+      let nutritionData;
+      try {
+        const cleanContent = fullContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        // Try to find JSON object in the content
+        const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('No valid JSON found in response');
+        }
+        
+        nutritionData = JSON.parse(jsonMatch[0]);
+      } catch (parseError: any) {
+        console.error('JSON parse error:', parseError);
+        console.error('Content that failed to parse:', fullContent);
+        throw new Error('Failed to parse nutrition data. Please try again.');
+      }
 
       // Save to database
       const { data: saveData, error: saveError } = await supabase.functions.invoke('save-food-log', {

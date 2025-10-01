@@ -46,9 +46,9 @@ CRITICAL INSTRUCTIONS:
 3. Estimate portions and quantities precisely
 4. Use your knowledge of standard serving sizes and nutritional databases
 5. Provide accurate nutritional values with reasoning
-6. Return ONLY valid JSON without any markdown formatting
+6. Return ONLY a valid JSON object, no markdown formatting, no code blocks, just the raw JSON
 
-Be precise, detailed, and thorough in your analysis.`
+Be precise, detailed, and thorough in your analysis. Return a single valid JSON object.`
           },
           {
             role: 'user',
