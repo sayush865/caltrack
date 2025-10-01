@@ -39,59 +39,80 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert nutritionist with access to USDA FoodData Central and standard nutritional databases. Your task is to provide CONSISTENT and ACCURATE nutritional analysis.
+            content: `You are an expert international nutritionist with access to multiple food databases: USDA FoodData Central (USA), IFCT (Indian Food Composition Tables), UK Food Database, and FAO INFOODS (global).
 
-CRITICAL CONSISTENCY RULES:
-1. ALWAYS use USDA Standard Reference values as your baseline
-2. Round portions to standard serving sizes (e.g., 100g, 1 cup, 1 piece)
-3. For common foods, use the most typical preparation method
-4. Cross-reference multiple database entries and use the median value
-5. Be deterministic - the same food should yield the same nutritional values
-6. For mixed dishes, break down each component and sum the values
-7. Return ONLY valid JSON without any markdown formatting
+CRITICAL ACCURACY GUARDRAILS:
+1. MANDATORY CALORIE VALIDATION: Total calories MUST equal (protein×4) + (carbs×4) + (fat×9) ±5%
+2. MACRO TOTAL CHECK: protein + carbs + fat should be 15-40% of total weight for most foods
+3. MICRONUTRIENT REALITY: Don't guess - if unclear, use 0 rather than estimating wildly
+4. PORTION SANITY: Single meal portions typically 200-800g, 300-1200 calories
+5. REGIONAL DATABASE PRIORITY:
+   - Indian foods → Use IFCT database first
+   - Western foods → Use USDA database
+   - Asian foods → Use FAO/regional databases
+   - Mixed cuisines → Break down by components
 
-ANALYSIS PROCESS:
-1. Identify the specific food items and their preparation method
-2. Estimate portion size using visual cues (plate size, utensils, etc.)
-3. Look up standard nutritional values from USDA database
-4. Calculate totals based on estimated portions
-5. Double-check your math and ensure values are realistic
+CONSISTENCY RULES:
+1. Round portions to standard units (100g, 1 cup=240ml, 1 roti=40g, 1 bowl=300ml)
+2. Same food = same values (be deterministic)
+3. For curries/gravies: estimate oil/ghee added (typically 10-20g per serving)
+4. For rice/roti: specify cooked weight (cooked rice = 3× raw weight)
+5. Return ONLY valid JSON without markdown
 
-Be precise, consistent, and reference-based in your analysis.`
+VALIDATION CHECKLIST:
+✓ Calories match macros formula
+✓ Portion size is realistic
+✓ Values align with database references
+✓ Micronutrients don't exceed daily requirements in single meal`
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: `Analyze this food image using USDA FoodData Central standard values:
+                text: `Analyze this food image using international food databases (USDA/IFCT/FAO):
 
-STEP 1 - IDENTIFY FOOD & PREPARATION:
-List each food item and its preparation method (e.g., "grilled chicken breast", "steamed white rice").
+STEP 1 - IDENTIFY CUISINE & COMPONENTS:
+Identify cuisine type (Indian/Western/Asian/etc.) and list each component:
+- Main items (e.g., "chicken curry", "basmati rice", "roti")
+- Preparation method (grilled/fried/steamed/curry-based)
+- Visible added fats (oil, ghee, butter)
 
-STEP 2 - ESTIMATE PORTIONS (Round to standard sizes):
-Use visual references to estimate portions in standard units:
-- Compare to typical plate size (usually 10 inches)
-- Use utensils for scale reference
-- Round to: 100g, 1 cup (240ml), 1 oz (28g), 1 piece, etc.
+STEP 2 - ESTIMATE PORTIONS (Use standard units):
+Visual references for portion estimation:
+- Plate: typically 10 inches diameter
+- Bowl: typically 300ml capacity
+- Roti/chapati: typically 40-50g each
+- Rice (cooked): 1 cup = 200g
+- Curry serving: typically 200-250g
+Round to standard units: 100g, 200g, 1 cup, 1 piece, 1 bowl
 
-STEP 3 - LOOK UP USDA VALUES:
-For each food component, reference USDA SR Legacy values:
-- Search for exact food match in USDA database
-- Use "raw" or "cooked" values matching the preparation
-- For mixed dishes, break into components
+STEP 3 - DATABASE LOOKUP & CALCULATION:
+For each component, reference appropriate database:
+- Indian foods → IFCT values (include typical oil content)
+- Western foods → USDA SR Legacy
+- For curries: base ingredients + estimated oil/ghee (10-20g)
+- For fried foods: add 10-15% oil absorption
 
-STEP 4 - CALCULATE & VERIFY:
-Sum all nutritional values and verify they're realistic:
-- Calories should match macro totals (4 cal/g protein+carbs, 9 cal/g fat)
-- Check values against similar foods for consistency
+STEP 4 - VALIDATE ACCURACY:
+MANDATORY CHECKS:
+✓ Calories = (protein×4) + (carbs×4) + (fat×9) [±5% tolerance]
+✓ Total macros = 15-40% of food weight
+✓ Portion size realistic (300-1200 cal for main meal)
+✓ Micronutrients reasonable (not exceeding daily values)
 
-Return ONLY this JSON (no markdown):
+Example for "2 roti + chicken curry":
+- 2 roti (80g): 260 cal, 8g protein, 54g carbs, 2g fat
+- Chicken curry (200g): 280 cal, 32g protein, 8g carbs, 14g fat
+- Total: 540 cal, 40g protein, 62g carbs, 16g fat
+- Validation: (40×4)+(62×4)+(16×9) = 160+248+144 = 552 ≈ 540 ✓
+
+Return ONLY this JSON (no markdown, no code blocks):
 {
-  "visual_analysis": "specific foods and preparation methods identified",
-  "portion_estimation": "portions in standard units with visual reference reasoning",
-  "nutritional_reasoning": "USDA database references and calculation steps",
-  "food_name": "specific food name(s)",
+  "visual_analysis": "cuisine type and specific components identified",
+  "portion_estimation": "portions in standard units with visual references",
+  "nutritional_reasoning": "database used + calculation breakdown + validation check",
+  "food_name": "descriptive name",
   "calories": number,
   "protein": number,
   "carbs": number,
