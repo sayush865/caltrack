@@ -78,21 +78,25 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-accent/20 to-background">
-      <div className="container max-w-2xl mx-auto p-4 space-y-4">
-        <header className="flex items-center justify-between py-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
+      <div className="container max-w-4xl mx-auto px-4 py-6 space-y-8">
+        {/* Header */}
+        <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center">
-              <Apple className="w-6 h-6 text-primary-foreground" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+              <Apple className="w-7 h-7 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold">NutraVision</h1>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">NutraVision</h1>
+              <p className="text-sm text-muted-foreground">AI-Powered Nutrition Analysis</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="icon"
               onClick={() => navigate('/daily-log')}
-              className="rounded-full"
+              className="h-10 w-10 rounded-xl"
             >
               <History className="w-5 h-5" />
             </Button>
@@ -100,32 +104,57 @@ const Index = () => {
               variant="ghost"
               size="icon"
               onClick={handleSignOut}
-              className="rounded-full"
+              className="h-10 w-10 rounded-xl"
             >
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
         </header>
 
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold mb-2">Capture Your Meal</h2>
+        {/* Main Content */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Camera Section */}
+          <div className="space-y-3">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight">Capture Your Meal</h2>
+              <p className="text-sm text-muted-foreground">Take a photo for instant nutrition analysis</p>
+            </div>
             <CameraCapture onCapture={handleCapture} disabled={analyzing} />
           </div>
 
-          {analyzing && (
-            <div className="flex items-center justify-center py-12 gap-3">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              <p className="text-muted-foreground">Analyzing your food with AI...</p>
-            </div>
-          )}
-
-          {nutritionData && !analyzing && (
+          {/* Results Section */}
+          <div className="space-y-3">
             <div>
-              <h2 className="text-lg font-semibold mb-2">Nutrition Information</h2>
-              <NutritionDisplay data={nutritionData} />
+              <h2 className="text-xl font-semibold tracking-tight">Nutrition Analysis</h2>
+              <p className="text-sm text-muted-foreground">Detailed breakdown powered by AI</p>
             </div>
-          )}
+
+            {analyzing && (
+              <div className="flex flex-col items-center justify-center py-20 gap-4 bg-card rounded-xl border shadow-sm">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <div className="text-center">
+                  <p className="font-medium">Analyzing your food...</p>
+                  <p className="text-sm text-muted-foreground mt-1">Using GPT-5 for accurate results</p>
+                </div>
+              </div>
+            )}
+
+            {nutritionData && !analyzing && (
+              <NutritionDisplay data={nutritionData} />
+            )}
+
+            {!nutritionData && !analyzing && (
+              <div className="flex flex-col items-center justify-center py-20 gap-4 bg-card rounded-xl border shadow-sm">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                  <Apple className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <div className="text-center">
+                  <p className="font-medium">No analysis yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Capture a meal to get started</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

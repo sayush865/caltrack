@@ -27,15 +27,17 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
   };
 
   return (
-    <Card className="p-6 bg-card border-border/50 shadow-sm">
-      <div className="space-y-4">
-        {preview ? (
-          <div className="space-y-4">
+    <Card className="overflow-hidden shadow-md border-border/50">
+      {preview ? (
+        <div className="space-y-0">
+          <div className="relative aspect-[4/3] bg-muted">
             <img 
               src={preview} 
               alt="Food preview" 
-              className="w-full rounded-lg object-cover max-h-64"
+              className="w-full h-full object-cover"
             />
+          </div>
+          <div className="p-4">
             <Button
               onClick={() => {
                 setPreview(null);
@@ -45,53 +47,59 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
               variant="outline"
               className="w-full"
             >
+              <Camera className="w-4 h-4 mr-2" />
               Take Another Photo
             </Button>
           </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="aspect-video bg-muted rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground">
-              <Camera className="w-12 h-12" />
-              <p className="text-sm">Take or upload a photo of your food</p>
+        </div>
+      ) : (
+        <div className="p-6 space-y-4">
+          <div className="aspect-[4/3] bg-gradient-to-br from-muted to-muted/50 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-3 text-muted-foreground transition-colors hover:border-primary/50">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Camera className="w-8 h-8 text-primary" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                onClick={() => cameraInputRef.current?.click()}
-                disabled={disabled}
-                className="w-full"
-                variant="default"
-              >
-                <Camera className="w-4 h-4 mr-2" />
-                Camera
-              </Button>
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={disabled}
-                variant="secondary"
-                className="w-full"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Upload
-              </Button>
+            <div className="text-center px-4">
+              <p className="font-medium text-foreground">Ready to analyze</p>
+              <p className="text-sm mt-1">Snap a photo or upload from gallery</p>
             </div>
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="hidden"
-            />
           </div>
-        )}
-      </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={disabled}
+              className="w-full h-12"
+              variant="default"
+            >
+              <Camera className="w-5 h-5 mr-2" />
+              Camera
+            </Button>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled}
+              variant="outline"
+              className="w-full h-12"
+            >
+              <Upload className="w-5 h-5 mr-2" />
+              Upload
+            </Button>
+          </div>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+        </div>
+      )}
     </Card>
   );
 }
