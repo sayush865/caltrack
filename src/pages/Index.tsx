@@ -19,105 +19,25 @@ const Index = () => {
     setLastImageData(imageData);
     setAnalyzing(true);
     setNutritionData(null);
-    setAnalysisBreakdown({ visual_analysis: '', portion_estimation: '', nutritional_reasoning: '' });
 
     try {
-      const response = await fetch(
-        `https://misnkzxiahkxmrfinknn.supabase.co/functions/v1/analyze-food`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
-          },
-          body: JSON.stringify({
-            imageBase64: imageData,
-            userId: '00000000-0000-0000-0000-000000000000'
-          })
-        }
-      );
-
-      if (!response.ok) throw new Error('Analysis failed');
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = '';
-      let buffer = '';
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          buffer += chunk;
-          
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.content) {
-                  fullContent += data.content;
-                  // Update UI with partial content for immediate feedback
-                  setAnalysisBreakdown({ 
-                    visual_analysis: fullContent,
-                    portion_estimation: '',
-                    nutritional_reasoning: ''
-                  });
-                }
-              } catch (e) {
-                console.error('Parse error:', e);
-              }
-            }
-          }
-        }
-      }
-
-      console.log('Full streamed content:', fullContent);
-
-      // Parse the complete JSON response with better error handling
-      let nutritionData;
-      try {
-        const cleanContent = fullContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        
-        // Try to find JSON object in the content
-        const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error('No valid JSON found in response');
-        }
-        
-        nutritionData = JSON.parse(jsonMatch[0]);
-      } catch (parseError: any) {
-        console.error('JSON parse error:', parseError);
-        console.error('Content that failed to parse:', fullContent);
-        throw new Error('Failed to parse nutrition data. Please try again.');
-      }
-
-      // Save to database
-      const { data: saveData, error: saveError } = await supabase.functions.invoke('save-food-log', {
+      const { data, error } = await supabase.functions.invoke('analyze-food', {
         body: {
           imageBase64: imageData,
-          userId: '00000000-0000-0000-0000-000000000000',
-          nutritionData
+          userId: '00000000-0000-0000-0000-000000000000'
         }
       });
 
-      if (saveError) throw saveError;
+      if (error) throw error;
 
-      setNutritionData(saveData.data);
-      setAnalysisBreakdown({
-        visual_analysis: nutritionData.visual_analysis,
-        portion_estimation: nutritionData.portion_estimation,
-        nutritional_reasoning: nutritionData.nutritional_reasoning
-      });
-
-      toast({
-        title: 'Food analyzed!',
-        description: 'Nutrition data has been saved to your log.',
-      });
+      if (data?.data) {
+        setNutritionData(data.data);
+        setAnalysisBreakdown(data.analysis);
+        toast({
+          title: 'Food analyzed!',
+          description: 'Nutrition data has been saved to your log.',
+        });
+      }
     } catch (error: any) {
       console.error('Analysis error:', error);
       toast({
@@ -193,26 +113,11 @@ const Index = () => {
             </div>
 
             {analyzing && (
-              <div className="bg-card rounded-xl border shadow-sm p-6 space-y-4 animate-in fade-in-50">
-                <div className="flex items-center gap-3 border-b pb-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                  <p className="font-semibold">Analyzing with GPT-5...</p>
+              <div className="flex flex-col items-center justify-center py-20 gap-4 bg-card rounded-xl border shadow-sm">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <div className="text-center">
+                  <p className="font-medium">Analyzing your food...</p>
                 </div>
-                
-                {analysisBreakdown?.visual_analysis && (
-                  <div className="space-y-3">
-                    <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                      <h3 className="font-semibold mb-2 text-sm text-primary flex items-center gap-2">
-                        <span className="inline-block w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                        AI Analysis Streaming
-                      </h3>
-                      <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                        {analysisBreakdown.visual_analysis}
-                        <span className="inline-block w-1.5 h-4 bg-primary ml-1 animate-pulse"></span>
-                      </p>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
