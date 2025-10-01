@@ -43,16 +43,13 @@ export default function DailyLog() {
 
   const fetchLogs = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
 
       const { data, error } = await supabase
         .from('food_logs')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', 'dev-user')
         .gte('logged_at', startOfDay.toISOString())
         .order('logged_at', { ascending: false });
 

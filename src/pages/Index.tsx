@@ -3,47 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, History, Loader2, Apple } from 'lucide-react';
+import { History, Loader2, Apple } from 'lucide-react';
 import CameraCapture from '@/components/CameraCapture';
 import NutritionDisplay from '@/components/NutritionDisplay';
 
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [nutritionData, setNutritionData] = useState<any>(null);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-      setUser(session.user);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        navigate('/auth');
-      } else {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/auth');
-  };
-
   const handleCapture = async (imageData: string) => {
-    if (!user) return;
 
     setAnalyzing(true);
     setNutritionData(null);
@@ -52,7 +22,7 @@ const Index = () => {
       const { data, error } = await supabase.functions.invoke('analyze-food', {
         body: {
           imageBase64: imageData,
-          userId: user.id
+          userId: 'dev-user'
         }
       });
 
@@ -91,24 +61,14 @@ const Index = () => {
               <p className="text-sm text-muted-foreground">AI-Powered Nutrition Analysis</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('/daily-log')}
-              className="h-10 w-10 rounded-xl"
-            >
-              <History className="w-5 h-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSignOut}
-              className="h-10 w-10 rounded-xl"
-            >
-              <LogOut className="w-5 h-5" />
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate('/daily-log')}
+            className="h-10 w-10 rounded-xl"
+          >
+            <History className="w-5 h-5" />
+          </Button>
         </header>
 
         {/* Main Content */}
