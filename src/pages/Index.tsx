@@ -22,7 +22,7 @@ const Index = () => {
       const { data, error } = await supabase.functions.invoke('analyze-food', {
         body: {
           imageBase64: imageData,
-          userId: 'dev-user'
+          userId: '00000000-0000-0000-0000-000000000000'
         }
       });
 

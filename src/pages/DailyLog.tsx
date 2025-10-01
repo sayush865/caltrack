@@ -49,7 +49,7 @@ export default function DailyLog() {
       const { data, error } = await supabase
         .from('food_logs')
         .select('*')
-        .eq('user_id', 'dev-user')
+        .eq('user_id', '00000000-0000-0000-0000-000000000000')
         .gte('logged_at', startOfDay.toISOString())
         .order('logged_at', { ascending: false });
 
