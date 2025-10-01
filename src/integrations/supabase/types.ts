@@ -14,7 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      food_logs: {
+        Row: {
+          calcium: number | null
+          calories: number | null
+          carbs: number | null
+          created_at: string | null
+          fat: number | null
+          fiber: number | null
+          food_name: string | null
+          id: string
+          image_url: string | null
+          iron: number | null
+          logged_at: string | null
+          meal_type: string | null
+          notes: string | null
+          protein: number | null
+          sodium: number | null
+          sugar: number | null
+          user_id: string
+          vitamin_a: number | null
+          vitamin_c: number | null
+        }
+        Insert: {
+          calcium?: number | null
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string | null
+          fat?: number | null
+          fiber?: number | null
+          food_name?: string | null
+          id?: string
+          image_url?: string | null
+          iron?: number | null
+          logged_at?: string | null
+          meal_type?: string | null
+          notes?: string | null
+          protein?: number | null
+          sodium?: number | null
+          sugar?: number | null
+          user_id: string
+          vitamin_a?: number | null
+          vitamin_c?: number | null
+        }
+        Update: {
+          calcium?: number | null
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string | null
+          fat?: number | null
+          fiber?: number | null
+          food_name?: string | null
+          id?: string
+          image_url?: string | null
+          iron?: number | null
+          logged_at?: string | null
+          meal_type?: string | null
+          notes?: string | null
+          protein?: number | null
+          sodium?: number | null
+          sugar?: number | null
+          user_id?: string
+          vitamin_a?: number | null
+          vitamin_c?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
