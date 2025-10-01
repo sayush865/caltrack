@@ -98,7 +98,7 @@ Return your analysis in this exact JSON format:
             ]
           }
         ],
-        max_completion_tokens: 1000
+        max_completion_tokens: 2500
       }),
     });
 
