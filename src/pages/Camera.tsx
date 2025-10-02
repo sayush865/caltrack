@@ -45,12 +45,22 @@ export default function Camera() {
     setShowConfirmation(false);
 
     try {
-      const userId = '00000000-0000-0000-0000-000000000000';
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to log meals",
+          variant: "destructive",
+        });
+        navigate('/auth');
+        return;
+      }
       
       const { data, error } = await supabase.functions.invoke('analyze-food', {
         body: { 
           imageBase64: imageData,
-          userId: userId
+          userId: user.id
         }
       });
 

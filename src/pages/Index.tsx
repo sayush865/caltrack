@@ -39,10 +39,38 @@ export default function Index() {
     fetchGoalsAndData();
   }, [selectedDate]);
 
+  useEffect(() => {
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('food_logs_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'food_logs',
+        },
+        () => {
+          fetchGoalsAndData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedDate]);
+
   const fetchGoalsAndData = async () => {
     try {
-      // Use a default user ID for development
-      const userId = '00000000-0000-0000-0000-000000000000';
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
+
+      const userId = user.id;
 
       // Fetch user goals
       const { data: goalsData } = await supabase
