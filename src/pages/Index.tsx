@@ -36,29 +36,19 @@ export default function Index() {
   const [streak, setStreak] = useState(0);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        navigate('/auth');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  useEffect(() => {
     fetchGoalsAndData();
   }, [selectedDate]);
 
   const fetchGoalsAndData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Use a default user ID for development
+      const userId = '00000000-0000-0000-0000-000000000000';
 
       // Fetch user goals
       const { data: goalsData } = await supabase
         .from('user_goals')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (goalsData) {
@@ -68,15 +58,6 @@ export default function Index() {
           daily_carbs: goalsData.daily_carbs,
           daily_fat: goalsData.daily_fat,
         });
-      } else {
-        // Create default goals if none exist
-        await supabase.from('user_goals').insert({
-          user_id: user.id,
-          daily_calories: 2000,
-          daily_protein: 150,
-          daily_carbs: 250,
-          daily_fat: 65,
-        });
       }
 
       // Fetch today's food logs
@@ -84,7 +65,7 @@ export default function Index() {
       const { data: logs } = await supabase
         .from('food_logs')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .gte('logged_at', startOfSelectedDay.toISOString())
         .order('logged_at', { ascending: false });
 

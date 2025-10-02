@@ -72,13 +72,13 @@ export default function Camera() {
     if (!nutritionData || !capturedImage) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      // Use default user ID for development
+      const userId = '00000000-0000-0000-0000-000000000000';
 
       const { error } = await supabase
         .from('food_logs')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           food_name: nutritionData.food_name,
           calories: nutritionData.calories,
           protein: nutritionData.protein,
