@@ -169,7 +169,7 @@ export default function Auth() {
                   />
                 </div>
                 <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                  <strong>Dev Account:</strong> Username: <code>test</code> | Password: <code>tst</code>
+                  <strong>Dev Account:</strong> Username: <code>test</code> | Password: <code>test</code>
                 </div>
                 <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign In'}
