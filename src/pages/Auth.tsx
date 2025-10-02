@@ -169,7 +169,7 @@ export default function Auth() {
                   />
                 </div>
                 <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                  <strong>Dev Account:</strong> Username: <code>test</code> | Password: <code>test</code>
+                  <strong>Dev Account:</strong> Create account with username <code>test</code> and password <code>test</code> in the Sign Up tab first
                 </div>
                 <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign In'}
