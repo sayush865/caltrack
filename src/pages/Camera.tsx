@@ -47,19 +47,68 @@ export default function Camera() {
     try {
       const userId = '00000000-0000-0000-0000-000000000000';
       
-      const { data, error } = await supabase.functions.invoke('analyze-food', {
-        body: { 
-          imageBase64: imageData,
-          userId: userId
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-food`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ 
+            imageBase64: imageData,
+            userId: userId
+          })
         }
-      });
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Analysis failed');
+      }
 
-      if (data.nutritionData && data.analysis) {
-        setNutritionData(data.nutritionData);
-        setAnalysisData(data.analysis);
-        setShowConfirmation(true);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      if (!reader) throw new Error('No response stream');
+
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (!line.trim() || line.startsWith(':')) continue;
+          
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            
+            try {
+              const parsed = JSON.parse(data);
+              
+              if (parsed.type === 'complete') {
+                setNutritionData(parsed.data);
+                setAnalysisData(parsed.analysis);
+                setShowConfirmation(true);
+                setAnalyzing(false);
+                return;
+              }
+              
+              if (parsed.type === 'error') {
+                throw new Error(parsed.error);
+              }
+            } catch (e) {
+              console.error('Parse error:', e);
+            }
+          }
+        }
       }
     } catch (error: any) {
       console.error('Analysis error:', error);
@@ -68,55 +117,19 @@ export default function Camera() {
         description: error.message || "Failed to analyze food image. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setAnalyzing(false);
     }
   };
 
   const handleSaveToLog = async () => {
-    if (!nutritionData || !capturedImage) return;
+    if (!nutritionData) return;
 
-    try {
-      // Use default user ID for development
-      const userId = '00000000-0000-0000-0000-000000000000';
+    toast({
+      title: "Success!",
+      description: "Meal logged successfully",
+    });
 
-      const { error } = await supabase
-        .from('food_logs')
-        .insert({
-          user_id: userId,
-          food_name: nutritionData.food_name,
-          calories: nutritionData.calories,
-          protein: nutritionData.protein,
-          carbs: nutritionData.carbs,
-          fat: nutritionData.fat,
-          fiber: nutritionData.fiber,
-          sugar: nutritionData.sugar,
-          sodium: nutritionData.sodium,
-          vitamin_a: nutritionData.vitamin_a,
-          vitamin_c: nutritionData.vitamin_c,
-          calcium: nutritionData.calcium,
-          iron: nutritionData.iron,
-          meal_type: nutritionData.meal_type || 'snack',
-          image_url: capturedImage,
-          logged_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success!",
-        description: "Meal logged successfully",
-      });
-
-      navigate('/');
-    } catch (error: any) {
-      console.error('Save error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save meal log",
-        variant: "destructive",
-      });
-    }
+    navigate('/');
   };
 
   const handleReanalyze = () => {
