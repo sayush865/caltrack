@@ -12,8 +12,10 @@ import { Apple } from 'lucide-react';
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -39,11 +41,25 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      // Check if username already exists
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (existingUser) {
+        throw new Error('Username already taken');
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            username: username
+          }
         }
       });
 
@@ -69,8 +85,25 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      let loginEmail = identifier;
+
+      // Check if identifier is a username (no @ symbol)
+      if (!identifier.includes('@')) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('username', identifier)
+          .maybeSingle();
+
+        if (error || !data) {
+          throw new Error('Username not found');
+        }
+
+        loginEmail = data.email;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: loginEmail,
         password,
       });
 
@@ -112,13 +145,13 @@ export default function Auth() {
             <TabsContent value="signin" className="mt-6">
               <form onSubmit={handleSignIn} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email" className="text-base">Email Address</Label>
+                  <Label htmlFor="signin-identifier" className="text-base">Username or Email</Label>
                   <Input
-                    id="signin-email"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="signin-identifier"
+                    type="text"
+                    placeholder="username or email@example.com"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
                     className="h-11 bg-background border-border"
                     required
                   />
@@ -135,6 +168,9 @@ export default function Auth() {
                     required
                   />
                 </div>
+                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                  <strong>Dev Account:</strong> Username: <code>test</code> | Password: <code>tst</code>
+                </div>
                 <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
@@ -142,6 +178,20 @@ export default function Auth() {
             </TabsContent>
             <TabsContent value="signup" className="mt-6">
               <form onSubmit={handleSignUp} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-username" className="text-base">Username</Label>
+                  <Input
+                    id="signup-username"
+                    type="text"
+                    placeholder="Choose a username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                    className="h-11 bg-background border-border"
+                    required
+                    minLength={3}
+                    maxLength={20}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email" className="text-base">Email Address</Label>
                   <Input
