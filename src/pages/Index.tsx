@@ -49,7 +49,7 @@ export default function Index() {
         .from('user_goals')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (goalsData) {
         setGoals({

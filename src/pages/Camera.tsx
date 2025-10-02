@@ -47,68 +47,21 @@ export default function Camera() {
     try {
       const userId = '00000000-0000-0000-0000-000000000000';
       
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-food`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ 
-            imageBase64: imageData,
-            userId: userId
-          })
+      const { data, error } = await supabase.functions.invoke('analyze-food', {
+        body: { 
+          imageBase64: imageData,
+          userId: userId
         }
-      );
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Analysis failed');
-      }
+      if (error) throw error;
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      
-      if (!reader) throw new Error('No response stream');
-
-      let buffer = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        
-        for (const line of lines) {
-          if (!line.trim() || line.startsWith(':')) continue;
-          
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-            
-            try {
-              const parsed = JSON.parse(data);
-              
-              if (parsed.type === 'complete') {
-                setNutritionData(parsed.data);
-                setAnalysisData(parsed.analysis);
-                setShowConfirmation(true);
-                setAnalyzing(false);
-                return;
-              }
-              
-              if (parsed.type === 'error') {
-                throw new Error(parsed.error);
-              }
-            } catch (e) {
-              console.error('Parse error:', e);
-            }
-          }
-        }
+      if (data?.nutritionData && data?.analysis) {
+        setNutritionData(data.nutritionData);
+        setAnalysisData(data.analysis);
+        setShowConfirmation(true);
+      } else {
+        throw new Error('Invalid response from analysis');
       }
     } catch (error: any) {
       console.error('Analysis error:', error);
@@ -117,6 +70,7 @@ export default function Camera() {
         description: error.message || "Failed to analyze food image. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setAnalyzing(false);
     }
   };
