@@ -45,8 +45,13 @@ export default function Camera() {
     setShowConfirmation(false);
 
     try {
+      const userId = '00000000-0000-0000-0000-000000000000';
+      
       const { data, error } = await supabase.functions.invoke('analyze-food', {
-        body: { imagePath: imageData }
+        body: { 
+          imageBase64: imageData,
+          userId: userId
+        }
       });
 
       if (error) throw error;
