@@ -169,7 +169,7 @@ export default function Auth() {
                   />
                 </div>
                 <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                  <strong>Dev Account:</strong> Username: <code>test</code> | Password: <code>test</code>
+                  <strong>Dev Account:</strong> Sign up first with username <code>testuser</code> and password <code>testpass</code>
                 </div>
                 <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign In'}
@@ -209,12 +209,12 @@ export default function Auth() {
                   <Input
                     id="signup-password"
                     type="password"
-                    placeholder="Create a password (min 4 characters)"
+                    placeholder="Create a password (min 6 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="h-11 bg-background border-border"
                     required
-                    minLength={4}
+                    minLength={6}
                   />
                 </div>
                 <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
