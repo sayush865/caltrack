@@ -209,12 +209,12 @@ export default function Auth() {
                   <Input
                     id="signup-password"
                     type="password"
-                    placeholder="Create a password (min 6 characters)"
+                    placeholder="Create a password (min 4 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="h-11 bg-background border-border"
                     required
-                    minLength={6}
+                    minLength={4}
                   />
                 </div>
                 <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
