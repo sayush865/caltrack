@@ -1,328 +1,233 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { History, Loader2, Apple, RefreshCw } from 'lucide-react';
-import CameraCapture from '@/components/CameraCapture';
-import NutritionDisplay from '@/components/NutritionDisplay';
+import { Card } from '@/components/ui/card';
+import { Camera, History, Flame } from 'lucide-react';
+import { format, startOfDay } from 'date-fns';
+import CalorieProgress from '@/components/CalorieProgress';
+import MacroCard from '@/components/MacroCard';
+import WeekCalendar from '@/components/WeekCalendar';
 
-const Index = () => {
+interface UserGoals {
+  daily_calories: number;
+  daily_protein: number;
+  daily_carbs: number;
+  daily_fat: number;
+}
+
+export default function Index() {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [analyzing, setAnalyzing] = useState(false);
-  const [nutritionData, setNutritionData] = useState<any>(null);
-  const [analysisBreakdown, setAnalysisBreakdown] = useState<any>(null);
-  const [lastImageData, setLastImageData] = useState<string | null>(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [goals, setGoals] = useState<UserGoals>({
+    daily_calories: 2000,
+    daily_protein: 150,
+    daily_carbs: 250,
+    daily_fat: 65,
+  });
+  const [consumed, setConsumed] = useState({
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+  });
+  const [recentMeals, setRecentMeals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [streak, setStreak] = useState(0);
 
-  const handleCapture = async (imageData: string) => {
-    setLastImageData(imageData);
-    setAnalyzing(true);
-    setNutritionData(null);
-    setAnalysisBreakdown(null);
-
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
-      console.log('Starting analysis...');
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/analyze-food`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseKey}`,
-        },
-        body: JSON.stringify({
-          imageBase64: imageData,
-          userId: '00000000-0000-0000-0000-000000000000'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to start analysis');
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate('/auth');
       }
+    });
 
-      console.log('Response received, starting to read stream...');
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
+  useEffect(() => {
+    fetchGoalsAndData();
+  }, [selectedDate]);
 
-      const decoder = new TextDecoder();
-      let streamedContent = '';
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          console.log('Stream complete');
-          break;
-        }
-
-        console.log('Received chunk, size:', value.length);
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.trim() === '' || !line.startsWith('data: ')) {
-            continue;
-          }
-          
-          const data = line.slice(6);
-          
-          try {
-            const parsed = JSON.parse(data);
-            console.log('Parsed event:', parsed.type);
-            
-            if (parsed.type === 'content') {
-              streamedContent += parsed.content;
-              console.log('Content chunk received, total length:', streamedContent.length);
-              // Update the display with partial content
-              setAnalysisBreakdown({ streaming: streamedContent });
-            } else if (parsed.type === 'complete') {
-              console.log('Analysis complete');
-              setNutritionData(parsed.data);
-              setAnalysisBreakdown(parsed.analysis);
-              setAnalyzing(false);
-              setShowConfirmation(true);
-              toast({
-                title: 'Analysis complete!',
-                description: 'Review the results and confirm to save.',
-              });
-            } else if (parsed.type === 'error') {
-              throw new Error(parsed.error);
-            }
-          } catch (e) {
-            console.error('Error parsing stream chunk:', e, 'Data:', data);
-          }
-        }
-      }
-    } catch (error: any) {
-      console.error('Analysis error:', error);
-      toast({
-        title: 'Analysis failed',
-        description: error.message || 'Failed to analyze food. Please try again.',
-        variant: 'destructive',
-      });
-      setAnalyzing(false);
-    }
-  };
-
-  const handleReanalyze = () => {
-    if (lastImageData) {
-      setShowConfirmation(false);
-      handleCapture(lastImageData);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!nutritionData) return;
-    
-    setSaving(true);
+  const fetchGoalsAndData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: 'Not logged in',
-          description: 'Please log in to save your food log.',
-          variant: 'destructive',
+      if (!user) return;
+
+      // Fetch user goals
+      const { data: goalsData } = await supabase
+        .from('user_goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (goalsData) {
+        setGoals({
+          daily_calories: goalsData.daily_calories,
+          daily_protein: goalsData.daily_protein,
+          daily_carbs: goalsData.daily_carbs,
+          daily_fat: goalsData.daily_fat,
         });
-        navigate('/auth');
-        return;
+      } else {
+        // Create default goals if none exist
+        await supabase.from('user_goals').insert({
+          user_id: user.id,
+          daily_calories: 2000,
+          daily_protein: 150,
+          daily_carbs: 250,
+          daily_fat: 65,
+        });
       }
 
-      // Save to database
-      const { error } = await supabase.from('food_logs').insert({
-        user_id: user.id,
-        food_name: nutritionData.food_name,
-        calories: nutritionData.calories,
-        protein: nutritionData.protein,
-        carbs: nutritionData.carbs,
-        fat: nutritionData.fat,
-        fiber: nutritionData.fiber,
-        sugar: nutritionData.sugar,
-        sodium: nutritionData.sodium,
-        image_data: lastImageData,
-        analysis_breakdown: analysisBreakdown,
-      });
+      // Fetch today's food logs
+      const startOfSelectedDay = startOfDay(selectedDate);
+      const { data: logs } = await supabase
+        .from('food_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('logged_at', startOfSelectedDay.toISOString())
+        .order('logged_at', { ascending: false });
 
-      if (error) throw error;
+      if (logs) {
+        setRecentMeals(logs);
+        
+        // Calculate totals
+        const totals = logs.reduce((acc, log) => ({
+          calories: acc.calories + (Number(log.calories) || 0),
+          protein: acc.protein + (Number(log.protein) || 0),
+          carbs: acc.carbs + (Number(log.carbs) || 0),
+          fat: acc.fat + (Number(log.fat) || 0),
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-      toast({
-        title: 'Saved!',
-        description: 'Food log has been saved successfully.',
-      });
-      
-      setShowConfirmation(false);
-      setNutritionData(null);
-      setAnalysisBreakdown(null);
-    } catch (error: any) {
-      console.error('Save error:', error);
-      toast({
-        title: 'Save failed',
-        description: error.message || 'Failed to save food log.',
-        variant: 'destructive',
-      });
+        setConsumed(totals);
+      }
+
+      // Calculate streak (simplified - just count consecutive days with logs)
+      setStreak(0);
+    } catch (error) {
+      console.error('Error fetching data:', error);
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const handleCancel = () => {
-    setShowConfirmation(false);
-    setNutritionData(null);
-    setAnalysisBreakdown(null);
-  };
-
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container max-w-6xl mx-auto px-4 py-8 space-y-8">
-        {/* Header */}
-        <header className="flex items-center justify-between border-b border-border pb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center">
-              <Apple className="w-8 h-8 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">NutraVision</h1>
-              <p className="text-sm text-muted-foreground">AI-Powered Food Analysis</p>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            {lastImageData && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleReanalyze}
-                disabled={analyzing}
-                className="h-11 w-11 border-border hover:bg-muted"
-                title="Reanalyze last image"
-              >
-                <RefreshCw className={`w-5 h-5 ${analyzing ? 'animate-spin' : ''}`} />
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('/daily-log')}
-              className="h-11 w-11 border-border hover:bg-muted"
-            >
-              <History className="w-5 h-5" />
-            </Button>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Camera Section */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-semibold">Capture Meal</h2>
-              <p className="text-muted-foreground">Take or upload a photo for instant analysis</p>
-            </div>
-            <CameraCapture onCapture={handleCapture} disabled={analyzing} />
-          </div>
-
-          {/* Results Section */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-semibold">Analysis Results</h2>
-              <p className="text-muted-foreground">Comprehensive nutritional breakdown</p>
-            </div>
-
-            {analyzing && (
-              <div className="flex flex-col gap-6 bg-card rounded-xl border border-border p-6">
-                <div className="flex items-center gap-4">
-                  <Loader2 className="w-8 h-8 animate-spin text-foreground" />
-                  <div>
-                    <p className="text-lg font-semibold">Analyzing Food</p>
-                    <p className="text-sm text-muted-foreground">AI is analyzing your meal...</p>
-                  </div>
-                </div>
-                
-                {analysisBreakdown?.streaming && (
-                  <div className="bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto">
-                    <p className="text-sm whitespace-pre-wrap font-mono">{analysisBreakdown.streaming}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {nutritionData && !analyzing && (
-              <div className="space-y-4">
-                <NutritionDisplay data={nutritionData} analysis={analysisBreakdown} />
-                
-                {showConfirmation && (
-                  <div className="bg-card rounded-xl border border-border p-6 space-y-4">
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-semibold">Confirm Analysis</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Review the nutritional data above. Does it look accurate?
-                      </p>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-3">
-                      <Button 
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="flex-1"
-                      >
-                        {saving ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          'Save to Log'
-                        )}
-                      </Button>
-                      
-                      <Button 
-                        variant="outline"
-                        onClick={handleReanalyze}
-                        disabled={saving}
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Re-analyze
-                      </Button>
-                      
-                      <Button 
-                        variant="outline"
-                        onClick={handleCancel}
-                        disabled={saving}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {!nutritionData && !analyzing && (
-              <div className="flex flex-col items-center justify-center py-24 gap-6 bg-card rounded-xl border border-border">
-                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
-                  <Apple className="w-10 h-10 text-muted-foreground" />
-                </div>
-                <div className="text-center space-y-2">
-                  <p className="text-lg font-semibold">No Analysis Yet</p>
-                  <p className="text-sm text-muted-foreground">Capture or upload an image to begin</p>
-                </div>
-              </div>
-            )}
-          </div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🍽️</div>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      {/* Header */}
+      <div className="bg-card border-b border-border">
+        <div className="container max-w-4xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold">Food Tracker</h1>
+              <p className="text-sm text-muted-foreground">
+                {format(selectedDate, 'EEEE, MMMM d')}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-full">
+              <Flame className="w-5 h-5 text-orange-500" />
+              <span className="font-bold text-lg">{streak}</span>
+            </div>
+          </div>
+          
+          <WeekCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} />
+        </div>
+      </div>
+
+      <div className="container max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Calorie Progress */}
+        <CalorieProgress consumed={consumed.calories} goal={goals.daily_calories} />
+
+        {/* Macro Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <MacroCard
+            label="Protein"
+            consumed={consumed.protein}
+            goal={goals.daily_protein}
+            icon="🍗"
+            color="text-red-500"
+          />
+          <MacroCard
+            label="Carbs"
+            consumed={consumed.carbs}
+            goal={goals.daily_carbs}
+            icon="🌾"
+            color="text-yellow-500"
+          />
+          <MacroCard
+            label="Fat"
+            consumed={consumed.fat}
+            goal={goals.daily_fat}
+            icon="🥑"
+            color="text-blue-500"
+          />
+        </div>
+
+        {/* Recent Meals */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Today's Meals</h2>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/daily-log')}>
+              View All <History className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+
+          {recentMeals.length === 0 ? (
+            <Card className="border border-border bg-card p-12 text-center">
+              <div className="text-6xl mb-4">🍽️</div>
+              <p className="text-lg font-medium mb-2">No meals logged yet</p>
+              <p className="text-sm text-muted-foreground mb-6">
+                Tap the camera button below to log your first meal
+              </p>
+            </Card>
+          ) : (
+            <div className="grid gap-3">
+              {recentMeals.slice(0, 3).map((meal) => (
+                <Card key={meal.id} className="border border-border bg-card p-4 flex gap-4">
+                  {meal.image_url && (
+                    <img
+                      src={meal.image_url}
+                      alt={meal.food_name}
+                      className="w-20 h-20 object-cover rounded-lg"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{meal.food_name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(meal.logged_at), 'h:mm a')}
+                    </p>
+                    <div className="flex gap-4 mt-2 text-xs">
+                      <span>{Math.round(meal.calories)} cal</span>
+                      <span>{Math.round(meal.protein)}g protein</span>
+                      <span>{Math.round(meal.carbs)}g carbs</span>
+                      <span>{Math.round(meal.fat)}g fat</span>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Floating Add Button */}
+      <Button
+        size="lg"
+        onClick={() => navigate('/camera')}
+        className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg"
+      >
+        <Camera className="w-6 h-6" />
+      </Button>
     </div>
   );
-};
-
-export default Index;
+}

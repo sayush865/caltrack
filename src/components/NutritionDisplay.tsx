@@ -17,7 +17,7 @@ interface NutritionDisplayProps {
     vitamin_c: number;
     calcium: number;
     iron: number;
-    meal_type: string;
+    meal_type?: string;
   };
   analysis?: {
     visual_analysis: string;
@@ -70,7 +70,7 @@ export default function NutritionDisplay({ data, analysis }: NutritionDisplayPro
           <div className="flex-1">
             <CardTitle className="text-2xl mb-2">{data.food_name}</CardTitle>
             <Badge variant="secondary" className="capitalize font-medium">
-              {data.meal_type}
+              {data.meal_type || 'Meal'}
             </Badge>
           </div>
         </div>
