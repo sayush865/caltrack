@@ -132,7 +132,7 @@ export default function Index() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-32">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background px-6 py-6">
         <div className="max-w-4xl mx-auto">
@@ -160,9 +160,6 @@ export default function Index() {
       </div>
 
       <div className="px-6 py-6 max-w-4xl mx-auto space-y-8">
-        {/* Calorie Progress */}
-        <CalorieProgress consumed={consumed.calories} goal={goals.daily_calories} />
-
         {/* Macro Cards */}
         <div className="grid grid-cols-3 gap-4">
           <MacroCard
@@ -213,6 +210,29 @@ export default function Index() {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Floating Calorie Card */}
+      <div className="fixed bottom-24 left-0 right-0 z-40 px-6">
+        <div className="max-w-4xl mx-auto">
+          <Card className="bg-card rounded-[28px] shadow-[0_-2px_20px_-4px_rgba(0,0,0,0.12)] p-5 border-0">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg font-bold mb-1">Today's Calories</h3>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold">{consumed.calories}</span>
+                  <span className="text-sm text-muted-foreground font-medium">/ {goals.daily_calories} kcal</span>
+                </div>
+                <div className="mt-3 bg-muted rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="h-full bg-foreground rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min((consumed.calories / goals.daily_calories) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
     </div>
