@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Apple } from 'lucide-react';
+import { Apple, Eye, EyeOff } from 'lucide-react';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -17,6 +17,7 @@ export default function Auth() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -49,7 +50,13 @@ export default function Auth() {
         .maybeSingle();
 
       if (existingUser) {
-        throw new Error('Username already taken');
+        toast({
+          title: 'Username already taken',
+          description: 'Please choose a different username.',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
       }
 
       const { error } = await supabase.auth.signUp({
@@ -63,7 +70,14 @@ export default function Auth() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific error messages
+        let errorMessage = error.message;
+        if (error.message.includes('already registered')) {
+          errorMessage = 'This email is already registered. Please sign in instead.';
+        }
+        throw new Error(errorMessage);
+      }
 
       toast({
         title: 'Account created!',
@@ -158,18 +172,24 @@ export default function Auth() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signin-password" className="text-base">Password</Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 bg-background border-border"
-                    required
-                  />
-                </div>
-                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                  <strong>Dev Account:</strong> Sign up first with username <code>testuser</code> and password <code>testpass</code>
+                  <div className="relative">
+                    <Input
+                      id="signin-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-11 bg-background border-border pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign In'}
@@ -206,16 +226,25 @@ export default function Auth() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password" className="text-base">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="Create a password (min 6 characters)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 bg-background border-border"
-                    required
-                    minLength={6}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="signup-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Create a password (min 6 characters)"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-11 bg-background border-border pr-10"
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
                   {loading ? 'Creating account...' : 'Create Account'}
