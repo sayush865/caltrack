@@ -13,7 +13,7 @@ export default function WeekCalendar({ selectedDate, onDateSelect }: WeekCalenda
   
   const today = new Date();
   const currentWeekStart = startOfWeek(addWeeks(today, weekOffset), { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+  const weekDays = Array.from({ length: 5 }, (_, i) => addDays(currentWeekStart, i));
 
   return (
     <div className="flex items-center gap-2">
