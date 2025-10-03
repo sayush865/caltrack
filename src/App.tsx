@@ -10,7 +10,9 @@ import Auth from "./pages/Auth";
 import DailyLog from "./pages/DailyLog";
 import Camera from "./pages/Camera";
 import Settings from "./pages/Settings";
+import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
+import BottomNav from "./components/BottomNav";
 
 const queryClient = new QueryClient();
 
@@ -45,7 +47,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
-  return isAuthenticated ? children : <Navigate to="/auth" />;
+  return isAuthenticated ? (
+    <>
+      {children}
+      <BottomNav />
+    </>
+  ) : (
+    <Navigate to="/auth" />
+  );
 }
 
 const App = () => (
@@ -59,6 +68,7 @@ const App = () => (
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/daily-log" element={<ProtectedRoute><DailyLog /></ProtectedRoute>} />
           <Route path="/camera" element={<ProtectedRoute><Camera /></ProtectedRoute>} />
+          <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
