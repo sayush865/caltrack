@@ -13,10 +13,60 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, userId } = await req.json();
+    // Extract userId from authenticated JWT token instead of trusting client
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Verify JWT and get user
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
-    if (!imageBase64 || !userId) {
-      throw new Error('Missing required fields');
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = user.id;
+
+    const { imageBase64 } = await req.json();
+    
+    if (!imageBase64) {
+      throw new Error('Missing required field: imageBase64');
+    }
+
+    // Validate imageBase64 format and size
+    if (!imageBase64.startsWith('data:image/')) {
+      throw new Error('Invalid image format - must be a data URL');
+    }
+
+    // Extract base64 data and validate size (10MB limit)
+    const base64Data = imageBase64.split(',')[1];
+    if (!base64Data) {
+      throw new Error('Invalid image data format');
+    }
+
+    const estimatedSizeBytes = (base64Data.length * 3) / 4;
+    const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+    if (estimatedSizeBytes > maxSizeBytes) {
+      throw new Error('Image size exceeds 10MB limit');
+    }
+
+    // Validate base64 format
+    try {
+      atob(base64Data.substring(0, 100)); // Test decode a small portion
+    } catch {
+      throw new Error('Invalid base64 encoding');
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -107,13 +157,8 @@ Return this exact structure:
     const nutritionData = JSON.parse(cleanContent);
     
     // Upload image to storage
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     const fileName = `${userId}/${Date.now()}.jpg`;
-    const imageData = imageBase64.split(',')[1];
-    const buffer = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
+    const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
     const { error: uploadError } = await supabase.storage
       .from('food-images')

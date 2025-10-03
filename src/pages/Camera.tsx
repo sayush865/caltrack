@@ -44,9 +44,9 @@ export default function Camera() {
     setShowConfirmation(false);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!user) {
+      if (!session) {
         toast({
           title: "Authentication Required",
           description: "Please sign in to log meals",
@@ -56,10 +56,10 @@ export default function Camera() {
         return;
       }
       
+      // No longer send userId - edge function extracts it from JWT
       const { data, error } = await supabase.functions.invoke('analyze-food', {
         body: { 
-          imageBase64: imageData,
-          userId: user.id
+          imageBase64: imageData
         }
       });
 
