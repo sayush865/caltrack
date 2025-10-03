@@ -16,22 +16,32 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
-    });
-
+    // Set up auth state listener FIRST
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
+      setIsLoading(false);
     });
+
+    // THEN check for existing session with a small delay to ensure storage is ready
+    const checkSession = async () => {
+      // Small timeout to allow localStorage to be fully ready after hot reload
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+      setIsLoading(false);
+    };
+    
+    checkSession();
 
     return () => subscription.unsubscribe();
   }, []);
 
-  if (isAuthenticated === null) {
+  if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
