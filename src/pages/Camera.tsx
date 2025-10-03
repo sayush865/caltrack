@@ -88,12 +88,13 @@ export default function Camera() {
   const handleSaveToLog = async () => {
     if (!nutritionData) return;
 
+    // Food is already saved by the edge function, just navigate back
     toast({
       title: "Success!",
-      description: "Meal logged successfully",
+      description: `${nutritionData.food_name} logged successfully`,
     });
 
-    navigate('/');
+    navigate('/daily-log');
   };
 
   const handleReanalyze = () => {

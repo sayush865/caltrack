@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import FoodLogItem from '@/components/FoodLogItem';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
 
 export default function DailyLog() {
   const navigate = useNavigate();
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dailyTotals, setDailyTotals] = useState({
@@ -39,7 +40,7 @@ export default function DailyLog() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [selectedDate]);
 
   const fetchLogs = async () => {
     try {
@@ -47,14 +48,15 @@ export default function DailyLog() {
       
       if (!user) return;
       
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+      const dayStart = startOfDay(selectedDate);
+      const dayEnd = endOfDay(selectedDate);
 
       const { data, error } = await supabase
         .from('food_logs')
         .select('*')
         .eq('user_id', user.id)
-        .gte('logged_at', startOfDay.toISOString())
+        .gte('logged_at', dayStart.toISOString())
+        .lte('logged_at', dayEnd.toISOString())
         .order('logged_at', { ascending: false });
 
       if (error) throw error;
@@ -76,6 +78,12 @@ export default function DailyLog() {
     }
   };
 
+  const goToPreviousDay = () => setSelectedDate(subDays(selectedDate, 1));
+  const goToNextDay = () => setSelectedDate(addDays(selectedDate, 1));
+  const goToToday = () => setSelectedDate(new Date());
+
+  const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
@@ -90,16 +98,44 @@ export default function DailyLog() {
           </Button>
           <div className="flex-1">
             <h1 className="text-3xl font-bold tracking-tight">Daily Log</h1>
-            <p className="text-muted-foreground flex items-center gap-2 mt-1">
-              <Calendar className="w-4 h-4" />
-              {format(new Date(), 'EEEE, MMMM d, yyyy')}
-            </p>
+            <div className="flex items-center gap-3 mt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goToPreviousDay}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <div className="flex items-center gap-2 text-muted-foreground min-w-[200px] justify-center">
+                <CalendarIcon className="w-4 h-4" />
+                <span>{format(selectedDate, 'EEEE, MMMM d, yyyy')}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goToNextDay}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              {!isToday && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToToday}
+                  className="ml-2"
+                >
+                  Today
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
         <Card className="border border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-xl">Today's Nutrition</CardTitle>
+            <CardTitle className="text-xl">{isToday ? "Today's" : format(selectedDate, 'MMM d')} Nutrition</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="space-y-1">
@@ -129,7 +165,9 @@ export default function DailyLog() {
             </div>
           ) : logs.length === 0 ? (
             <Card className="border border-border bg-card p-12 text-center">
-              <p className="text-lg text-muted-foreground mb-4">No meals logged today</p>
+              <p className="text-lg text-muted-foreground mb-4">
+                No meals logged for {isToday ? 'today' : format(selectedDate, 'MMMM d, yyyy')}
+              </p>
               <Button
                 onClick={() => navigate('/')}
                 variant="outline"
