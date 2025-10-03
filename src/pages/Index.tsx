@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Camera, History, Flame } from 'lucide-react';
+import { Camera, History } from 'lucide-react';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import CalorieProgress from '@/components/CalorieProgress';
 import MacroCard from '@/components/MacroCard';
@@ -34,7 +34,6 @@ export default function Index() {
   });
   const [recentMeals, setRecentMeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     fetchGoalsAndData();
@@ -113,9 +112,6 @@ export default function Index() {
 
         setConsumed(totals);
       }
-
-      // Calculate streak (simplified - just count consecutive days with logs)
-      setStreak(0);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -146,13 +142,7 @@ export default function Index() {
                 {format(selectedDate, 'EEEE, MMMM d')}
               </p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-full">
-                <Flame className="w-5 h-5 text-orange-500" />
-                <span className="font-bold text-lg">{streak}</span>
-              </div>
-              <ProfileMenu />
-            </div>
+            <ProfileMenu />
           </div>
           
           <WeekCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} />
