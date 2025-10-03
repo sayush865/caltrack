@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Camera, History } from 'lucide-react';
+import { History } from 'lucide-react';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import CalorieProgress from '@/components/CalorieProgress';
 import MacroCard from '@/components/MacroCard';
@@ -193,7 +193,7 @@ export default function Index() {
               <div className="text-6xl mb-4">🍽️</div>
               <p className="text-lg font-medium mb-2">No meals logged yet</p>
               <p className="text-sm text-muted-foreground mb-6">
-                Tap the camera button below to log your first meal
+                Tap the Add button below to log your first meal
               </p>
             </Card>
           ) : (
@@ -205,15 +205,6 @@ export default function Index() {
           )}
         </div>
       </div>
-
-      {/* Floating Add Button */}
-      <Button
-        size="lg"
-        onClick={() => navigate('/camera')}
-        className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg"
-      >
-        <Camera className="w-6 h-6" />
-      </Button>
     </div>
   );
 }
