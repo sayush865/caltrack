@@ -18,6 +18,7 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
 
   useEffect(() => {
     const checkUser = async () => {
@@ -37,28 +38,40 @@ export default function Auth() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const checkUsernameAvailability = async (usernameToCheck: string) => {
+    if (usernameToCheck.length < 3) {
+      setUsernameError('');
+      return;
+    }
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('username', usernameToCheck)
+      .maybeSingle();
+
+    if (data) {
+      setUsernameError('Username already taken. Please try a different one.');
+    } else {
+      setUsernameError('');
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (usernameError) {
+      toast({
+        title: 'Invalid username',
+        description: usernameError,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      // Check if username already exists
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', username)
-        .maybeSingle();
-
-      if (existingUser) {
-        toast({
-          title: 'Username already taken',
-          description: 'Please choose a different username.',
-          variant: 'destructive',
-        });
-        setLoading(false);
-        return;
-      }
-
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -71,7 +84,6 @@ export default function Auth() {
       });
 
       if (error) {
-        // Handle specific error messages
         let errorMessage = error.message;
         if (error.message.includes('already registered')) {
           errorMessage = 'This email is already registered. Please sign in instead.';
@@ -205,12 +217,19 @@ export default function Auth() {
                     type="text"
                     placeholder="Choose a username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                    className="h-11 bg-background border-border"
+                    onChange={(e) => {
+                      const newUsername = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                      setUsername(newUsername);
+                      checkUsernameAvailability(newUsername);
+                    }}
+                    className={`h-11 bg-background border-border ${usernameError ? 'border-destructive' : ''}`}
                     required
                     minLength={3}
                     maxLength={20}
                   />
+                  {usernameError && (
+                    <p className="text-sm text-destructive">{usernameError}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email" className="text-base">Email Address</Label>
