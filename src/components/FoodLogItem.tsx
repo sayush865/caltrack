@@ -62,26 +62,21 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
 
   return (
     <>
-      <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 border border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm animate-fade-in">
-        <div className="flex gap-3 sm:gap-4 p-3 sm:p-4">
-          <div className="relative flex-shrink-0">
-            <img 
-              src={log.image_url} 
-              alt={log.food_name}
-              className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-xl object-cover border-2 border-border/50 shadow-md group-hover:scale-105 transition-transform duration-300"
-            />
-            {/* Image overlay gradient */}
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
+      <Card className="overflow-hidden hover:shadow-md transition-shadow border border-border bg-card">
+        <div className="flex gap-3 p-3">
+          <img 
+            src={log.image_url} 
+            alt={log.food_name}
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-border"
+          />
           
           <CardContent className="flex-1 p-0 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-sm sm:text-base line-clamp-1 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+                <h3 className="font-semibold text-sm line-clamp-1">
                   {log.food_name}
                 </h3>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium flex items-center gap-1.5 mt-0.5">
-                  <span className="w-1 h-1 rounded-full bg-primary" />
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {format(new Date(log.logged_at), 'MMM d, h:mm a')}
                 </p>
               </div>
@@ -89,28 +84,28 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowDeleteDialog(true)}
-                className="h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0 transition-all"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
               >
-                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <Trash2 className="w-4 h-4" />
               </Button>
             </div>
             
-            <div className="flex gap-2 sm:gap-3 text-xs sm:text-sm flex-wrap">
-              <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
-                <span className="font-bold text-primary">{log.calories}</span>
-                <span className="text-muted-foreground text-[10px] sm:text-xs">cal</span>
+            <div className="flex gap-3 text-xs flex-wrap">
+              <div className="flex items-center gap-1">
+                <span className="font-bold">{log.calories}</span>
+                <span className="text-muted-foreground">cal</span>
               </div>
-              <div className="flex items-center gap-1 px-2 py-1 bg-red-500/10 rounded-lg border border-red-500/20">
-                <span className="font-semibold text-red-600 dark:text-red-400">{log.protein}g</span>
-                <span className="text-muted-foreground text-[10px] sm:text-xs">P</span>
+              <div className="flex items-center gap-1">
+                <span className="font-semibold">{log.protein}g</span>
+                <span className="text-muted-foreground">P</span>
               </div>
-              <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                <span className="font-semibold text-yellow-600 dark:text-yellow-400">{log.carbs}g</span>
-                <span className="text-muted-foreground text-[10px] sm:text-xs">C</span>
+              <div className="flex items-center gap-1">
+                <span className="font-semibold">{log.carbs}g</span>
+                <span className="text-muted-foreground">C</span>
               </div>
-              <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                <span className="font-semibold text-blue-600 dark:text-blue-400">{log.fat}g</span>
-                <span className="text-muted-foreground text-[10px] sm:text-xs">F</span>
+              <div className="flex items-center gap-1">
+                <span className="font-semibold">{log.fat}g</span>
+                <span className="text-muted-foreground">F</span>
               </div>
             </div>
           </CardContent>

@@ -75,39 +75,39 @@ export default function ProfileMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="outline-none group">
-        <Avatar className="h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/50 transition-all duration-300 group-hover:scale-110 shadow-lg">
-          <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground font-bold text-sm sm:text-base">
+      <DropdownMenuTrigger className="outline-none">
+        <Avatar className="h-9 w-9 cursor-pointer ring-2 ring-border hover:ring-foreground transition-all">
+          <AvatarFallback className="bg-foreground text-background font-semibold text-sm">
             {getInitials()}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64 bg-card/95 backdrop-blur-xl border-border/50 z-50 shadow-2xl animate-scale-in">
+      <DropdownMenuContent align="end" className="w-56 bg-card border-border z-50">
         <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-2 p-1">
-            <p className="text-sm font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-semibold">
               {username || 'User'}
             </p>
-            <p className="text-xs leading-none text-muted-foreground font-medium">
+            <p className="text-xs text-muted-foreground">
               {email}
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-gradient-to-r from-transparent via-border to-transparent" />
+        <DropdownMenuSeparator className="bg-border" />
         <DropdownMenuItem 
           onClick={() => navigate('/settings')}
-          className="cursor-pointer hover:bg-primary/10 transition-colors group"
+          className="cursor-pointer"
         >
-          <Settings className="mr-3 h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
-          <span className="font-medium">Settings</span>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Settings</span>
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-gradient-to-r from-transparent via-border to-transparent" />
+        <DropdownMenuSeparator className="bg-border" />
         <DropdownMenuItem 
           onClick={handleLogout}
-          className="cursor-pointer text-destructive hover:bg-destructive/10 focus:text-destructive transition-colors group"
+          className="cursor-pointer text-destructive focus:text-destructive"
         >
-          <LogOut className="mr-3 h-4 w-4 group-hover:scale-110 transition-transform" />
-          <span className="font-medium">Log out</span>
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
