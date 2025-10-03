@@ -132,107 +132,90 @@ export default function Index() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-background px-6 py-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="space-y-1">
-              <div className="flex items-baseline gap-3">
-                <h1 className="text-5xl font-bold tracking-tight">
-                  {format(selectedDate, 'd')}
-                </h1>
-                <div>
-                  <p className="text-lg font-semibold">
-                    {format(selectedDate, 'EEEE')}
-                  </p>
-                  <p className="text-sm text-muted-foreground font-medium">
-                    {format(selectedDate, 'MMMM yyyy')}
-                  </p>
+    <div className="min-h-screen bg-foreground">
+      {/* Main Content Card */}
+      <div className="min-h-screen bg-background rounded-b-[32px] pb-8 mb-20">
+        {/* Header */}
+        <div className="px-6 py-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-3">
+                  <h1 className="text-5xl font-bold tracking-tight">
+                    {format(selectedDate, 'd')}
+                  </h1>
+                  <div>
+                    <p className="text-lg font-semibold">
+                      {format(selectedDate, 'EEEE')}
+                    </p>
+                    <p className="text-sm text-muted-foreground font-medium">
+                      {format(selectedDate, 'MMMM yyyy')}
+                    </p>
+                  </div>
                 </div>
               </div>
+              <ProfileMenu />
             </div>
-            <ProfileMenu />
+            
+            <WeekCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} />
           </div>
-          
-          <WeekCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} />
-        </div>
-      </div>
-
-      <div className="px-6 py-6 max-w-4xl mx-auto space-y-8">
-        {/* Macro Cards */}
-        <div className="grid grid-cols-3 gap-4">
-          <MacroCard
-            label="Protein"
-            consumed={consumed.protein}
-            goal={goals.daily_protein}
-            icon="🥩"
-            color="text-foreground"
-          />
-          <MacroCard
-            label="Carbs"
-            consumed={consumed.carbs}
-            goal={goals.daily_carbs}
-            icon="🍞"
-            color="text-foreground"
-          />
-          <MacroCard
-            label="Fat"
-            consumed={consumed.fat}
-            goal={goals.daily_fat}
-            icon="🥑"
-            color="text-foreground"
-          />
         </div>
 
-        {/* Recent Meals */}
-        <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Today's Meals</h2>
-            <button 
-              onClick={() => navigate('/daily-log')}
-              className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
-            >
-              View all →
-            </button>
+        <div className="px-6 py-6 max-w-4xl mx-auto space-y-8">
+          {/* Calorie Progress */}
+          <CalorieProgress consumed={consumed.calories} goal={goals.daily_calories} />
+
+          {/* Macro Cards */}
+          <div className="grid grid-cols-3 gap-4">
+            <MacroCard
+              label="Protein"
+              consumed={consumed.protein}
+              goal={goals.daily_protein}
+              icon="🥩"
+              color="text-foreground"
+            />
+            <MacroCard
+              label="Carbs"
+              consumed={consumed.carbs}
+              goal={goals.daily_carbs}
+              icon="🍞"
+              color="text-foreground"
+            />
+            <MacroCard
+              label="Fat"
+              consumed={consumed.fat}
+              goal={goals.daily_fat}
+              icon="🥑"
+              color="text-foreground"
+            />
           </div>
 
-          {recentMeals.length === 0 ? (
-            <div className="text-center py-16 space-y-3">
-              <div className="text-6xl mb-2">🍽️</div>
-              <p className="text-lg font-medium text-muted-foreground">No meals logged yet</p>
-              <p className="text-sm text-muted-foreground">Tap the camera button to add your first meal</p>
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {recentMeals.slice(0, 3).map((meal) => (
-                <FoodLogItem key={meal.id} log={meal} />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Floating Calorie Card */}
-      <div className="fixed bottom-24 left-0 right-0 z-40 px-6">
-        <div className="max-w-4xl mx-auto">
-          <Card className="bg-card rounded-[28px] shadow-[0_-2px_20px_-4px_rgba(0,0,0,0.12)] p-5 border-0">
+          {/* Recent Meals */}
+          <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h3 className="text-lg font-bold mb-1">Today's Calories</h3>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{consumed.calories}</span>
-                  <span className="text-sm text-muted-foreground font-medium">/ {goals.daily_calories} kcal</span>
-                </div>
-                <div className="mt-3 bg-muted rounded-full h-2 overflow-hidden">
-                  <div 
-                    className="h-full bg-foreground rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min((consumed.calories / goals.daily_calories) * 100, 100)}%` }}
-                  />
-                </div>
-              </div>
+              <h2 className="text-2xl font-bold">Today's Meals</h2>
+              <button 
+                onClick={() => navigate('/daily-log')}
+                className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                View all →
+              </button>
             </div>
-          </Card>
+
+            {recentMeals.length === 0 ? (
+              <div className="text-center py-16 space-y-3">
+                <div className="text-6xl mb-2">🍽️</div>
+                <p className="text-lg font-medium text-muted-foreground">No meals logged yet</p>
+                <p className="text-sm text-muted-foreground">Tap the camera button to add your first meal</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {recentMeals.slice(0, 3).map((meal) => (
+                  <FoodLogItem key={meal.id} log={meal} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
