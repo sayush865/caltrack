@@ -76,8 +76,8 @@ export default function ProfileMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="outline-none">
-        <Avatar className="h-10 w-10 cursor-pointer ring-2 ring-border hover:ring-primary transition-all">
-          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+        <Avatar className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 cursor-pointer ring-2 ring-border hover:ring-primary transition-all">
+          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs sm:text-sm">
             {getInitials()}
           </AvatarFallback>
         </Avatar>
