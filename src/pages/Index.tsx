@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Camera, History, Flame } from 'lucide-react';
-import { format, startOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import CalorieProgress from '@/components/CalorieProgress';
 import MacroCard from '@/components/MacroCard';
 import WeekCalendar from '@/components/WeekCalendar';
@@ -89,13 +89,15 @@ export default function Index() {
         });
       }
 
-      // Fetch today's food logs
+      // Fetch food logs for the selected day only (not all future days)
       const startOfSelectedDay = startOfDay(selectedDate);
+      const endOfSelectedDay = endOfDay(selectedDate);
       const { data: logs } = await supabase
         .from('food_logs')
         .select('*')
         .eq('user_id', userId)
         .gte('logged_at', startOfSelectedDay.toISOString())
+        .lte('logged_at', endOfSelectedDay.toISOString())
         .order('logged_at', { ascending: false });
 
       if (logs) {
