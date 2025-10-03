@@ -9,6 +9,7 @@ import CalorieProgress from '@/components/CalorieProgress';
 import MacroCard from '@/components/MacroCard';
 import WeekCalendar from '@/components/WeekCalendar';
 import ProfileMenu from '@/components/ProfileMenu';
+import FoodLogItem from '@/components/FoodLogItem';
 
 interface UserGoals {
   daily_calories: number;
@@ -198,27 +199,7 @@ export default function Index() {
           ) : (
             <div className="grid gap-3">
               {recentMeals.slice(0, 3).map((meal) => (
-                <Card key={meal.id} className="border border-border bg-card p-4 flex gap-4">
-                  {meal.image_url && (
-                    <img
-                      src={meal.image_url}
-                      alt={meal.food_name}
-                      className="w-20 h-20 object-cover rounded-lg"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{meal.food_name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(meal.logged_at), 'h:mm a')}
-                    </p>
-                    <div className="flex gap-4 mt-2 text-xs">
-                      <span>{Math.round(meal.calories)} cal</span>
-                      <span>{Math.round(meal.protein)}g protein</span>
-                      <span>{Math.round(meal.carbs)}g carbs</span>
-                      <span>{Math.round(meal.fat)}g fat</span>
-                    </div>
-                  </div>
-                </Card>
+                <FoodLogItem key={meal.id} log={meal} />
               ))}
             </div>
           )}
