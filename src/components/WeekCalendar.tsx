@@ -1,4 +1,4 @@
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, eachDayOfInterval, isSameDay } from 'date-fns';
 
 interface WeekCalendarProps {
   selectedDate: Date;
@@ -6,12 +6,16 @@ interface WeekCalendarProps {
 }
 
 export default function WeekCalendar({ selectedDate, onDateSelect }: WeekCalendarProps) {
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const today = new Date();
+  const lastMonth = subMonths(today, 1);
+  const startDate = startOfMonth(lastMonth);
+  const endDate = endOfMonth(today);
+  
+  const days = eachDayOfInterval({ start: startDate, end: endDate });
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-2">
-      {weekDays.map((day) => {
+      {days.map((day) => {
         const isSelected = isSameDay(day, selectedDate);
         const isToday = isSameDay(day, new Date());
         
