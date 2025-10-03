@@ -8,6 +8,7 @@ import { format, startOfDay } from 'date-fns';
 import CalorieProgress from '@/components/CalorieProgress';
 import MacroCard from '@/components/MacroCard';
 import WeekCalendar from '@/components/WeekCalendar';
+import ProfileMenu from '@/components/ProfileMenu';
 
 interface UserGoals {
   daily_calories: number;
@@ -143,9 +144,12 @@ export default function Index() {
                 {format(selectedDate, 'EEEE, MMMM d')}
               </p>
             </div>
-            <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-full">
-              <Flame className="w-5 h-5 text-orange-500" />
-              <span className="font-bold text-lg">{streak}</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-full">
+                <Flame className="w-5 h-5 text-orange-500" />
+                <span className="font-bold text-lg">{streak}</span>
+              </div>
+              <ProfileMenu />
             </div>
           </div>
           
