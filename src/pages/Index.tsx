@@ -134,16 +134,23 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm border-b border-border">
-        <div className="px-4 py-4 max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <div className="space-y-0.5">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                Food Tracker
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                {format(selectedDate, 'EEEE, MMM d')}
-              </p>
+      <div className="sticky top-0 z-20 bg-background px-6 py-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div className="space-y-1">
+              <div className="flex items-baseline gap-3">
+                <h1 className="text-5xl font-bold tracking-tight">
+                  {format(selectedDate, 'd')}
+                </h1>
+                <div>
+                  <p className="text-lg font-semibold">
+                    {format(selectedDate, 'EEEE')}
+                  </p>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    {format(selectedDate, 'MMMM yyyy')}
+                  </p>
+                </div>
+              </div>
             </div>
             <ProfileMenu />
           </div>
@@ -152,24 +159,24 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="px-4 py-6 max-w-4xl mx-auto space-y-6">
+      <div className="px-6 py-6 max-w-4xl mx-auto space-y-8">
         {/* Calorie Progress */}
         <CalorieProgress consumed={consumed.calories} goal={goals.daily_calories} />
 
         {/* Macro Cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-4">
           <MacroCard
             label="Protein"
             consumed={consumed.protein}
             goal={goals.daily_protein}
-            icon="🍗"
+            icon="🥩"
             color="text-foreground"
           />
           <MacroCard
             label="Carbs"
             consumed={consumed.carbs}
             goal={goals.daily_carbs}
-            icon="🌾"
+            icon="🍞"
             color="text-foreground"
           />
           <MacroCard
@@ -182,26 +189,25 @@ export default function Index() {
         </div>
 
         {/* Recent Meals */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Today's Meals</h2>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/daily-log')} className="h-8 text-xs">
-              View All <History className="w-4 h-4 ml-1.5" />
-            </Button>
+            <h2 className="text-2xl font-bold">Today's Meals</h2>
+            <button 
+              onClick={() => navigate('/daily-log')}
+              className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              View all →
+            </button>
           </div>
 
           {recentMeals.length === 0 ? (
-            <Card className="border border-border bg-card p-12 text-center shadow-sm">
-              <div className="text-5xl mb-4">🍽️</div>
-              <p className="text-base font-semibold mb-2">
-                No meals logged yet
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Tap the <span className="font-semibold">Add</span> button below to log your first meal
-              </p>
-            </Card>
+            <div className="text-center py-16 space-y-3">
+              <div className="text-6xl mb-2">🍽️</div>
+              <p className="text-lg font-medium text-muted-foreground">No meals logged yet</p>
+              <p className="text-sm text-muted-foreground">Tap the camera button to add your first meal</p>
+            </div>
           ) : (
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               {recentMeals.slice(0, 3).map((meal) => (
                 <FoodLogItem key={meal.id} log={meal} />
               ))}

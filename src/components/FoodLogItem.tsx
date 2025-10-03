@@ -62,50 +62,50 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
 
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-md transition-shadow border border-border bg-card">
-        <div className="flex gap-3 p-3">
+      <Card className="overflow-hidden shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1),0_4px_16px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.12),0_8px_24px_-4px_rgba(0,0,0,0.1)] transition-all border-0">
+        <div className="flex gap-4 p-5">
           <img 
             src={log.image_url} 
             alt={log.food_name}
-            className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-border"
+            className="w-24 h-24 object-cover rounded-2xl flex-shrink-0"
           />
           
-          <CardContent className="flex-1 p-0 space-y-2">
+          <CardContent className="flex-1 p-0 space-y-3">
             <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm line-clamp-1">
+              <div className="flex-1 min-w-0 space-y-1">
+                <h3 className="font-bold text-base line-clamp-1">
                   {log.food_name}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {format(new Date(log.logged_at), 'MMM d, h:mm a')}
+                <p className="text-xs text-muted-foreground font-medium">
+                  {format(new Date(log.logged_at), 'h:mm a')}
                 </p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowDeleteDialog(true)}
-                className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
+                className="h-9 w-9 text-muted-foreground hover:text-destructive flex-shrink-0"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
             
-            <div className="flex gap-3 text-xs flex-wrap">
-              <div className="flex items-center gap-1">
-                <span className="font-bold">{log.calories}</span>
-                <span className="text-muted-foreground">cal</span>
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="text-center p-2.5 bg-secondary rounded-xl">
+                <div className="font-bold text-sm">{Math.round(log.calories)}</div>
+                <div className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">cal</div>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="font-semibold">{log.protein}g</span>
-                <span className="text-muted-foreground">P</span>
+              <div className="text-center p-2.5 bg-secondary rounded-xl">
+                <div className="font-bold text-sm">{Math.round(log.protein)}g</div>
+                <div className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">pro</div>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="font-semibold">{log.carbs}g</span>
-                <span className="text-muted-foreground">C</span>
+              <div className="text-center p-2.5 bg-secondary rounded-xl">
+                <div className="font-bold text-sm">{Math.round(log.carbs)}g</div>
+                <div className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">carb</div>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="font-semibold">{log.fat}g</span>
-                <span className="text-muted-foreground">F</span>
+              <div className="text-center p-2.5 bg-secondary rounded-xl">
+                <div className="font-bold text-sm">{Math.round(log.fat)}g</div>
+                <div className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">fat</div>
               </div>
             </div>
           </CardContent>
