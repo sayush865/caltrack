@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -26,7 +25,6 @@ interface FoodLogItemProps {
     carbs: number;
     fat: number;
     image_url: string;
-    meal_type: string;
     logged_at: string;
   };
 }
@@ -79,19 +77,14 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
                   {format(new Date(log.logged_at), 'MMM d, h:mm a')}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="capitalize text-xs">
-                  {log.meal_type}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowDeleteDialog(true)}
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
             <div className="flex gap-4 text-sm">
               <div>

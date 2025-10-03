@@ -55,8 +55,7 @@ Return this exact structure:
   "vitamin_a": number,
   "vitamin_c": number,
   "calcium": number,
-  "iron": number,
-  "meal_type": "breakfast/lunch/dinner/snack"
+  "iron": number
 }`
           },
           {
@@ -152,7 +151,6 @@ Return this exact structure:
         vitamin_c: nutritionData.vitamin_c,
         calcium: nutritionData.calcium,
         iron: nutritionData.iron,
-        meal_type: nutritionData.meal_type,
         logged_at: new Date().toISOString()
       })
       .select()

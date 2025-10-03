@@ -21,7 +21,6 @@ interface NutritionData {
   vitamin_c: number;
   calcium: number;
   iron: number;
-  meal_type?: string;
 }
 
 interface AnalysisData {
