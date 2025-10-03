@@ -5,36 +5,34 @@ const BottomNav = () => {
   const navItems = [
     { to: "/", icon: Home, label: "Home" },
     { to: "/daily-log", icon: FileText, label: "Log" },
-    { to: "/camera", icon: Camera, label: "Add" },
+    { to: "/camera", icon: Camera, label: "Add", isAdd: true },
     { to: "/goals", icon: Target, label: "Goals" },
     { to: "/settings", icon: User, label: "Profile" },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50">
-      <div className="relative bg-foreground text-background rounded-t-[32px] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.3)]">
-        <div className="flex items-center justify-around h-20 px-6 max-w-screen-xl mx-auto pb-safe">
-          {navItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-1.5 px-4 py-2 transition-all ${
-                  isActive
-                    ? 'text-background'
-                    : 'text-muted/60 hover:text-muted'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
-                  <span className="text-[11px] font-medium">{label}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
-        </div>
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 safe-area-inset-bottom">
+      <div className="flex items-center justify-around h-16 px-4 max-w-screen-xl mx-auto">
+        {navItems.map(({ to, icon: Icon, label, isAdd }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all ${
+                isAdd
+                  ? 'bg-foreground text-background -mt-8 p-4 rounded-full shadow-lg'
+                  : isActive
+                  ? 'text-foreground bg-secondary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              }`
+            }
+          >
+            <Icon className={isAdd ? 'w-6 h-6' : 'w-5 h-5'} />
+            {!isAdd && (
+              <span className="text-[10px] font-medium">{label}</span>
+            )}
+          </NavLink>
+        ))}
       </div>
     </nav>
   );
