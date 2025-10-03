@@ -12,21 +12,21 @@ export default function WeekCalendar({ selectedDate, onDateSelect }: WeekCalenda
   const [weekOffset, setWeekOffset] = useState(0);
   
   const today = new Date();
-  const currentWeekStart = startOfWeek(addWeeks(today, weekOffset), { weekStartsOn: 0 });
+  const currentWeekStart = startOfWeek(addWeeks(today, weekOffset), { weekStartsOn: 1 }); // Monday start
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
 
   return (
-    <div className="flex items-center gap-1 sm:gap-2">
+    <div className="flex items-center gap-2 px-1">
       <Button
         variant="ghost"
         size="icon"
         onClick={() => setWeekOffset(weekOffset - 1)}
-        className="h-7 w-7 sm:h-8 sm:w-8 shrink-0"
+        className="h-9 w-9 shrink-0 hover:bg-primary/10 hover:text-primary transition-all"
       >
-        <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        <ChevronLeft className="h-4 w-4" />
       </Button>
       
-      <div className="flex gap-0.5 sm:gap-1 overflow-hidden flex-1 justify-between">
+      <div className="flex gap-1.5 sm:gap-2 overflow-hidden flex-1 justify-between">
         {weekDays.map((day) => {
           const isSelected = isSameDay(day, selectedDate);
           const isToday = isSameDay(day, today);
@@ -35,16 +35,30 @@ export default function WeekCalendar({ selectedDate, onDateSelect }: WeekCalenda
             <button
               key={day.toISOString()}
               onClick={() => onDateSelect(day)}
-              className={`flex flex-col items-center justify-center min-w-[40px] h-12 sm:min-w-[48px] sm:h-14 md:h-16 rounded-lg sm:rounded-xl transition-colors ${
-                isSelected
-                  ? 'bg-primary text-primary-foreground'
-                  : isToday
-                  ? 'bg-muted border-2 border-primary'
-                  : 'bg-muted hover:bg-muted/80'
-              }`}
+              className={`
+                flex flex-col items-center justify-center 
+                min-w-[44px] h-14 sm:min-w-[52px] sm:h-16 md:min-w-[60px] md:h-18
+                rounded-xl sm:rounded-2xl
+                transition-all duration-300 ease-out
+                relative overflow-hidden
+                ${
+                  isSelected
+                    ? 'bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg scale-105 shadow-primary/30'
+                    : isToday
+                    ? 'bg-gradient-to-br from-secondary/20 to-accent/20 border-2 border-primary shadow-md'
+                    : 'bg-card hover:bg-muted/60 hover:scale-105 shadow-sm'
+                }
+              `}
             >
-              <div className="text-[9px] sm:text-[10px] font-medium uppercase">{format(day, 'EEE')}</div>
-              <div className="text-base sm:text-lg md:text-xl font-bold mt-0.5">{format(day, 'd')}</div>
+              {isSelected && (
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+              )}
+              <div className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wide relative z-10 ${isSelected ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
+                {format(day, 'EEE')}
+              </div>
+              <div className={`text-lg sm:text-xl md:text-2xl font-bold mt-0.5 relative z-10 ${isSelected ? 'text-primary-foreground' : ''}`}>
+                {format(day, 'd')}
+              </div>
             </button>
           );
         })}
@@ -54,9 +68,9 @@ export default function WeekCalendar({ selectedDate, onDateSelect }: WeekCalenda
         variant="ghost"
         size="icon"
         onClick={() => setWeekOffset(weekOffset + 1)}
-        className="h-7 w-7 sm:h-8 sm:w-8 shrink-0"
+        className="h-9 w-9 shrink-0 hover:bg-primary/10 hover:text-primary transition-all"
       >
-        <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
   );

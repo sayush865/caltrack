@@ -132,14 +132,20 @@ export default function Index() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pb-20 animate-fade-in">
       {/* Header - Mobile optimized */}
-      <div className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="px-3 py-3 sm:px-4 sm:py-4 max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Food Tracker</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">
+      <div className="sticky top-0 z-20 bg-card/80 backdrop-blur-xl border-b border-border/50 shadow-lg">
+        {/* Decorative gradient */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 pointer-events-none" />
+        
+        <div className="relative px-4 py-4 sm:px-5 sm:py-5 max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div className="space-y-1">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                Food Tracker
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-primary to-accent animate-pulse" />
                 {format(selectedDate, 'EEEE, MMM d')}
               </p>
             </div>
@@ -189,11 +195,13 @@ export default function Index() {
           </div>
 
           {recentMeals.length === 0 ? (
-            <Card className="border border-border bg-card p-8 sm:p-12 text-center">
-              <div className="text-4xl sm:text-6xl mb-3 sm:mb-4">🍽️</div>
-              <p className="text-sm sm:text-lg font-medium mb-2">No meals logged yet</p>
+            <Card className="border border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm p-10 sm:p-14 text-center shadow-lg animate-scale-in">
+              <div className="text-5xl sm:text-6xl mb-4 animate-bounce">🍽️</div>
+              <p className="text-base sm:text-lg font-semibold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                No meals logged yet
+              </p>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Tap the Add button below to log your first meal
+                Tap the <span className="font-semibold text-primary">Add</span> button below to log your first meal
               </p>
             </Card>
           ) : (
