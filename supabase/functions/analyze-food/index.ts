@@ -148,8 +148,7 @@ Return ONLY valid JSON (no markdown) with this exact structure:
               }
             ]
           }
-        ],
-        stream: true
+        ]
       }),
     });
 
@@ -174,155 +173,86 @@ Return ONLY valid JSON (no markdown) with this exact structure:
       throw new Error(`AI API error: ${errorText}`);
     }
 
-    // Stream the response back to the client
-    const reader = response.body?.getReader();
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    console.log('AI response:', content);
+    
+    const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const nutritionData = JSON.parse(cleanContent);
+    
+    // Upload image to storage
+    const fileName = `${userId}/${Date.now()}.jpg`;
+    const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
-    if (!reader) {
-      throw new Error('No response body');
+    const { error: uploadError } = await supabase.storage
+      .from('food-images')
+      .upload(fileName, buffer, {
+        contentType: 'image/jpeg',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw new Error('Failed to upload image');
     }
 
-    let fullResponseText = '';
+    // Generate signed URL (1 hour expiration) instead of public URL
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from('food-images')
+      .createSignedUrl(fileName, 3600); // 1 hour expiration
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              // Parse final accumulated content and save to database
-              try {
-                console.log('Full response accumulated:', fullResponseText);
-                const cleanContent = fullResponseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-                console.log('Cleaned content:', cleanContent);
-                const nutritionData = JSON.parse(cleanContent);
-                
-                // Upload image to storage
-                const fileName = `${userId}/${Date.now()}.jpg`;
-                const base64Data = imageBase64.split(',')[1];
-                const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    if (signedUrlError) {
+      console.error('Error creating signed URL:', signedUrlError);
+      throw new Error('Failed to create signed URL');
+    }
 
-                const { error: uploadError } = await supabase.storage
-                  .from('food-images')
-                  .upload(fileName, buffer, {
-                    contentType: 'image/jpeg',
-                    upsert: false
-                  });
+    const imageUrl = signedUrlData.signedUrl;
+    console.log('Image uploaded with signed URL');
 
-                if (uploadError) {
-                  console.error('Storage upload error:', uploadError);
-                  throw new Error('Failed to upload image');
-                }
+    // Insert food log
+    const { data: logData, error: logError } = await supabase
+      .from('food_logs')
+      .insert({
+        user_id: userId,
+        image_url: imageUrl,
+        food_name: nutritionData.food_name,
+        calories: nutritionData.calories,
+        protein: nutritionData.protein,
+        carbs: nutritionData.carbs,
+        fat: nutritionData.fat,
+        fiber: nutritionData.fiber,
+        sugar: nutritionData.sugar,
+        sodium: nutritionData.sodium,
+        vitamin_a: nutritionData.vitamin_a,
+        vitamin_c: nutritionData.vitamin_c,
+        calcium: nutritionData.calcium,
+        iron: nutritionData.iron,
+        logged_at: new Date().toISOString()
+      })
+      .select()
+      .single();
 
-                const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-                  .from('food-images')
-                  .createSignedUrl(fileName, 3600);
+    if (logError) {
+      console.error('Database insert error:', logError);
+      throw new Error('Failed to save food log');
+    }
 
-                if (signedUrlError) {
-                  console.error('Error creating signed URL:', signedUrlError);
-                  throw new Error('Failed to create signed URL');
-                }
+    console.log('Food log saved successfully');
 
-                const imageUrl = signedUrlData.signedUrl;
-
-                // Insert food log
-                const { data: logData, error: logError } = await supabase
-                  .from('food_logs')
-                  .insert({
-                    user_id: userId,
-                    image_url: imageUrl,
-                    food_name: nutritionData.food_name,
-                    calories: nutritionData.calories,
-                    protein: nutritionData.protein,
-                    carbs: nutritionData.carbs,
-                    fat: nutritionData.fat,
-                    fiber: nutritionData.fiber,
-                    sugar: nutritionData.sugar,
-                    sodium: nutritionData.sodium,
-                    vitamin_a: nutritionData.vitamin_a,
-                    vitamin_c: nutritionData.vitamin_c,
-                    calcium: nutritionData.calcium,
-                    iron: nutritionData.iron,
-                    logged_at: new Date().toISOString()
-                  })
-                  .select()
-                  .single();
-
-                if (logError) {
-                  console.error('Database insert error:', logError);
-                  throw new Error('Failed to save food log');
-                }
-
-                console.log('Food log saved successfully');
-
-                // Send final complete data
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                  type: 'complete',
-                  nutritionData: logData,
-                  analysis: {
-                    visual_analysis: nutritionData.visual_analysis,
-                    portion_estimation: nutritionData.portion_estimation,
-                    nutritional_reasoning: nutritionData.nutritional_reasoning
-                  }
-                })}\n\n`));
-              } catch (error) {
-                console.error('Error processing final data:', error);
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                  type: 'error',
-                  error: error instanceof Error ? error.message : 'Failed to process data'
-                })}\n\n`));
-              }
-              controller.close();
-              break;
-            }
-
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
-
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const jsonStr = line.slice(6).trim();
-                if (jsonStr === '[DONE]') continue;
-
-                try {
-                  const parsed = JSON.parse(jsonStr);
-                  const content = parsed.choices?.[0]?.delta?.content;
-                  
-                  if (content) {
-                    fullResponseText += content;
-                    // Forward the streaming chunk to client
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                      type: 'delta',
-                      content: content
-                    })}\n\n`));
-                  }
-                } catch (e) {
-                  // Ignore parsing errors for incomplete chunks
-                  console.log('Ignoring incomplete chunk:', e);
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Stream error:', error);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-            type: 'error',
-            error: error instanceof Error ? error.message : 'Stream error'
-          })}\n\n`));
-          controller.close();
+    return new Response(
+      JSON.stringify({
+        nutritionData: logData,
+        analysis: {
+          visual_analysis: nutritionData.visual_analysis,
+          portion_estimation: nutritionData.portion_estimation,
+          nutritional_reasoning: nutritionData.nutritional_reasoning
         }
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
-    });
-
-    return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      }
-    });
+    );
 
   } catch (error) {
     console.error('Error in analyze-food function:', error);
