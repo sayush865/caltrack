@@ -8,9 +8,12 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
-  const navItems = [
+  const leftNavItems = [
     { to: "/", icon: Home, label: "Home" },
     { to: "/daily-log", icon: FileText, label: "Log" },
+  ];
+
+  const rightNavItems = [
     { to: "/goals", icon: Target, label: "Goals" },
     { to: "/settings", icon: User, label: "Profile" },
   ];
@@ -39,7 +42,7 @@ const BottomNav = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 safe-area-inset-bottom">
       <div className="flex items-center justify-around h-16 px-4 max-w-screen-xl mx-auto">
-        {navItems.map(({ to, icon: Icon, label }) => (
+        {leftNavItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
@@ -86,6 +89,23 @@ const BottomNav = () => {
             </div>
           </SheetContent>
         </Sheet>
+        
+        {rightNavItems.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all ${
+                isActive
+                  ? 'text-foreground bg-secondary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              }`
+            }
+          >
+            <Icon className="w-5 h-5" />
+            <span className="text-[10px] font-medium">{label}</span>
+          </NavLink>
+        ))}
       </div>
     </nav>
   );
