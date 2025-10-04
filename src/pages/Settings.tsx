@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { nutritionGoalsSchema } from '@/lib/validation';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -91,16 +92,24 @@ export default function Settings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Validate input before saving
+      const validationResult = nutritionGoalsSchema.safeParse({
+        daily_calories: goals.daily_calories,
+        daily_protein: goals.daily_protein,
+        daily_carbs: goals.daily_carbs,
+        daily_fat: goals.daily_fat,
+        current_weight: goals.current_weight || null,
+        goal_weight: goals.goal_weight || null,
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        throw new Error(firstError.message);
+      }
+
       const { error } = await supabase
         .from('user_goals')
-        .update({
-          daily_calories: goals.daily_calories,
-          daily_protein: goals.daily_protein,
-          daily_carbs: goals.daily_carbs,
-          daily_fat: goals.daily_fat,
-          current_weight: goals.current_weight || null,
-          goal_weight: goals.goal_weight || null,
-        })
+        .update(validationResult.data)
         .eq('user_id', user.id);
 
       if (error) throw error;
@@ -126,17 +135,10 @@ export default function Settings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Delete user's food logs
-      await supabase.from('food_logs').delete().eq('user_id', user.id);
-      
-      // Delete user's goals
-      await supabase.from('user_goals').delete().eq('user_id', user.id);
-      
-      // Delete user's profile
-      await supabase.from('profiles').delete().eq('id', user.id);
-
-      // Delete auth user (this will cascade and clean up everything)
-      const { error } = await supabase.auth.admin.deleteUser(user.id);
+      // Call the secure edge function to delete account
+      const { error } = await supabase.functions.invoke('delete-account', {
+        method: 'POST',
+      });
       
       if (error) throw error;
 
@@ -149,7 +151,6 @@ export default function Settings() {
       await supabase.auth.signOut();
       navigate('/auth');
     } catch (error: any) {
-      console.error('Error deleting account:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete account. Please contact support.",

@@ -172,18 +172,25 @@ Return this exact structure:
       throw new Error('Failed to upload image');
     }
 
-    const { data: { publicUrl } } = supabase.storage
+    // Generate signed URL (1 hour expiration) instead of public URL
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('food-images')
-      .getPublicUrl(fileName);
+      .createSignedUrl(fileName, 3600); // 1 hour expiration
 
-    console.log('Image uploaded:', publicUrl);
+    if (signedUrlError) {
+      console.error('Error creating signed URL:', signedUrlError);
+      throw new Error('Failed to create signed URL');
+    }
+
+    const imageUrl = signedUrlData.signedUrl;
+    console.log('Image uploaded with signed URL');
 
     // Insert food log
     const { data: logData, error: logError } = await supabase
       .from('food_logs')
       .insert({
         user_id: userId,
-        image_url: publicUrl,
+        image_url: imageUrl,
         food_name: nutritionData.food_name,
         calories: nutritionData.calories,
         protein: nutritionData.protein,

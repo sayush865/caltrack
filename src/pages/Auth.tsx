@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Apple, Eye, EyeOff } from 'lucide-react';
+import { authSignUpSchema, authSignInSchema } from '@/lib/validation';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -19,6 +20,8 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [usernameError, setUsernameError] = useState('');
+  const [lastUsernameCheck, setLastUsernameCheck] = useState(0);
+  const USERNAME_CHECK_DELAY = 2000; // 2 second delay between checks
 
   useEffect(() => {
     const checkUser = async () => {
@@ -43,6 +46,13 @@ export default function Auth() {
       setUsernameError('');
       return;
     }
+
+    // Rate limiting: prevent rapid username enumeration
+    const now = Date.now();
+    if (now - lastUsernameCheck < USERNAME_CHECK_DELAY) {
+      return;
+    }
+    setLastUsernameCheck(now);
 
     const { data } = await supabase
       .from('profiles')
@@ -72,13 +82,25 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Validate inputs
+      const validationResult = authSignUpSchema.safeParse({
+        username,
         email,
         password,
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        throw new Error(firstError.message);
+      }
+
+      const { error } = await supabase.auth.signUp({
+        email: validationResult.data.email,
+        password: validationResult.data.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            username: username
+            username: validationResult.data.username
           }
         }
       });
@@ -111,18 +133,29 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      let loginEmail = identifier;
+      // Validate inputs
+      const validationResult = authSignInSchema.safeParse({
+        identifier,
+        password,
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        throw new Error(firstError.message);
+      }
+
+      let loginEmail = validationResult.data.identifier;
 
       // Check if identifier is a username (no @ symbol)
-      if (!identifier.includes('@')) {
+      if (!validationResult.data.identifier.includes('@')) {
         const { data, error } = await supabase
           .from('profiles')
           .select('email')
-          .eq('username', identifier)
+          .eq('username', validationResult.data.identifier)
           .maybeSingle();
 
         if (error || !data) {
-          throw new Error('Username not found');
+          throw new Error('Invalid username or password');
         }
 
         loginEmail = data.email;
@@ -130,7 +163,7 @@ export default function Auth() {
 
       const { error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
-        password,
+        password: validationResult.data.password,
       });
 
       if (error) throw error;
@@ -218,9 +251,10 @@ export default function Auth() {
                     placeholder="Choose a username"
                     value={username}
                     onChange={(e) => {
-                      const newUsername = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                      const newUsername = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').substring(0, 20);
                       setUsername(newUsername);
-                      checkUsernameAvailability(newUsername);
+                      // Debounced username check to prevent enumeration
+                      setTimeout(() => checkUsernameAvailability(newUsername), 500);
                     }}
                     className={`h-11 bg-background border-border ${usernameError ? 'border-destructive' : ''}`}
                     required
@@ -249,12 +283,12 @@ export default function Auth() {
                     <Input
                       id="signup-password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Create a password (min 6 characters)"
+                      placeholder="Create a password (min 8 characters)"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="h-11 bg-background border-border pr-10"
                       required
-                      minLength={6}
+                      minLength={8}
                     />
                     <button
                       type="button"
