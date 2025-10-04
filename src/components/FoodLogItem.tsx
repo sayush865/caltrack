@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -76,13 +77,13 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
           
           <CardContent className="flex-1 p-0 space-y-2">
             <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 space-y-1.5">
                 <h3 className="font-semibold text-sm line-clamp-1">
                   {log.food_name}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <Badge variant="secondary" className="text-xs font-normal w-fit">
                   {format(new Date(log.logged_at), 'MMM d, h:mm a')}
-                </p>
+                </Badge>
               </div>
               <Button
                 variant="ghost"
