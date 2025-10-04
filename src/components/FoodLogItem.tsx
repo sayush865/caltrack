@@ -64,11 +64,13 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
     <>
       <Card className="overflow-hidden hover:shadow-md transition-shadow border border-border bg-card">
         <div className="flex gap-3 p-3">
-          <img 
-            src={log.image_url} 
-            alt={log.food_name}
-            className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-border"
-          />
+          {log.image_url && (
+            <img 
+              src={log.image_url} 
+              alt={log.food_name}
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-border"
+            />
+          )}
           
           <CardContent className="flex-1 p-0 space-y-2">
             <div className="flex items-start justify-between gap-2">

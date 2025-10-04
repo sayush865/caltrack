@@ -171,6 +171,7 @@ export default function FoodDatabase() {
           vitamin_c: item.vitamin_c,
           calcium: item.calcium,
           iron: item.iron,
+          image_url: imageMap[item.name] || null,
           logged_at: new Date().toISOString(),
         });
 
