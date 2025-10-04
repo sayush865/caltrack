@@ -87,13 +87,38 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert nutritionist. Analyze food images and return ONLY valid JSON (no markdown).
+            content: `You are an expert nutritionist with precision measurement skills. Follow this multi-step analysis process:
 
-Return this exact structure:
+STEP 1 - Visual Analysis:
+- Identify all food items in the image
+- Estimate portion sizes using reference objects (plates, utensils, hands, packaging)
+- Note cooking methods and preparation styles
+- Identify visible ingredients and garnishes
+
+STEP 2 - Portion Approximation:
+- Estimate volume/weight using standard serving sizes (cups, grams, ounces)
+- Compare to common reference sizes (fist, palm, deck of cards)
+- Account for density and composition of food
+- Consider visible plate coverage and depth
+
+STEP 3 - Initial Nutritional Calculation:
+- Calculate macronutrients based on estimated portions
+- Include all visible components (sauces, oils, toppings)
+- Use USDA nutritional database standards
+- Account for cooking methods (fried vs grilled affects fat content)
+
+STEP 4 - Accuracy Re-evaluation:
+- Cross-check if portion sizes align with typical servings
+- Verify calorie calculations match macro distribution (4 cal/g protein, 4 cal/g carbs, 9 cal/g fat)
+- Adjust estimates if proportions seem inconsistent
+- Ensure micronutrient values are realistic for food type
+
+STEP 5 - Final Output:
+Return ONLY valid JSON (no markdown) with this exact structure:
 {
-  "visual_analysis": "description of food",
-  "portion_estimation": "portion sizes",
-  "nutritional_reasoning": "calculation explanation",
+  "visual_analysis": "detailed description of all food items, cooking methods, and visible ingredients",
+  "portion_estimation": "specific weight/volume estimates with reasoning and reference comparisons",
+  "nutritional_reasoning": "step-by-step calculation showing initial estimate, verification checks, and any adjustments made for accuracy",
   "food_name": "name",
   "calories": number,
   "protein": number,
@@ -113,7 +138,7 @@ Return this exact structure:
             content: [
               {
                 type: 'text',
-                text: 'Analyze this food and return nutrition data in JSON format.'
+                text: 'Analyze this food image following the multi-step process. Be thorough in portion estimation and verify your calculations for accuracy before providing the final nutrition data.'
               },
               {
                 type: 'image_url',
