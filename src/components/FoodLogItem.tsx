@@ -36,8 +36,10 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   
-  // Always get the image from our image map using the food name (includes fallback)
-  const foodImage = getFoodImage(log.food_name);
+  // Prioritize actual captured image (from camera) over predefined food images
+  const foodImage = log.image_url && log.image_url.startsWith('http') 
+    ? log.image_url 
+    : getFoodImage(log.food_name);
 
   const handleDelete = async () => {
     setDeleting(true);
