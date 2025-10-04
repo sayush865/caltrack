@@ -24,6 +24,7 @@ export type Database = {
           fat: number
           fiber: number | null
           id: string
+          image_url: string | null
           iron: number | null
           name: string
           protein: number
@@ -44,6 +45,7 @@ export type Database = {
           fat?: number
           fiber?: number | null
           id?: string
+          image_url?: string | null
           iron?: number | null
           name: string
           protein?: number
@@ -64,6 +66,7 @@ export type Database = {
           fat?: number
           fiber?: number | null
           id?: string
+          image_url?: string | null
           iron?: number | null
           name?: string
           protein?: number

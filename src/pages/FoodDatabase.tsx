@@ -9,6 +9,63 @@ import { ArrowLeft, Search, Plus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 
+// Import all food images
+import appleImg from '@/assets/food/apple.png';
+import bananaImg from '@/assets/food/banana.png';
+import orangeImg from '@/assets/food/orange.png';
+import strawberryImg from '@/assets/food/strawberry.png';
+import blueberryImg from '@/assets/food/blueberry.png';
+import broccoliImg from '@/assets/food/broccoli.png';
+import carrotImg from '@/assets/food/carrot.png';
+import spinachImg from '@/assets/food/spinach.png';
+import tomatoImg from '@/assets/food/tomato.png';
+import cucumberImg from '@/assets/food/cucumber.png';
+import chickenImg from '@/assets/food/chicken.png';
+import salmonImg from '@/assets/food/salmon.png';
+import eggsImg from '@/assets/food/eggs.png';
+import yogurtImg from '@/assets/food/yogurt.png';
+import tofuImg from '@/assets/food/tofu.png';
+import riceImg from '@/assets/food/rice.png';
+import quinoaImg from '@/assets/food/quinoa.png';
+import oatsImg from '@/assets/food/oats.png';
+import breadImg from '@/assets/food/bread.png';
+import pastaImg from '@/assets/food/pasta.png';
+import almondsImg from '@/assets/food/almonds.png';
+import walnutsImg from '@/assets/food/walnuts.png';
+import chiaImg from '@/assets/food/chia.png';
+import peanutButterImg from '@/assets/food/peanut-butter.png';
+import milkImg from '@/assets/food/milk.png';
+import cheeseImg from '@/assets/food/cheese.png';
+
+const imageMap: Record<string, string> = {
+  'Apple': appleImg,
+  'Banana': bananaImg,
+  'Orange': orangeImg,
+  'Strawberry': strawberryImg,
+  'Blueberry': blueberryImg,
+  'Broccoli': broccoliImg,
+  'Carrot': carrotImg,
+  'Spinach': spinachImg,
+  'Tomato': tomatoImg,
+  'Cucumber': cucumberImg,
+  'Chicken Breast': chickenImg,
+  'Salmon': salmonImg,
+  'Eggs': eggsImg,
+  'Greek Yogurt': yogurtImg,
+  'Tofu': tofuImg,
+  'Brown Rice': riceImg,
+  'Quinoa': quinoaImg,
+  'Oats': oatsImg,
+  'Whole Wheat Bread': breadImg,
+  'Pasta': pastaImg,
+  'Almonds': almondsImg,
+  'Walnuts': walnutsImg,
+  'Chia Seeds': chiaImg,
+  'Peanut Butter': peanutButterImg,
+  'Milk': milkImg,
+  'Cheddar Cheese': cheeseImg,
+};
+
 interface FoodItem {
   id: string;
   name: string;
@@ -26,6 +83,7 @@ interface FoodItem {
   vitamin_c: number;
   calcium: number;
   iron: number;
+  image_url: string | null;
 }
 
 export default function FoodDatabase() {
@@ -191,32 +249,41 @@ export default function FoodDatabase() {
             filteredItems.map((item) => (
               <Card key={item.id} className="p-4 hover:bg-accent transition-colors">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-semibold text-lg">{item.name}</h3>
-                      <Badge variant="secondary" className="text-xs">
-                        {item.category}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Per {item.serving_size}{item.serving_unit}
-                    </p>
-                    <div className="grid grid-cols-4 gap-2 text-sm">
-                      <div>
-                        <p className="text-muted-foreground text-xs">Calories</p>
-                        <p className="font-medium">{item.calories}</p>
+                  <div className="flex gap-4 flex-1">
+                    {imageMap[item.name] && (
+                      <img 
+                        src={imageMap[item.name]} 
+                        alt={item.name}
+                        className="w-20 h-20 object-cover rounded-lg shrink-0"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-lg">{item.name}</h3>
+                        <Badge variant="secondary" className="text-xs">
+                          {item.category}
+                        </Badge>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs">Protein</p>
-                        <p className="font-medium">{item.protein}g</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs">Carbs</p>
-                        <p className="font-medium">{item.carbs}g</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs">Fat</p>
-                        <p className="font-medium">{item.fat}g</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Per {item.serving_size}{item.serving_unit}
+                      </p>
+                      <div className="grid grid-cols-4 gap-2 text-sm">
+                        <div>
+                          <p className="text-muted-foreground text-xs">Calories</p>
+                          <p className="font-medium">{item.calories}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-xs">Protein</p>
+                          <p className="font-medium">{item.protein}g</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-xs">Carbs</p>
+                          <p className="font-medium">{item.carbs}g</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-xs">Fat</p>
+                          <p className="font-medium">{item.fat}g</p>
+                        </div>
                       </div>
                     </div>
                   </div>
