@@ -33,6 +33,7 @@ export default function Camera() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [analyzing, setAnalyzing] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -42,6 +43,7 @@ export default function Camera() {
     setCapturedImage(imageData);
     setAnalyzing(true);
     setShowConfirmation(false);
+    setStreamingContent('');
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -56,21 +58,56 @@ export default function Camera() {
         return;
       }
       
-      // No longer send userId - edge function extracts it from JWT
-      const { data, error } = await supabase.functions.invoke('analyze-food', {
-        body: { 
-          imageBase64: imageData
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-food`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ imageBase64: imageData }),
         }
-      });
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to analyze food');
+      }
 
-      if (data?.nutritionData && data?.analysis) {
-        setNutritionData(data.nutritionData);
-        setAnalysisData(data.analysis);
-        setShowConfirmation(true);
-      } else {
-        throw new Error('Invalid response from analysis');
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'delta') {
+                setStreamingContent(prev => prev + data.content);
+              } else if (data.type === 'complete') {
+                setNutritionData(data.nutritionData);
+                setAnalysisData(data.analysis);
+                setShowConfirmation(true);
+                setStreamingContent('');
+              } else if (data.type === 'error') {
+                throw new Error(data.error);
+              }
+            } catch (e) {
+              console.error('Error parsing stream:', e);
+            }
+          }
+        }
       }
     } catch (error: any) {
       console.error('Analysis error:', error);
@@ -79,6 +116,7 @@ export default function Camera() {
         description: error.message || "Failed to analyze food image. Please try again.",
         variant: "destructive",
       });
+      setStreamingContent('');
     } finally {
       setAnalyzing(false);
     }
@@ -130,12 +168,20 @@ export default function Camera() {
         </div>
 
         {analyzing && (
-          <Card className="border border-border bg-card p-12 text-center">
+          <Card className="border border-border bg-card p-12">
             <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
-            <p className="text-lg font-medium">Analyzing your food...</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              This may take a few seconds
+            <p className="text-lg font-medium text-center">Analyzing your food...</p>
+            <p className="text-sm text-muted-foreground mt-2 text-center">
+              AI is examining the image
             </p>
+            
+            {streamingContent && (
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg max-h-64 overflow-y-auto">
+                <p className="text-sm font-mono whitespace-pre-wrap text-left">
+                  {streamingContent}
+                </p>
+              </div>
+            )}
           </Card>
         )}
 
