@@ -25,6 +25,7 @@ import chiaImg from '@/assets/food/chia.png';
 import peanutButterImg from '@/assets/food/peanut-butter.png';
 import milkImg from '@/assets/food/milk.png';
 import cheeseImg from '@/assets/food/cheese.png';
+import genericFoodImg from '@/assets/food/generic-food.png';
 
 export const foodImageMap: Record<string, string> = {
   'Apple': appleImg,
@@ -55,6 +56,6 @@ export const foodImageMap: Record<string, string> = {
   'Cheddar Cheese': cheeseImg,
 };
 
-export function getFoodImage(foodName: string): string | undefined {
-  return foodImageMap[foodName];
+export function getFoodImage(foodName: string): string {
+  return foodImageMap[foodName] || genericFoodImg;
 }

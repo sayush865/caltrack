@@ -35,8 +35,8 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   
-  // Get the image from our image map using the food name
-  const foodImage = log.image_url || getFoodImage(log.food_name);
+  // Always get the image from our image map using the food name (includes fallback)
+  const foodImage = getFoodImage(log.food_name);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -68,13 +68,11 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
     <>
       <Card className="overflow-hidden hover:shadow-md transition-shadow border border-border bg-card">
         <div className="flex gap-3 p-3">
-          {foodImage && (
-            <img 
-              src={foodImage} 
-              alt={log.food_name}
-              className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-border"
-            />
-          )}
+          <img 
+            src={foodImage} 
+            alt={log.food_name}
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-border"
+          />
           
           <CardContent className="flex-1 p-0 space-y-2">
             <div className="flex items-start justify-between gap-2">
