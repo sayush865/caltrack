@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import { getFoodImage } from '@/lib/foodImages';
 
 interface FoodLogItemProps {
@@ -33,6 +34,7 @@ interface FoodLogItemProps {
 
 export default function FoodLogItem({ log }: FoodLogItemProps) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   
@@ -87,14 +89,24 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
                   {format(new Date(log.logged_at), 'MMM d, h:mm a')}
                 </Badge>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowDeleteDialog(true)}
-                className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              <div className="flex gap-1 flex-shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate(`/edit-food/${log.id}`)}
+                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
             
             <div className="flex gap-3 text-xs flex-wrap">

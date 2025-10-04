@@ -12,6 +12,7 @@ import Camera from "./pages/Camera";
 import FoodDatabase from "./pages/FoodDatabase";
 import Settings from "./pages/Settings";
 import Goals from "./pages/Goals";
+import EditFoodLog from "./pages/EditFoodLog";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 
@@ -72,6 +73,7 @@ const App = () => (
           <Route path="/food-database" element={<ProtectedRoute><FoodDatabase /></ProtectedRoute>} />
           <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/edit-food/:id" element={<ProtectedRoute><EditFoodLog /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
