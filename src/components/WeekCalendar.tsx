@@ -13,7 +13,7 @@ export default function WeekCalendar({ selectedDate, onDateSelect }: WeekCalenda
   
   const today = new Date();
   const currentWeekStart = startOfWeek(addWeeks(today, weekOffset), { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 5 }, (_, i) => addDays(currentWeekStart, i));
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
 
   return (
     <div className="flex items-center gap-2 w-full">
@@ -26,7 +26,7 @@ export default function WeekCalendar({ selectedDate, onDateSelect }: WeekCalenda
         <ChevronLeft className="h-4 w-4" />
       </Button>
       
-      <div className="grid grid-cols-5 gap-1.5 flex-1">
+      <div className="grid grid-cols-7 gap-1.5 flex-1">
         {weekDays.map((day) => {
           const isSelected = isSameDay(day, selectedDate);
           const isToday = isSameDay(day, today);
