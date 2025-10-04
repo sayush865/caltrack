@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Search, Plus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { foodImageMap } from '@/lib/foodImages';
+import { getFoodImage } from '@/lib/foodImages';
 
 interface FoodItem {
   id: string;
@@ -99,6 +99,9 @@ export default function FoodDatabase() {
         return;
       }
 
+      // Use database image_url if available, otherwise use fallback from foodImages
+      const imageUrl = item.image_url || getFoodImage(item.name);
+
       const { error } = await supabase
         .from('food_logs')
         .insert({
@@ -115,7 +118,7 @@ export default function FoodDatabase() {
           vitamin_c: item.vitamin_c,
           calcium: item.calcium,
           iron: item.iron,
-          image_url: foodImageMap[item.name] || null,
+          image_url: imageUrl,
           logged_at: new Date().toISOString(),
         });
 
@@ -191,17 +194,19 @@ export default function FoodDatabase() {
               <p className="text-muted-foreground">No items found</p>
             </Card>
           ) : (
-            filteredItems.map((item) => (
+            filteredItems.map((item) => {
+              // Get image: prioritize database image_url, then fallback to predefined images
+              const displayImage = item.image_url || getFoodImage(item.name);
+              
+              return (
               <Card key={item.id} className="p-4 hover:bg-accent transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex gap-4 flex-1">
-                    {foodImageMap[item.name] && (
-                      <img 
-                        src={foodImageMap[item.name]} 
-                        alt={item.name}
-                        className="w-20 h-20 object-cover rounded-lg shrink-0"
-                      />
-                    )}
+                    <img 
+                      src={displayImage} 
+                      alt={item.name}
+                      className="w-20 h-20 object-cover rounded-lg shrink-0"
+                    />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold text-lg">{item.name}</h3>
@@ -241,7 +246,8 @@ export default function FoodDatabase() {
                   </Button>
                 </div>
               </Card>
-            ))
+            );
+            })
           )}
         </div>
       </div>
