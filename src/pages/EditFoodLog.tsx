@@ -47,7 +47,7 @@ export default function EditFoodLog() {
     if (originalData) {
       updateNutritionalValues();
     }
-  }, [servings, originalData]);
+  }, [servings, selectedUnit, originalData]);
 
   const fetchFoodLog = async () => {
     try {
@@ -74,7 +74,15 @@ export default function EditFoodLog() {
   };
 
   const updateNutritionalValues = () => {
-    const multiplier = servings;
+    // Unit conversion factors (assuming original data is per serving)
+    // 1 serving = 100g = 6 tbsp (standard conversions)
+    const unitMultipliers: Record<MeasurementUnit, number> = {
+      serving: 1,
+      g: 0.01, // 1g = 1/100 of a serving
+      tbsp: 0.167, // 1 tbsp = ~1/6 of a serving
+    };
+    
+    const multiplier = servings * unitMultipliers[selectedUnit];
     setCurrentData({
       ...originalData,
       calories: Math.round(originalData.calories * multiplier),
@@ -177,7 +185,9 @@ export default function EditFoodLog() {
 
         {/* Number of Servings */}
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Number of Servings</h3>
+          <h3 className="font-semibold">
+            Number of {selectedUnit === 'serving' ? 'Servings' : selectedUnit === 'g' ? 'Grams' : 'Tablespoons'}
+          </h3>
           <div className="flex items-center gap-2 px-4 py-2 border-2 border-foreground rounded-full">
             <Input
               type="number"
