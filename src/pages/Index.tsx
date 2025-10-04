@@ -139,7 +139,7 @@ export default function Index() {
           <div className="flex items-center justify-between mb-4">
             <div className="space-y-0.5">
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                Food Tracker
+                NutriTrack
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 {format(selectedDate, 'EEEE, MMM d')}
