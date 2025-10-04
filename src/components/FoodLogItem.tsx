@@ -15,6 +15,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2 } from 'lucide-react';
+import { getFoodImage } from '@/lib/foodImages';
 
 interface FoodLogItemProps {
   log: {
@@ -33,6 +34,9 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
   const { toast } = useToast();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  
+  // Get the image from our image map using the food name
+  const foodImage = log.image_url || getFoodImage(log.food_name);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -64,9 +68,9 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
     <>
       <Card className="overflow-hidden hover:shadow-md transition-shadow border border-border bg-card">
         <div className="flex gap-3 p-3">
-          {log.image_url && (
+          {foodImage && (
             <img 
-              src={log.image_url} 
+              src={foodImage} 
               alt={log.food_name}
               className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-border"
             />
