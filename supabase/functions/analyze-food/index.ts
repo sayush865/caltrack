@@ -156,6 +156,34 @@ Return this exact structure:
     const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const nutritionData = JSON.parse(cleanContent);
     
+    // Check if this food already exists in food_database for consistency
+    const { data: existingFood } = await supabase
+      .from('food_database')
+      .select('*')
+      .ilike('name', nutritionData.food_name)
+      .single();
+
+    // Use existing food data if found (for consistency), otherwise use AI analysis
+    const finalNutritionData = existingFood ? {
+      food_name: existingFood.name,
+      calories: existingFood.calories,
+      protein: existingFood.protein,
+      carbs: existingFood.carbs,
+      fat: existingFood.fat,
+      fiber: existingFood.fiber,
+      sugar: existingFood.sugar,
+      sodium: existingFood.sodium,
+      vitamin_a: existingFood.vitamin_a,
+      vitamin_c: existingFood.vitamin_c,
+      calcium: existingFood.calcium,
+      iron: existingFood.iron,
+      visual_analysis: nutritionData.visual_analysis,
+      portion_estimation: nutritionData.portion_estimation,
+      nutritional_reasoning: `Using saved data for consistency. Original: ${nutritionData.nutritional_reasoning}`
+    } : nutritionData;
+
+    console.log(existingFood ? 'Using existing food data for consistency' : 'Using new AI analysis');
+    
     // Upload image to storage
     const fileName = `${userId}/${Date.now()}.jpg`;
     const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
@@ -185,24 +213,51 @@ Return this exact structure:
     const imageUrl = signedUrlData.signedUrl;
     console.log('Image uploaded with signed URL');
 
+    // If this is a new food (not in database), add it to food_database for future consistency
+    if (!existingFood) {
+      const { error: dbInsertError } = await supabase
+        .from('food_database')
+        .insert({
+          name: finalNutritionData.food_name,
+          category: 'user-analyzed',
+          serving_size: '1 serving',
+          calories: finalNutritionData.calories,
+          protein: finalNutritionData.protein,
+          carbs: finalNutritionData.carbs,
+          fat: finalNutritionData.fat,
+          fiber: finalNutritionData.fiber,
+          sugar: finalNutritionData.sugar,
+          sodium: finalNutritionData.sodium,
+          vitamin_a: finalNutritionData.vitamin_a,
+          vitamin_c: finalNutritionData.vitamin_c,
+          calcium: finalNutritionData.calcium,
+          iron: finalNutritionData.iron,
+          image_url: imageUrl
+        });
+
+      if (!dbInsertError) {
+        console.log('Added new food to database for future consistency');
+      }
+    }
+
     // Insert food log
     const { data: logData, error: logError } = await supabase
       .from('food_logs')
       .insert({
         user_id: userId,
         image_url: imageUrl,
-        food_name: nutritionData.food_name,
-        calories: nutritionData.calories,
-        protein: nutritionData.protein,
-        carbs: nutritionData.carbs,
-        fat: nutritionData.fat,
-        fiber: nutritionData.fiber,
-        sugar: nutritionData.sugar,
-        sodium: nutritionData.sodium,
-        vitamin_a: nutritionData.vitamin_a,
-        vitamin_c: nutritionData.vitamin_c,
-        calcium: nutritionData.calcium,
-        iron: nutritionData.iron,
+        food_name: finalNutritionData.food_name,
+        calories: finalNutritionData.calories,
+        protein: finalNutritionData.protein,
+        carbs: finalNutritionData.carbs,
+        fat: finalNutritionData.fat,
+        fiber: finalNutritionData.fiber,
+        sugar: finalNutritionData.sugar,
+        sodium: finalNutritionData.sodium,
+        vitamin_a: finalNutritionData.vitamin_a,
+        vitamin_c: finalNutritionData.vitamin_c,
+        calcium: finalNutritionData.calcium,
+        iron: finalNutritionData.iron,
         logged_at: new Date().toISOString()
       })
       .select()
@@ -219,9 +274,9 @@ Return this exact structure:
       JSON.stringify({
         nutritionData: logData,
         analysis: {
-          visual_analysis: nutritionData.visual_analysis,
-          portion_estimation: nutritionData.portion_estimation,
-          nutritional_reasoning: nutritionData.nutritional_reasoning
+          visual_analysis: finalNutritionData.visual_analysis,
+          portion_estimation: finalNutritionData.portion_estimation,
+          nutritional_reasoning: finalNutritionData.nutritional_reasoning
         }
       }),
       { 
