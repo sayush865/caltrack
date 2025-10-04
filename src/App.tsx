@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import DailyLog from "./pages/DailyLog";
 import Camera from "./pages/Camera";
+import FoodDatabase from "./pages/FoodDatabase";
 import Settings from "./pages/Settings";
 import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
@@ -68,6 +69,7 @@ const App = () => (
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/daily-log" element={<ProtectedRoute><DailyLog /></ProtectedRoute>} />
           <Route path="/camera" element={<ProtectedRoute><Camera /></ProtectedRoute>} />
+          <Route path="/food-database" element={<ProtectedRoute><FoodDatabase /></ProtectedRoute>} />
           <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

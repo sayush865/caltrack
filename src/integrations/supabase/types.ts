@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      food_database: {
+        Row: {
+          calcium: number | null
+          calories: number
+          carbs: number
+          category: string
+          created_at: string | null
+          fat: number
+          fiber: number | null
+          id: string
+          iron: number | null
+          name: string
+          protein: number
+          serving_size: string
+          serving_unit: string
+          sodium: number | null
+          sugar: number | null
+          updated_at: string | null
+          vitamin_a: number | null
+          vitamin_c: number | null
+        }
+        Insert: {
+          calcium?: number | null
+          calories: number
+          carbs?: number
+          category: string
+          created_at?: string | null
+          fat?: number
+          fiber?: number | null
+          id?: string
+          iron?: number | null
+          name: string
+          protein?: number
+          serving_size: string
+          serving_unit?: string
+          sodium?: number | null
+          sugar?: number | null
+          updated_at?: string | null
+          vitamin_a?: number | null
+          vitamin_c?: number | null
+        }
+        Update: {
+          calcium?: number | null
+          calories?: number
+          carbs?: number
+          category?: string
+          created_at?: string | null
+          fat?: number
+          fiber?: number | null
+          id?: string
+          iron?: number | null
+          name?: string
+          protein?: number
+          serving_size?: string
+          serving_unit?: string
+          sodium?: number | null
+          sugar?: number | null
+          updated_at?: string | null
+          vitamin_a?: number | null
+          vitamin_c?: number | null
+        }
+        Relationships: []
+      }
       food_logs: {
         Row: {
           calcium: number | null
