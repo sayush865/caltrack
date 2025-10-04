@@ -85,7 +85,7 @@ export default function DailyLog() {
   const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-24">
       <div className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center gap-4 border-b border-border pb-6">
           <Button
