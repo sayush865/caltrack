@@ -7,6 +7,11 @@ export default function CalorieProgress({ consumed, goal }: CalorieProgressProps
   const remaining = Math.max(0, goal - consumed);
   const percentage = goal > 0 ? (consumed / goal) * 100 : 0;
   const isOverLimit = consumed > goal;
+  
+  // Calculate circle properties for proper rendering
+  const radius = 50; // percentage-based radius
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (circumference * Math.min(percentage, 100)) / 100;
 
   return (
     <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
@@ -41,10 +46,11 @@ export default function CalorieProgress({ consumed, goal }: CalorieProgressProps
               stroke="currentColor"
               strokeWidth="12"
               fill="none"
-              strokeDasharray={`${2 * Math.PI * 50}`}
-              strokeDashoffset={`${2 * Math.PI * 50 * (1 - Math.min(percentage, 100) / 100)}`}
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
               className={isOverLimit ? "text-destructive" : "text-foreground"}
               strokeLinecap="round"
+              style={{ transition: 'stroke-dashoffset 0.3s ease' }}
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
