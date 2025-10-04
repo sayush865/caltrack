@@ -183,7 +183,7 @@ Return ONLY valid JSON (no markdown) with this exact structure:
       throw new Error('No response body');
     }
 
-    let accumulatedContent = '';
+    let fullResponseText = '';
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -193,7 +193,9 @@ Return ONLY valid JSON (no markdown) with this exact structure:
             if (done) {
               // Parse final accumulated content and save to database
               try {
-                const cleanContent = accumulatedContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                console.log('Full response accumulated:', fullResponseText);
+                const cleanContent = fullResponseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                console.log('Cleaned content:', cleanContent);
                 const nutritionData = JSON.parse(cleanContent);
                 
                 // Upload image to storage
@@ -252,6 +254,8 @@ Return ONLY valid JSON (no markdown) with this exact structure:
                   throw new Error('Failed to save food log');
                 }
 
+                console.log('Food log saved successfully');
+
                 // Send final complete data
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                   type: 'complete',
@@ -286,7 +290,7 @@ Return ONLY valid JSON (no markdown) with this exact structure:
                   const content = parsed.choices?.[0]?.delta?.content;
                   
                   if (content) {
-                    accumulatedContent += content;
+                    fullResponseText += content;
                     // Forward the streaming chunk to client
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                       type: 'delta',
@@ -295,6 +299,7 @@ Return ONLY valid JSON (no markdown) with this exact structure:
                   }
                 } catch (e) {
                   // Ignore parsing errors for incomplete chunks
+                  console.log('Ignoring incomplete chunk:', e);
                 }
               }
             }
