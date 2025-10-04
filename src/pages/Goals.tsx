@@ -86,7 +86,7 @@ const Goals = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24">
       <div className="container max-w-2xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Nutrition Goals</h1>
 
