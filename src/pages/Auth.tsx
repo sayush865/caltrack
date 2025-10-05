@@ -115,7 +115,7 @@ export default function Auth() {
 
       toast({
         title: 'Account created!',
-        description: 'Welcome to NutraVision. You can start tracking your nutrition.',
+        description: 'Welcome to CalTrack AI. You can start tracking your nutrition.',
       });
     } catch (error: any) {
       toast({
@@ -191,8 +191,8 @@ export default function Auth() {
             <Apple className="w-12 h-12 text-primary-foreground" />
           </div>
           <div className="space-y-2">
-            <CardTitle className="text-4xl font-bold tracking-tight">NutraVision</CardTitle>
-            <CardDescription className="text-base">AI-Powered Nutrition Tracking</CardDescription>
+            <CardTitle className="text-4xl font-bold tracking-tight">CalTrack AI</CardTitle>
+            <CardDescription className="text-base">Smart Calorie & Nutrition Tracking</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
