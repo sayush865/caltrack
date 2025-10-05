@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Trash2, Camera, Plus } from 'lucide-react';
+import { ArrowLeft, Camera, User, Target, Activity, TrendingUp, Scale, AlertTriangle, ChevronRight, Edit } from 'lucide-react';
 import { nutritionGoalsSchema, profileSchema } from '@/lib/validation';
 import { WeightHistoryChart } from '@/components/WeightHistoryChart';
 import { HealthMetrics } from '@/components/HealthMetrics';
@@ -28,12 +29,13 @@ export default function Settings() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [loading, setLoading] = useState(false);
   const [uploadingPicture, setUploadingPicture] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showAddWeightDialog, setShowAddWeightDialog] = useState(false);
+  const [showPersonalDetailsDialog, setShowPersonalDetailsDialog] = useState(false);
+  const [showNutritionGoalsDialog, setShowNutritionGoalsDialog] = useState(false);
+  const [showWeightGoalsDialog, setShowWeightGoalsDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [newWeight, setNewWeight] = useState('');
+  const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
     username: '',
     email: '',
@@ -65,7 +67,6 @@ export default function Settings() {
         return;
       }
 
-      // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -85,7 +86,6 @@ export default function Settings() {
         });
       }
 
-      // Fetch goals
       const { data: goalsData } = await supabase
         .from('user_goals')
         .select('*')
@@ -111,7 +111,6 @@ export default function Settings() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Error",
@@ -121,7 +120,6 @@ export default function Settings() {
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "Error",
@@ -139,19 +137,16 @@ export default function Settings() {
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/profile.${fileExt}`;
 
-      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('profile-pictures')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('profile-pictures')
         .getPublicUrl(filePath);
 
-      // Update profile
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ profile_picture_url: publicUrl })
@@ -211,6 +206,8 @@ export default function Settings() {
         title: "Success!",
         description: "Profile updated successfully",
       });
+      setShowPersonalDetailsDialog(false);
+      fetchData();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -251,8 +248,10 @@ export default function Settings() {
 
       toast({
         title: "Success!",
-        description: "Your nutrition goals have been updated",
+        description: "Nutrition goals updated",
       });
+      setShowNutritionGoalsDialog(false);
+      fetchData();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -264,50 +263,36 @@ export default function Settings() {
     }
   };
 
-  const handleAddWeight = async () => {
-    if (!newWeight) return;
-    
+  const handleSaveWeightGoals = async () => {
+    setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const weightValue = parseFloat(newWeight);
-      if (isNaN(weightValue) || weightValue <= 0) {
-        throw new Error('Please enter a valid weight');
-      }
-
-      // Add to weight logs
-      const { error: logError } = await supabase
-        .from('weight_logs')
-        .insert({ user_id: user.id, weight: weightValue });
-
-      if (logError) throw logError;
-
-      // Update current weight in goals
-      const { error: goalError } = await supabase
+      const { error } = await supabase
         .from('user_goals')
-        .update({ current_weight: weightValue })
+        .update({
+          current_weight: goals.current_weight,
+          goal_weight: goals.goal_weight,
+        })
         .eq('user_id', user.id);
 
-      if (goalError) throw goalError;
+      if (error) throw error;
 
-      setGoals({ ...goals, current_weight: weightValue });
-      setNewWeight('');
-      setShowAddWeightDialog(false);
-      
       toast({
         title: "Success!",
-        description: "Weight logged successfully",
+        description: "Weight goals updated",
       });
-      
-      // Refresh the chart
+      setShowWeightGoalsDialog(false);
       fetchData();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to log weight",
+        description: error.message || "Failed to update goals",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -333,7 +318,7 @@ export default function Settings() {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete account. Please contact support.",
+        description: error.message || "Failed to delete account",
         variant: "destructive",
       });
     } finally {
@@ -345,70 +330,64 @@ export default function Settings() {
   const weightUnit = profile.units_preference === 'imperial' ? 'lbs' : 'kg';
   const heightUnit = profile.units_preference === 'imperial' ? 'inches' : 'cm';
 
+  const getActivityLevelLabel = (level: string | null) => {
+    if (!level) return 'Not set';
+    const labels: Record<string, string> = {
+      sedentary: 'Sedentary',
+      lightly_active: 'Lightly Active',
+      moderately_active: 'Moderately Active',
+      very_active: 'Very Active',
+      extra_active: 'Extra Active',
+    };
+    return labels[level] || level;
+  };
+
+  const getGenderLabel = (gender: string | null) => {
+    if (!gender) return 'Not set';
+    const labels: Record<string, string> = {
+      male: 'Male',
+      female: 'Female',
+      other: 'Other',
+      prefer_not_to_say: 'Prefer not to say',
+    };
+    return labels[gender] || gender;
+  };
+
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
+    <div className="min-h-screen bg-muted/30 pb-24">
+      <div className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4 border-b border-border pb-6">
+        <div className="flex items-center gap-4 pb-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate('/')}
-            className="h-11 w-11"
+            className="h-10 w-10 rounded-full"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Settings</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage your profile and nutrition goals
-            </p>
-          </div>
+          <h1 className="text-3xl font-bold">Settings</h1>
         </div>
 
-        {/* Units Preference */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Units Preference</CardTitle>
-            <CardDescription>Choose your preferred measurement system</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Metric System</Label>
-                <p className="text-sm text-muted-foreground">Use kilograms and centimeters</p>
-              </div>
-              <Switch
-                checked={profile.units_preference === 'metric'}
-                onCheckedChange={(checked) => setProfile({ ...profile, units_preference: checked ? 'metric' : 'imperial' })}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Profile Picture & Basic Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-            <CardDescription>Your account details and profile picture</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center gap-6">
+        {/* Profile Card */}
+        <Card className="border-0 shadow-sm">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
               <div className="relative">
-                <Avatar className="h-24 w-24">
+                <Avatar className="h-16 w-16">
                   <AvatarImage src={profile.profile_picture_url || undefined} />
-                  <AvatarFallback className="text-2xl">
+                  <AvatarFallback className="text-xl bg-primary/10 text-primary">
                     {profile.username?.[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || '?'}
                   </AvatarFallback>
                 </Avatar>
                 <Button
                   size="icon"
                   variant="secondary"
-                  className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
+                  className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full shadow-md"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingPicture}
                 >
-                  <Camera className="h-4 w-4" />
+                  <Camera className="h-3.5 w-3.5" />
                 </Button>
                 <input
                   ref={fileInputRef}
@@ -418,236 +397,299 @@ export default function Settings() {
                   onChange={handleProfilePictureUpload}
                 />
               </div>
-              <div className="flex-1 space-y-2">
-                <div className="space-y-1">
-                  <Label>Username</Label>
-                  <Input value={profile.username} disabled className="bg-muted" />
-                </div>
-                <div className="space-y-1">
-                  <Label>Email</Label>
-                  <Input value={profile.email} disabled className="bg-muted" />
-                </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold">{profile.username || 'User'}</h2>
+                <p className="text-sm text-muted-foreground">{profile.age ? `${profile.age} years old` : 'Add your age'}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Personal Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Details</CardTitle>
-            <CardDescription>Help us calculate accurate health metrics</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="age">Age</Label>
-                <Input
-                  id="age"
-                  type="number"
-                  value={profile.age || ''}
-                  onChange={(e) => setProfile({ ...profile, age: parseInt(e.target.value) || null })}
-                  placeholder="25"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="gender">Gender</Label>
-                <Select value={profile.gender || ''} onValueChange={(value) => setProfile({ ...profile, gender: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                    <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="height">Height ({heightUnit})</Label>
-                <Input
-                  id="height"
-                  type="number"
-                  value={profile.height || ''}
-                  onChange={(e) => setProfile({ ...profile, height: parseFloat(e.target.value) || null })}
-                  placeholder={profile.units_preference === 'imperial' ? '70' : '178'}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="activity">Activity Level</Label>
-                <Select value={profile.activity_level || ''} onValueChange={(value) => setProfile({ ...profile, activity_level: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select activity level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sedentary">Sedentary (little/no exercise)</SelectItem>
-                    <SelectItem value="lightly_active">Lightly Active (1-3 days/week)</SelectItem>
-                    <SelectItem value="moderately_active">Moderately Active (3-5 days/week)</SelectItem>
-                    <SelectItem value="very_active">Very Active (6-7 days/week)</SelectItem>
-                    <SelectItem value="extra_active">Extra Active (athlete)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button onClick={handleSaveProfile} disabled={loading} className="w-full" size="lg">
-              <Save className="w-4 h-4 mr-2" />
-              {loading ? 'Saving...' : 'Save Profile'}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Health Metrics */}
-        <HealthMetrics
-          age={profile.age}
-          gender={profile.gender}
-          height={profile.height}
-          currentWeight={goals.current_weight}
-          activityLevel={profile.activity_level}
-          unitsPreference={profile.units_preference}
-        />
-
-        {/* Weight Goals & Tracking */}
-        <Card>
-          <CardHeader>
+        {/* Units Toggle */}
+        <Card className="border-0 shadow-sm">
+          <CardContent className="py-4">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Weight Goals</CardTitle>
-                <CardDescription>Track your weight progress</CardDescription>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Scale className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium">Metric System</p>
+                  <p className="text-xs text-muted-foreground">Kilograms & centimeters</p>
+                </div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setShowAddWeightDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Log Weight
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="current_weight">Current Weight ({weightUnit})</Label>
-                <Input
-                  id="current_weight"
-                  type="number"
-                  value={goals.current_weight || ''}
-                  onChange={(e) => setGoals({ ...goals, current_weight: Number(e.target.value) || 0 })}
-                  placeholder="150"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="goal_weight">Goal Weight ({weightUnit})</Label>
-                <Input
-                  id="goal_weight"
-                  type="number"
-                  value={goals.goal_weight || ''}
-                  onChange={(e) => setGoals({ ...goals, goal_weight: Number(e.target.value) || 0 })}
-                  placeholder="140"
-                />
-              </div>
+              <Switch
+                checked={profile.units_preference === 'metric'}
+                onCheckedChange={(checked) => {
+                  setProfile({ ...profile, units_preference: checked ? 'metric' : 'imperial' });
+                  handleSaveProfile();
+                }}
+              />
             </div>
           </CardContent>
         </Card>
 
-        {/* Weight History Chart */}
-        <WeightHistoryChart unitsPreference={profile.units_preference} />
+        {/* Menu Items */}
+        <div className="space-y-3">
+          <Card 
+            className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setShowPersonalDetailsDialog(true)}
+          >
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="font-medium">Personal details</span>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Nutrition Goals */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Daily Nutrition Goals</CardTitle>
-            <CardDescription>Set your daily macro targets</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card 
+            className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setShowNutritionGoalsDialog(true)}
+          >
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Target className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="font-medium">Edit nutrition goals</span>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setShowWeightGoalsDialog(true)}
+          >
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Activity className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="font-medium">Goals & current weight</span>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/daily-log')}
+          >
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="font-medium">Weight history</span>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Danger Zone */}
+        <Card className="border-destructive/50 shadow-sm">
+          <CardContent className="py-4">
+            <button
+              onClick={() => setShowDeleteDialog(true)}
+              className="w-full flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+                <span className="font-medium text-destructive">Delete account</span>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </button>
+          </CardContent>
+        </Card>
+
+        {/* Personal Details Dialog */}
+        <Dialog open={showPersonalDetailsDialog} onOpenChange={setShowPersonalDetailsDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Personal Details</DialogTitle>
+              <DialogDescription>Update your personal information</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between py-3 border-b">
+                  <span className="text-sm text-muted-foreground">Current weight</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{goals.current_weight || 'Not set'} {weightUnit}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between py-3 border-b">
+                  <span className="text-sm text-muted-foreground">Height</span>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={profile.height || ''}
+                      onChange={(e) => setProfile({ ...profile, height: parseFloat(e.target.value) || null })}
+                      placeholder="0"
+                      className="w-24 text-right"
+                    />
+                    <span className="text-sm font-medium">{heightUnit}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between py-3 border-b">
+                  <span className="text-sm text-muted-foreground">Age</span>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={profile.age || ''}
+                      onChange={(e) => setProfile({ ...profile, age: parseInt(e.target.value) || null })}
+                      placeholder="0"
+                      className="w-24 text-right"
+                    />
+                    <span className="text-sm font-medium">years</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between py-3 border-b">
+                  <span className="text-sm text-muted-foreground">Gender</span>
+                  <Select value={profile.gender || ''} onValueChange={(value) => setProfile({ ...profile, gender: value })}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm text-muted-foreground">Activity level</span>
+                  <Select value={profile.activity_level || ''} onValueChange={(value) => setProfile({ ...profile, activity_level: value })}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sedentary">Sedentary</SelectItem>
+                      <SelectItem value="lightly_active">Lightly Active</SelectItem>
+                      <SelectItem value="moderately_active">Moderately Active</SelectItem>
+                      <SelectItem value="very_active">Very Active</SelectItem>
+                      <SelectItem value="extra_active">Extra Active</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleSaveProfile} disabled={loading} className="w-full">
+                {loading ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Nutrition Goals Dialog */}
+        <Dialog open={showNutritionGoalsDialog} onOpenChange={setShowNutritionGoalsDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Nutrition Goals</DialogTitle>
+              <DialogDescription>Set your daily macro targets</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="calories">Calories</Label>
+                <Label>Calories</Label>
                 <Input
-                  id="calories"
                   type="number"
                   value={goals.daily_calories}
                   onChange={(e) => setGoals({ ...goals, daily_calories: parseInt(e.target.value) || 0 })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="protein">Protein (g)</Label>
+                <Label>Protein (g)</Label>
                 <Input
-                  id="protein"
                   type="number"
                   value={goals.daily_protein}
                   onChange={(e) => setGoals({ ...goals, daily_protein: parseInt(e.target.value) || 0 })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="carbs">Carbs (g)</Label>
+                <Label>Carbs (g)</Label>
                 <Input
-                  id="carbs"
                   type="number"
                   value={goals.daily_carbs}
                   onChange={(e) => setGoals({ ...goals, daily_carbs: parseInt(e.target.value) || 0 })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="fat">Fat (g)</Label>
+                <Label>Fat (g)</Label>
                 <Input
-                  id="fat"
                   type="number"
                   value={goals.daily_fat}
                   onChange={(e) => setGoals({ ...goals, daily_fat: parseInt(e.target.value) || 0 })}
                 />
               </div>
             </div>
-
-            <Button onClick={handleSaveGoals} disabled={loading} className="w-full" size="lg">
-              <Save className="w-4 h-4 mr-2" />
-              {loading ? 'Saving...' : 'Save Goals'}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Danger Zone */}
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            <CardDescription>Irreversible actions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Once you delete your account, there is no going back. All your data including food logs, goals, and profile will be permanently deleted.
-              </p>
-              <Button onClick={() => setShowDeleteDialog(true)} variant="destructive" size="lg" className="w-full">
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Account
+            <DialogFooter>
+              <Button onClick={handleSaveGoals} disabled={loading} className="w-full">
+                {loading ? 'Saving...' : 'Save Goals'}
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-        {/* Add Weight Dialog */}
-        <AlertDialog open={showAddWeightDialog} onOpenChange={setShowAddWeightDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Log Weight</AlertDialogTitle>
-              <AlertDialogDescription>
-                Enter your current weight to track your progress
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="py-4">
-              <Label htmlFor="new_weight">Weight ({weightUnit})</Label>
-              <Input
-                id="new_weight"
-                type="number"
-                value={newWeight}
-                onChange={(e) => setNewWeight(e.target.value)}
-                placeholder="150"
-                className="mt-2"
+        {/* Weight Goals Dialog */}
+        <Dialog open={showWeightGoalsDialog} onOpenChange={setShowWeightGoalsDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Weight Goals</DialogTitle>
+              <DialogDescription>Track your weight progress</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Current Weight ({weightUnit})</Label>
+                <Input
+                  type="number"
+                  value={goals.current_weight || ''}
+                  onChange={(e) => setGoals({ ...goals, current_weight: parseFloat(e.target.value) || 0 })}
+                  placeholder="150"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Goal Weight ({weightUnit})</Label>
+                <Input
+                  type="number"
+                  value={goals.goal_weight || ''}
+                  onChange={(e) => setGoals({ ...goals, goal_weight: parseFloat(e.target.value) || 0 })}
+                  placeholder="140"
+                />
+              </div>
+              <WeightHistoryChart unitsPreference={profile.units_preference} />
+              <HealthMetrics
+                age={profile.age}
+                gender={profile.gender}
+                height={profile.height}
+                currentWeight={goals.current_weight}
+                activityLevel={profile.activity_level}
+                unitsPreference={profile.units_preference}
               />
             </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleAddWeight}>Log Weight</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            <DialogFooter>
+              <Button onClick={handleSaveWeightGoals} disabled={loading} className="w-full">
+                {loading ? 'Saving...' : 'Save Goals'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -655,13 +697,7 @@ export default function Settings() {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete your account and remove all your data from our servers including:
-                <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>All food logs and nutrition data</li>
-                  <li>Your nutrition goals and preferences</li>
-                  <li>Your profile information</li>
-                  <li>All uploaded food images</li>
-                </ul>
+                This action cannot be undone. This will permanently delete your account and remove all your data.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -671,7 +707,7 @@ export default function Settings() {
                 disabled={deleting}
                 className="bg-destructive hover:bg-destructive/90"
               >
-                {deleting ? 'Deleting...' : 'Yes, delete my account'}
+                {deleting ? 'Deleting...' : 'Delete Account'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
