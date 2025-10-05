@@ -20,10 +20,17 @@ export default function EditFoodLog() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
-  const [imgError, setImgError] = useState(false);
+  const [imgKey, setImgKey] = useState(0);
   const [selectedUnit, setSelectedUnit] = useState<MeasurementUnit>('serving');
   const [servings, setServings] = useState(1);
   const [showOtherNutrition, setShowOtherNutrition] = useState(false);
+  
+  const handleImageError = () => {
+    // Retry loading the image by changing key
+    setTimeout(() => {
+      setImgKey(prev => prev + 1);
+    }, 1000);
+  };
   
   const [originalData, setOriginalData] = useState<any>(null);
   const [currentData, setCurrentData] = useState({
@@ -136,7 +143,7 @@ export default function EditFoodLog() {
     );
   }
 
-  const foodImage = (currentData.image_url && currentData.image_url.startsWith('http') && !imgError)
+  const foodImage = currentData.image_url && currentData.image_url.startsWith('http')
     ? currentData.image_url
     : getFoodImage(currentData.food_name);
 
@@ -162,9 +169,10 @@ export default function EditFoodLog() {
         {/* Food Header */}
         <div className="flex items-center gap-4">
           <img
+            key={imgKey}
             src={foodImage}
             alt={currentData.food_name}
-            onError={() => setImgError(true)}
+            onError={handleImageError}
             onClick={() => setShowImageDialog(true)}
             className="w-20 h-20 rounded-xl object-cover border border-border cursor-pointer hover:opacity-80 transition-opacity"
           />
@@ -175,9 +183,10 @@ export default function EditFoodLog() {
         <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
           <DialogContent className="max-w-3xl">
             <img 
+              key={imgKey}
               src={foodImage} 
               alt={currentData.food_name}
-              onError={() => setImgError(true)}
+              onError={handleImageError}
               className="w-full h-auto rounded-lg"
             />
           </DialogContent>

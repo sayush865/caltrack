@@ -42,12 +42,19 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [imgError, setImgError] = useState(false);
+  const [imgKey, setImgKey] = useState(0);
   
   // Prioritize actual captured image (from camera) over predefined food images
-  const foodImage = (log.image_url && log.image_url.startsWith('http') && !imgError)
+  const foodImage = log.image_url && log.image_url.startsWith('http')
     ? log.image_url 
     : getFoodImage(log.food_name);
+  
+  const handleImageError = () => {
+    // Retry loading the image by changing key
+    setTimeout(() => {
+      setImgKey(prev => prev + 1);
+    }, 1000);
+  };
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -80,9 +87,10 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
       <Card className="overflow-hidden hover:shadow-md transition-shadow border border-border bg-card">
         <div className="flex gap-3 p-3">
           <img 
+            key={imgKey}
             src={foodImage} 
             alt={log.food_name}
-            onError={() => setImgError(true)}
+            onError={handleImageError}
             onClick={() => setShowImageDialog(true)}
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-border cursor-pointer hover:opacity-80 transition-opacity"
           />
@@ -142,9 +150,10 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
       <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
         <DialogContent className="max-w-3xl">
           <img 
+            key={imgKey}
             src={foodImage} 
             alt={log.food_name}
-            onError={() => setImgError(true)}
+            onError={handleImageError}
             className="w-full h-auto rounded-lg"
           />
         </DialogContent>
