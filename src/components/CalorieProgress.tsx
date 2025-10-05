@@ -43,15 +43,20 @@ export default function CalorieProgress({ consumed, goal }: CalorieProgressProps
               cx="50%"
               cy="50%"
               r="calc(50% - 8px)"
-              stroke="currentColor"
+              stroke="url(#gradient)"
               strokeWidth="12"
               fill="none"
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
-              className={isOverLimit ? "text-destructive" : "text-foreground"}
               strokeLinecap="round"
               style={{ transition: 'stroke-dashoffset 0.3s ease' }}
             />
+            <defs>
+              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={isOverLimit ? "hsl(0 84.2% 60.2%)" : "hsl(0 0% 5%)"} />
+                <stop offset="100%" stopColor={isOverLimit ? "hsl(0 84.2% 60.2%)" : "hsl(0 0% 20%)"} />
+              </linearGradient>
+            </defs>
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-4xl">🔥</span>
