@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Apple, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import caltrackLogo from "@/assets/caltrack-logo.png";
 import { authSignUpSchema, authSignInSchema } from '@/lib/validation';
 
 export default function Auth() {
@@ -187,8 +188,8 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-lg border border-border bg-card">
         <CardHeader className="text-center space-y-4 pb-8">
-          <div className="mx-auto w-20 h-20 bg-primary rounded-xl flex items-center justify-center">
-            <Apple className="w-12 h-12 text-primary-foreground" />
+          <div className="mx-auto flex items-center justify-center">
+            <img src={caltrackLogo} alt="CalTrack AI Logo" className="w-20 h-20" />
           </div>
           <div className="space-y-2">
             <CardTitle className="text-4xl font-bold tracking-tight">CalTrack AI</CardTitle>
