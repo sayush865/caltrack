@@ -96,6 +96,7 @@ export default function Index() {
         .from('food_logs')
         .select('*')
         .eq('user_id', userId)
+        .eq('status', 1)
         .gte('logged_at', startOfSelectedDay.toISOString())
         .lte('logged_at', endOfSelectedDay.toISOString())
         .order('logged_at', { ascending: false });

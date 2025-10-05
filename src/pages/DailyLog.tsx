@@ -55,6 +55,7 @@ export default function DailyLog() {
         .from('food_logs')
         .select('*')
         .eq('user_id', user.id)
+        .eq('status', 1)
         .gte('logged_at', dayStart.toISOString())
         .lte('logged_at', dayEnd.toISOString())
         .order('logged_at', { ascending: false });

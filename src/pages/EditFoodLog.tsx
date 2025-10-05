@@ -65,6 +65,7 @@ export default function EditFoodLog() {
         .from('food_logs')
         .select('*')
         .eq('id', id)
+        .eq('status', 1)
         .single();
 
       if (error) throw error;

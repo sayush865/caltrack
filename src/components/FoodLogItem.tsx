@@ -61,13 +61,16 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
     try {
       const { error } = await supabase
         .from('food_logs')
-        .delete()
+        .update({ 
+          status: 0, 
+          deleted_at: new Date().toISOString() 
+        })
         .eq('id', log.id);
 
       if (error) throw error;
 
       toast({
-        title: 'Meal deleted',
+        title: 'Meal removed',
         description: `${log.food_name} has been removed from your log.`,
       });
     } catch (error: any) {

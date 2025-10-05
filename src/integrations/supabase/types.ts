@@ -86,6 +86,7 @@ export type Database = {
           calories: number | null
           carbs: number | null
           created_at: string | null
+          deleted_at: string | null
           fat: number | null
           fiber: number | null
           food_name: string | null
@@ -97,6 +98,7 @@ export type Database = {
           notes: string | null
           protein: number | null
           sodium: number | null
+          status: number
           sugar: number | null
           user_id: string
           vitamin_a: number | null
@@ -107,6 +109,7 @@ export type Database = {
           calories?: number | null
           carbs?: number | null
           created_at?: string | null
+          deleted_at?: string | null
           fat?: number | null
           fiber?: number | null
           food_name?: string | null
@@ -118,6 +121,7 @@ export type Database = {
           notes?: string | null
           protein?: number | null
           sodium?: number | null
+          status?: number
           sugar?: number | null
           user_id: string
           vitamin_a?: number | null
@@ -128,6 +132,7 @@ export type Database = {
           calories?: number | null
           carbs?: number | null
           created_at?: string | null
+          deleted_at?: string | null
           fat?: number | null
           fiber?: number | null
           food_name?: string | null
@@ -139,6 +144,7 @@ export type Database = {
           notes?: string | null
           protein?: number | null
           sodium?: number | null
+          status?: number
           sugar?: number | null
           user_id?: string
           vitamin_a?: number | null
