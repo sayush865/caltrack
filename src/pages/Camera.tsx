@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,14 @@ export default function Camera() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [streamingText, setStreamingText] = useState('');
+  const streamingDivRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll streaming text
+  useEffect(() => {
+    if (streamingDivRef.current) {
+      streamingDivRef.current.scrollTop = streamingDivRef.current.scrollHeight;
+    }
+  }, [streamingText]);
 
   const handleCapture = async (imageData: string) => {
     setCapturedImage(imageData);
@@ -124,20 +132,26 @@ export default function Camera() {
 
               if (parsed.chunk) {
                 receivedData = true;
-                console.log('Adding chunk to stream:', parsed.chunk);
+                // Use functional update to ensure we don't miss chunks
                 setStreamingText(prev => {
                   const newText = prev + parsed.chunk;
-                  console.log('Current streaming text length:', newText.length);
+                  // Force a re-render by logging
+                  if (newText.length % 50 === 0) {
+                    console.log('Streaming progress:', newText.length, 'chars');
+                  }
                   return newText;
                 });
               }
 
-              if (parsed.done && parsed.nutritionData && parsed.analysis) {
-                console.log('Received final data');
-                setNutritionData(parsed.nutritionData);
-                setAnalysisData(parsed.analysis);
-                setShowConfirmation(true);
-                setStreamingText('');
+              if (parsed.done) {
+                console.log('Stream marked as done, checking for final data...');
+                if (parsed.nutritionData && parsed.analysis) {
+                  console.log('Received complete nutrition data');
+                  setNutritionData(parsed.nutritionData);
+                  setAnalysisData(parsed.analysis);
+                  setShowConfirmation(true);
+                  setStreamingText('');
+                }
               }
             } catch (e) {
               console.error('Failed to parse SSE data:', e, 'Data:', data.substring(0, 100));
@@ -236,18 +250,19 @@ export default function Camera() {
               <p className="text-lg font-medium">Analyzing your food...</p>
             </div>
             
-            {streamingText && (
-              <div className="bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto">
+            {streamingText ? (
+              <div 
+                ref={streamingDivRef}
+                className="bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto"
+              >
                 <p className="text-sm whitespace-pre-wrap font-mono leading-relaxed">
                   {streamingText}
                   <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
                 </p>
               </div>
-            )}
-            
-            {!streamingText && (
+            ) : (
               <p className="text-sm text-muted-foreground">
-                Initializing AI analysis...
+                Connecting to AI...
               </p>
             )}
           </Card>
