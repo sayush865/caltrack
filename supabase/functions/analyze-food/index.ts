@@ -215,18 +215,13 @@ ACCURACY PRINCIPLES:
       throw new Error('Failed to upload image');
     }
 
-    // Generate signed URL (1 hour expiration) instead of public URL
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+    // Generate public URL (permanent access)
+    const { data: { publicUrl } } = supabase.storage
       .from('food-images')
-      .createSignedUrl(fileName, 3600); // 1 hour expiration
+      .getPublicUrl(fileName);
 
-    if (signedUrlError) {
-      console.error('Error creating signed URL:', signedUrlError);
-      throw new Error('Failed to create signed URL');
-    }
-
-    const imageUrl = signedUrlData.signedUrl;
-    console.log('Image uploaded with signed URL');
+    const imageUrl = publicUrl;
+    console.log('Image uploaded with public URL');
 
     // Insert food log
     const { data: logData, error: logError } = await supabase
