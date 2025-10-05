@@ -132,13 +132,13 @@ export default function Index() {
   }
 
   return (
-    <div className="min-h-screen bg-[image:var(--gradient-mesh)] bg-background pb-24">
-      {/* Header with Glassmorphism */}
-      <div className="sticky top-0 z-20 bg-card/80 backdrop-blur-xl border-b border-border/50 shadow-[var(--shadow-soft)]">
+    <div className="min-h-screen bg-background pb-24">
+      {/* Header */}
+      <div className="bg-card border-b border-border">
         <div className="px-4 py-4 max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-4">
-            <div className="space-y-0.5 animate-fade-in">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+            <div className="space-y-0.5">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 CalTrack AI
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground">
