@@ -42,9 +42,10 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [imgError, setImgError] = useState(false);
   
   // Prioritize actual captured image (from camera) over predefined food images
-  const foodImage = log.image_url && log.image_url.startsWith('http') 
+  const foodImage = (log.image_url && log.image_url.startsWith('http') && !imgError)
     ? log.image_url 
     : getFoodImage(log.food_name);
 
@@ -81,6 +82,7 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
           <img 
             src={foodImage} 
             alt={log.food_name}
+            onError={() => setImgError(true)}
             onClick={() => setShowImageDialog(true)}
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-border cursor-pointer hover:opacity-80 transition-opacity"
           />
@@ -142,6 +144,7 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
           <img 
             src={foodImage} 
             alt={log.food_name}
+            onError={() => setImgError(true)}
             className="w-full h-auto rounded-lg"
           />
         </DialogContent>

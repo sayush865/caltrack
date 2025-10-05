@@ -20,6 +20,7 @@ export default function EditFoodLog() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<MeasurementUnit>('serving');
   const [servings, setServings] = useState(1);
   const [showOtherNutrition, setShowOtherNutrition] = useState(false);
@@ -135,7 +136,7 @@ export default function EditFoodLog() {
     );
   }
 
-  const foodImage = currentData.image_url && currentData.image_url.startsWith('http')
+  const foodImage = (currentData.image_url && currentData.image_url.startsWith('http') && !imgError)
     ? currentData.image_url
     : getFoodImage(currentData.food_name);
 
@@ -163,6 +164,7 @@ export default function EditFoodLog() {
           <img
             src={foodImage}
             alt={currentData.food_name}
+            onError={() => setImgError(true)}
             onClick={() => setShowImageDialog(true)}
             className="w-20 h-20 rounded-xl object-cover border border-border cursor-pointer hover:opacity-80 transition-opacity"
           />
@@ -175,6 +177,7 @@ export default function EditFoodLog() {
             <img 
               src={foodImage} 
               alt={currentData.food_name}
+              onError={() => setImgError(true)}
               className="w-full h-auto rounded-lg"
             />
           </DialogContent>
