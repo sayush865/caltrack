@@ -141,6 +141,9 @@ export default function Index() {
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 CalTrack AI
               </h1>
+              <p className="text-xs text-muted-foreground/80">
+                Made by Ayush Sharma 😎
+              </p>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 {format(selectedDate, 'EEEE, MMM d')}
               </p>
