@@ -24,12 +24,15 @@ export default function EditFoodLog() {
   const [selectedUnit, setSelectedUnit] = useState<MeasurementUnit>('serving');
   const [servings, setServings] = useState(1);
   const [showOtherNutrition, setShowOtherNutrition] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   const handleImageError = () => {
-    // Retry loading the image by changing key
-    setTimeout(() => {
-      setImgKey(prev => prev + 1);
-    }, 1000);
+    if (retryCount < 2) {
+      setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        setImgKey(prev => prev + 1);
+      }, 1000);
+    }
   };
   
   const [originalData, setOriginalData] = useState<any>(null);
@@ -144,9 +147,12 @@ export default function EditFoodLog() {
     );
   }
 
-  const foodImage = currentData.image_url && currentData.image_url.startsWith('http')
-    ? currentData.image_url
-    : getFoodImage(currentData.food_name);
+  const shouldUseFallback = retryCount >= 2;
+  const foodImage = shouldUseFallback 
+    ? getFoodImage('generic')
+    : (currentData.image_url && currentData.image_url.startsWith('http')
+      ? currentData.image_url
+      : getFoodImage(currentData.food_name));
 
   return (
     <div className="min-h-screen bg-background pb-24">
