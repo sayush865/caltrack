@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Settings, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -18,6 +18,7 @@ export default function ProfileMenu() {
   const { toast } = useToast();
   const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProfile();
@@ -30,13 +31,14 @@ export default function ProfileMenu() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, email')
+        .select('username, email, profile_picture_url')
         .eq('id', user.id)
         .maybeSingle();
 
       if (profile) {
         setUsername(profile.username || '');
         setEmail(profile.email || user.email || '');
+        setProfilePicture(profile.profile_picture_url);
       } else {
         setEmail(user.email || '');
       }
@@ -77,6 +79,7 @@ export default function ProfileMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger className="outline-none">
         <Avatar className="h-9 w-9 cursor-pointer ring-2 ring-border hover:ring-foreground transition-all">
+          <AvatarImage src={profilePicture || undefined} />
           <AvatarFallback className="bg-foreground text-background font-semibold text-sm">
             {getInitials()}
           </AvatarFallback>

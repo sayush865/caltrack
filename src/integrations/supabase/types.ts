@@ -148,21 +148,39 @@ export type Database = {
       }
       profiles: {
         Row: {
+          activity_level: string | null
+          age: number | null
           created_at: string | null
           email: string | null
+          gender: string | null
+          height: number | null
           id: string
+          profile_picture_url: string | null
+          units_preference: string | null
           username: string | null
         }
         Insert: {
+          activity_level?: string | null
+          age?: number | null
           created_at?: string | null
           email?: string | null
+          gender?: string | null
+          height?: number | null
           id: string
+          profile_picture_url?: string | null
+          units_preference?: string | null
           username?: string | null
         }
         Update: {
+          activity_level?: string | null
+          age?: number | null
           created_at?: string | null
           email?: string | null
+          gender?: string | null
+          height?: number | null
           id?: string
+          profile_picture_url?: string | null
+          units_preference?: string | null
           username?: string | null
         }
         Relationships: []
@@ -205,6 +223,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      weight_logs: {
+        Row: {
+          created_at: string
+          id: string
+          logged_at: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logged_at?: string
+          user_id: string
+          weight: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logged_at?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weight_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

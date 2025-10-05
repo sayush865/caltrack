@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,18 +19,30 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Trash2 } from 'lucide-react';
-import { nutritionGoalsSchema } from '@/lib/validation';
+import { ArrowLeft, Save, Trash2, Camera, Plus } from 'lucide-react';
+import { nutritionGoalsSchema, profileSchema } from '@/lib/validation';
+import { WeightHistoryChart } from '@/components/WeightHistoryChart';
+import { HealthMetrics } from '@/components/HealthMetrics';
 
 export default function Settings() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAddWeightDialog, setShowAddWeightDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [newWeight, setNewWeight] = useState('');
   const [profile, setProfile] = useState({
     username: '',
     email: '',
+    age: null as number | null,
+    gender: null as string | null,
+    height: null as number | null,
+    activity_level: null as string | null,
+    profile_picture_url: null as string | null,
+    units_preference: 'imperial' as 'imperial' | 'metric',
   });
   const [goals, setGoals] = useState({
     daily_calories: 2000,
@@ -53,7 +68,7 @@ export default function Settings() {
       // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('username, email')
+        .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -61,6 +76,12 @@ export default function Settings() {
         setProfile({
           username: profileData.username || '',
           email: profileData.email || user.email || '',
+          age: profileData.age,
+          gender: profileData.gender,
+          height: profileData.height ? Number(profileData.height) : null,
+          activity_level: profileData.activity_level,
+          profile_picture_url: profileData.profile_picture_url,
+          units_preference: (profileData.units_preference as 'imperial' | 'metric') || 'imperial',
         });
       }
 
@@ -86,13 +107,127 @@ export default function Settings() {
     }
   };
 
+  const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "Image size must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingPicture(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/profile.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('profile-pictures')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-pictures')
+        .getPublicUrl(filePath);
+
+      // Update profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ profile_picture_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setProfile({ ...profile, profile_picture_url: publicUrl });
+      toast({
+        title: "Success!",
+        description: "Profile picture updated",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload picture",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingPicture(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const validationResult = profileSchema.safeParse({
+        age: profile.age,
+        gender: profile.gender,
+        height: profile.height,
+        activity_level: profile.activity_level,
+        units_preference: profile.units_preference,
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        throw new Error(firstError.message);
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          age: profile.age,
+          gender: profile.gender,
+          height: profile.height,
+          activity_level: profile.activity_level,
+          units_preference: profile.units_preference,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Profile updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveGoals = async () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Validate input before saving
       const validationResult = nutritionGoalsSchema.safeParse({
         daily_calories: goals.daily_calories,
         daily_protein: goals.daily_protein,
@@ -129,13 +264,59 @@ export default function Settings() {
     }
   };
 
+  const handleAddWeight = async () => {
+    if (!newWeight) return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const weightValue = parseFloat(newWeight);
+      if (isNaN(weightValue) || weightValue <= 0) {
+        throw new Error('Please enter a valid weight');
+      }
+
+      // Add to weight logs
+      const { error: logError } = await supabase
+        .from('weight_logs')
+        .insert({ user_id: user.id, weight: weightValue });
+
+      if (logError) throw logError;
+
+      // Update current weight in goals
+      const { error: goalError } = await supabase
+        .from('user_goals')
+        .update({ current_weight: weightValue })
+        .eq('user_id', user.id);
+
+      if (goalError) throw goalError;
+
+      setGoals({ ...goals, current_weight: weightValue });
+      setNewWeight('');
+      setShowAddWeightDialog(false);
+      
+      toast({
+        title: "Success!",
+        description: "Weight logged successfully",
+      });
+      
+      // Refresh the chart
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to log weight",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteAccount = async () => {
     setDeleting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Call the secure edge function to delete account
       const { error } = await supabase.functions.invoke('delete-account', {
         method: 'POST',
       });
@@ -147,7 +328,6 @@ export default function Settings() {
         description: "Your account has been permanently deleted",
       });
 
-      // Sign out and redirect
       await supabase.auth.signOut();
       navigate('/auth');
     } catch (error: any) {
@@ -161,6 +341,9 @@ export default function Settings() {
       setShowDeleteDialog(false);
     }
   };
+
+  const weightUnit = profile.units_preference === 'imperial' ? 'lbs' : 'kg';
+  const heightUnit = profile.units_preference === 'imperial' ? 'inches' : 'cm';
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -183,44 +366,165 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Profile Section */}
+        {/* Units Preference */}
         <Card>
           <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-            <CardDescription>Your account details</CardDescription>
+            <CardTitle>Units Preference</CardTitle>
+            <CardDescription>Choose your preferred measurement system</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                value={profile.username}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                value={profile.email}
-                disabled
-                className="bg-muted"
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Metric System</Label>
+                <p className="text-sm text-muted-foreground">Use kilograms and centimeters</p>
+              </div>
+              <Switch
+                checked={profile.units_preference === 'metric'}
+                onCheckedChange={(checked) => setProfile({ ...profile, units_preference: checked ? 'metric' : 'imperial' })}
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Weight Goals */}
+        {/* Profile Picture & Basic Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Weight Goals</CardTitle>
-            <CardDescription>Track your weight progress (optional)</CardDescription>
+            <CardTitle>Profile Information</CardTitle>
+            <CardDescription>Your account details and profile picture</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={profile.profile_picture_url || undefined} />
+                  <AvatarFallback className="text-2xl">
+                    {profile.username?.[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPicture}
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleProfilePictureUpload}
+                />
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="space-y-1">
+                  <Label>Username</Label>
+                  <Input value={profile.username} disabled className="bg-muted" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Email</Label>
+                  <Input value={profile.email} disabled className="bg-muted" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Personal Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Personal Details</CardTitle>
+            <CardDescription>Help us calculate accurate health metrics</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="current_weight">Current Weight (lbs)</Label>
+                <Label htmlFor="age">Age</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  value={profile.age || ''}
+                  onChange={(e) => setProfile({ ...profile, age: parseInt(e.target.value) || null })}
+                  placeholder="25"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <Select value={profile.gender || ''} onValueChange={(value) => setProfile({ ...profile, gender: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="height">Height ({heightUnit})</Label>
+                <Input
+                  id="height"
+                  type="number"
+                  value={profile.height || ''}
+                  onChange={(e) => setProfile({ ...profile, height: parseFloat(e.target.value) || null })}
+                  placeholder={profile.units_preference === 'imperial' ? '70' : '178'}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="activity">Activity Level</Label>
+                <Select value={profile.activity_level || ''} onValueChange={(value) => setProfile({ ...profile, activity_level: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select activity level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sedentary">Sedentary (little/no exercise)</SelectItem>
+                    <SelectItem value="lightly_active">Lightly Active (1-3 days/week)</SelectItem>
+                    <SelectItem value="moderately_active">Moderately Active (3-5 days/week)</SelectItem>
+                    <SelectItem value="very_active">Very Active (6-7 days/week)</SelectItem>
+                    <SelectItem value="extra_active">Extra Active (athlete)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button onClick={handleSaveProfile} disabled={loading} className="w-full" size="lg">
+              <Save className="w-4 h-4 mr-2" />
+              {loading ? 'Saving...' : 'Save Profile'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Health Metrics */}
+        <HealthMetrics
+          age={profile.age}
+          gender={profile.gender}
+          height={profile.height}
+          currentWeight={goals.current_weight}
+          activityLevel={profile.activity_level}
+          unitsPreference={profile.units_preference}
+        />
+
+        {/* Weight Goals & Tracking */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Weight Goals</CardTitle>
+                <CardDescription>Track your weight progress</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setShowAddWeightDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Log Weight
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="current_weight">Current Weight ({weightUnit})</Label>
                 <Input
                   id="current_weight"
                   type="number"
@@ -230,7 +534,7 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="goal_weight">Goal Weight (lbs)</Label>
+                <Label htmlFor="goal_weight">Goal Weight ({weightUnit})</Label>
                 <Input
                   id="goal_weight"
                   type="number"
@@ -242,6 +546,9 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Weight History Chart */}
+        <WeightHistoryChart unitsPreference={profile.units_preference} />
 
         {/* Nutrition Goals */}
         <Card>
@@ -289,12 +596,7 @@ export default function Settings() {
               </div>
             </div>
 
-            <Button
-              onClick={handleSaveGoals}
-              disabled={loading}
-              className="w-full"
-              size="lg"
-            >
+            <Button onClick={handleSaveGoals} disabled={loading} className="w-full" size="lg">
               <Save className="w-4 h-4 mr-2" />
               {loading ? 'Saving...' : 'Save Goals'}
             </Button>
@@ -312,18 +614,40 @@ export default function Settings() {
               <p className="text-sm text-muted-foreground">
                 Once you delete your account, there is no going back. All your data including food logs, goals, and profile will be permanently deleted.
               </p>
-              <Button
-                onClick={() => setShowDeleteDialog(true)}
-                variant="destructive"
-                size="lg"
-                className="w-full"
-              >
+              <Button onClick={() => setShowDeleteDialog(true)} variant="destructive" size="lg" className="w-full">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Account
               </Button>
             </div>
           </CardContent>
         </Card>
+
+        {/* Add Weight Dialog */}
+        <AlertDialog open={showAddWeightDialog} onOpenChange={setShowAddWeightDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Log Weight</AlertDialogTitle>
+              <AlertDialogDescription>
+                Enter your current weight to track your progress
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4">
+              <Label htmlFor="new_weight">Weight ({weightUnit})</Label>
+              <Input
+                id="new_weight"
+                type="number"
+                value={newWeight}
+                onChange={(e) => setNewWeight(e.target.value)}
+                placeholder="150"
+                className="mt-2"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleAddWeight}>Log Weight</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

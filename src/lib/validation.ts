@@ -40,6 +40,17 @@ export const searchQuerySchema = z.string()
   .max(100, 'Search query is too long')
   .transform(str => str.trim());
 
+// Profile validation schema
+export const profileSchema = z.object({
+  username: usernameSchema.optional(),
+  age: z.number().int().min(13, 'Must be at least 13 years old').max(120, 'Age cannot exceed 120').optional().nullable(),
+  gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).optional().nullable(),
+  height: z.number().min(20, 'Height must be at least 20').max(300, 'Height cannot exceed 300').optional().nullable(),
+  activity_level: z.enum(['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extra_active']).optional().nullable(),
+  units_preference: z.enum(['imperial', 'metric']).default('imperial'),
+});
+
 export type NutritionGoals = z.infer<typeof nutritionGoalsSchema>;
 export type AuthSignUp = z.infer<typeof authSignUpSchema>;
 export type AuthSignIn = z.infer<typeof authSignInSchema>;
+export type Profile = z.infer<typeof profileSchema>;
