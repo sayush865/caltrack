@@ -88,9 +88,13 @@ export default function Camera() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      console.log('Saving food log for user:', user.id);
+      console.log('Nutrition data:', nutritionData);
+
       // Upload image to storage if available
       let imageUrl = null;
       if (capturedImage) {
+        console.log('Uploading image to storage...');
         const fileName = `${user.id}/${Date.now()}.jpg`;
         const base64Data = capturedImage.split(',')[1];
         const binaryData = atob(base64Data);
@@ -106,16 +110,23 @@ export default function Camera() {
             upsert: false
           });
 
-        if (!uploadError && uploadData) {
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw uploadError;
+        }
+
+        if (uploadData) {
           const { data: { publicUrl } } = supabase.storage
             .from('food-images')
             .getPublicUrl(uploadData.path);
           imageUrl = publicUrl;
+          console.log('Image uploaded:', imageUrl);
         }
       }
 
       // Save to food_logs
-      const { error: insertError } = await supabase
+      console.log('Inserting into food_logs...');
+      const { data: insertData, error: insertError } = await supabase
         .from('food_logs')
         .insert({
           user_id: user.id,
@@ -133,9 +144,17 @@ export default function Camera() {
           iron: nutritionData.iron,
           image_url: imageUrl,
           logged_at: new Date().toISOString(),
-        });
+          status: 1
+        })
+        .select()
+        .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        throw insertError;
+      }
+
+      console.log('Food log saved successfully:', insertData);
 
       toast({
         title: "Success!",
@@ -144,6 +163,7 @@ export default function Camera() {
 
       navigate('/');
     } catch (error: any) {
+      console.error('Save error:', error);
       toast({
         title: "Failed to save",
         description: error.message,
