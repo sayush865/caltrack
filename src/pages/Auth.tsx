@@ -188,9 +188,7 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-lg border border-border bg-card">
         <CardHeader className="text-center space-y-4 pb-8">
-          <div className="mx-auto flex items-center justify-center">
-            <img src={caltrackLogo} alt="CalTrack AI Logo" className="w-20 h-20" />
-          </div>
+          <img src={caltrackLogo} alt="CalTrack AI Logo" className="w-24 h-24 mx-auto" />
           <div className="space-y-2">
             <CardTitle className="text-4xl font-bold tracking-tight">CalTrack AI</CardTitle>
             <CardDescription className="text-base">Smart Calorie & Nutrition Tracking</CardDescription>
