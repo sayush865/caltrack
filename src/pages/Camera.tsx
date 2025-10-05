@@ -58,6 +58,8 @@ export default function Camera() {
         return;
       }
 
+      console.log('Starting analysis with streaming...');
+      
       // Use direct fetch for streaming
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-food`;
       const response = await fetch(url, {
@@ -74,66 +76,99 @@ export default function Camera() {
         throw new Error(errorData.error || 'Analysis failed');
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No response stream');
+      if (!response.body) throw new Error('No response stream');
 
+      console.log('Stream started, processing chunks...');
+      
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let receivedData = false;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) {
+            console.log('Stream complete');
+            break;
+          }
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
-        for (const line of lines) {
-          if (!line.trim() || line.startsWith(':')) continue;
-          if (!line.startsWith('data: ')) continue;
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            
+            if (!trimmedLine || trimmedLine.startsWith(':')) {
+              continue;
+            }
+            
+            if (!trimmedLine.startsWith('data: ')) {
+              continue;
+            }
 
-          const data = line.slice(6).trim();
-          if (!data) continue;
+            const data = trimmedLine.slice(6).trim();
+            if (!data) continue;
 
+            console.log('Received SSE data:', data.substring(0, 100));
+
+            try {
+              const parsed = JSON.parse(data);
+
+              if (parsed.error) {
+                console.error('Stream error:', parsed.error);
+                throw new Error(parsed.error);
+              }
+
+              if (parsed.chunk) {
+                receivedData = true;
+                console.log('Adding chunk to stream:', parsed.chunk);
+                setStreamingText(prev => {
+                  const newText = prev + parsed.chunk;
+                  console.log('Current streaming text length:', newText.length);
+                  return newText;
+                });
+              }
+
+              if (parsed.done && parsed.nutritionData && parsed.analysis) {
+                console.log('Received final data');
+                setNutritionData(parsed.nutritionData);
+                setAnalysisData(parsed.analysis);
+                setShowConfirmation(true);
+                setStreamingText('');
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e, 'Data:', data.substring(0, 100));
+            }
+          }
+        }
+
+        // Process remaining buffer
+        if (buffer.trim() && buffer.startsWith('data: ')) {
+          const data = buffer.slice(6).trim();
           try {
             const parsed = JSON.parse(data);
-
-            if (parsed.error) {
-              throw new Error(parsed.error);
-            }
-
-            if (parsed.chunk) {
-              // Accumulate streaming text
-              setStreamingText(prev => prev + parsed.chunk);
-            }
-
             if (parsed.done && parsed.nutritionData && parsed.analysis) {
-              // Final result received
+              console.log('Received final data from buffer');
               setNutritionData(parsed.nutritionData);
               setAnalysisData(parsed.analysis);
               setShowConfirmation(true);
               setStreamingText('');
             }
           } catch (e) {
-            console.error('Failed to parse SSE data:', e);
+            console.error('Failed to parse final SSE data:', e);
           }
         }
-      }
 
-      // Process remaining buffer
-      if (buffer.trim() && buffer.startsWith('data: ')) {
-        const data = buffer.slice(6).trim();
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.done && parsed.nutritionData && parsed.analysis) {
-            setNutritionData(parsed.nutritionData);
-            setAnalysisData(parsed.analysis);
-            setShowConfirmation(true);
-            setStreamingText('');
-          }
-        } catch (e) {
-          console.error('Failed to parse final SSE data:', e);
+        if (!receivedData) {
+          console.warn('No streaming data received');
         }
+
+      } catch (streamError) {
+        console.error('Stream reading error:', streamError);
+        throw streamError;
       }
 
     } catch (error: any) {
