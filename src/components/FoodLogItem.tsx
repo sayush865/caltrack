@@ -14,6 +14,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Pencil } from 'lucide-react';
@@ -36,6 +40,7 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showImageDialog, setShowImageDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   
   // Prioritize actual captured image (from camera) over predefined food images
@@ -76,7 +81,8 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
           <img 
             src={foodImage} 
             alt={log.food_name}
-            className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-border"
+            onClick={() => setShowImageDialog(true)}
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-border cursor-pointer hover:opacity-80 transition-opacity"
           />
           
           <CardContent className="flex-1 p-0 space-y-2">
@@ -130,6 +136,16 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
           </CardContent>
         </div>
       </Card>
+
+      <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
+        <DialogContent className="max-w-3xl">
+          <img 
+            src={foodImage} 
+            alt={log.food_name}
+            className="w-full h-auto rounded-lg"
+          />
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>

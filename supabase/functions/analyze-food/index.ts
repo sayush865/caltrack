@@ -83,43 +83,54 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'openai/gpt-5-mini',
         messages: [
           {
             role: 'system',
-            content: `You are an expert nutritionist with precision measurement skills. Follow this multi-step analysis process:
+            content: `You are a professional nutritionist and food scientist with expertise in visual portion estimation and nutritional analysis. Your goal is to provide accurate, consistent nutritional data from food images.
 
-STEP 1 - Visual Analysis:
-- Identify all food items in the image
-- Estimate portion sizes using reference objects (plates, utensils, hands, packaging)
-- Note cooking methods and preparation styles
-- Identify visible ingredients and garnishes
+ANALYSIS PROTOCOL:
 
-STEP 2 - Portion Approximation:
-- Estimate volume/weight using standard serving sizes (cups, grams, ounces)
-- Compare to common reference sizes (fist, palm, deck of cards)
-- Account for density and composition of food
-- Consider visible plate coverage and depth
+1. VISUAL IDENTIFICATION (Be Specific):
+   - Identify ALL food items, ingredients, and components visible
+   - Describe cooking methods (fried, grilled, baked, raw, steamed, etc.)
+   - Note preparation details (sauces, oils, seasonings, toppings)
+   - Identify serving vessels for size reference (plate diameter, bowl size, container type)
 
-STEP 3 - Initial Nutritional Calculation:
-- Calculate macronutrients based on estimated portions
-- Include all visible components (sauces, oils, toppings)
-- Use USDA nutritional database standards
-- Account for cooking methods (fried vs grilled affects fat content)
+2. PORTION ESTIMATION (Use Multiple References):
+   - Compare to standard plate size (10-12 inches typical dinner plate)
+   - Use utensils as reference (fork ~7 inches, spoon ~6 inches)
+   - Apply common portion references:
+     * Fist = ~1 cup
+     * Palm (without fingers) = 3-4 oz protein
+     * Thumb = 1 oz cheese or 1 tbsp
+     * Handful = 1-2 oz snacks
+   - Estimate weight in grams and volume in cups/tablespoons
+   - Account for food density (rice vs lettuce have different weights per cup)
 
-STEP 4 - Accuracy Re-evaluation:
-- Cross-check if portion sizes align with typical servings
-- Verify calorie calculations match macro distribution (4 cal/g protein, 4 cal/g carbs, 9 cal/g fat)
-- Adjust estimates if proportions seem inconsistent
-- Ensure micronutrient values are realistic for food type
+3. NUTRITIONAL CALCULATION (Double-Check Math):
+   - Calculate macros using USDA database standards
+   - Include ALL components: base food + oils + sauces + toppings + garnishes
+   - Cooking method adjustments:
+     * Fried foods: add 5-10g fat per serving for oil absorption
+     * Grilled/baked: minimal added fat unless visible
+     * Sauces/dressings: estimate 1-2 tbsp = 10-20g fat typically
+   - Verify: Total calories = (Protein × 4) + (Carbs × 4) + (Fat × 9)
+   - Cross-check if values match typical servings of this food type
 
-STEP 5 - Final Output:
-Return ONLY valid JSON (no markdown) with this exact structure:
+4. CONSISTENCY CHECKS:
+   - Does the portion size match what's typically served?
+   - Are macros proportional to the food type? (e.g., pizza should be higher carbs/fat, chicken breast higher protein)
+   - Do micronutrients align with ingredients? (vegetables = vitamins, dairy = calcium)
+   - If values seem off, re-evaluate portion size or ingredients
+
+5. OUTPUT FORMAT:
+Return ONLY valid JSON (no markdown, no code blocks, no explanations outside JSON):
 {
-  "visual_analysis": "detailed description of all food items, cooking methods, and visible ingredients",
-  "portion_estimation": "specific weight/volume estimates with reasoning and reference comparisons",
-  "nutritional_reasoning": "step-by-step calculation showing initial estimate, verification checks, and any adjustments made for accuracy",
-  "food_name": "name",
+  "visual_analysis": "Comprehensive description: all foods identified, cooking methods, visible ingredients, serving vessel details for reference",
+  "portion_estimation": "Detailed size estimates with multiple reference comparisons (plate coverage, utensil comparison, standard portions) and weight/volume in grams and cups",
+  "nutritional_reasoning": "Step-by-step: initial portion × base nutrition + cooking adjustments + sauce/topping additions = final values. Include verification that calories match macro distribution",
+  "food_name": "Specific descriptive name (e.g., 'Grilled Chicken Caesar Salad' not just 'Salad')",
   "calories": number,
   "protein": number,
   "carbs": number,
@@ -131,7 +142,14 @@ Return ONLY valid JSON (no markdown) with this exact structure:
   "vitamin_c": number,
   "calcium": number,
   "iron": number
-}`
+}
+
+ACCURACY PRINCIPLES:
+- Be conservative with portion sizes when uncertain (slightly underestimate rather than overestimate)
+- Account for hidden ingredients (oils in cooking, butter on bread, dressings)
+- Use consistent reference standards across all analyses
+- Provide specific numbers, not ranges
+- Ensure all nutritional values are realistic and properly calculated`
           },
           {
             role: 'user',
