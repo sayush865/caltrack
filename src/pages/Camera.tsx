@@ -79,6 +79,9 @@ export default function Camera() {
         body: JSON.stringify({ imageBase64: imageData }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Analysis failed');
@@ -92,19 +95,25 @@ export default function Camera() {
       const decoder = new TextDecoder();
       let buffer = '';
       let receivedData = false;
+      let chunkCount = 0;
 
       try {
         while (true) {
           const { done, value } = await reader.read();
           
           if (done) {
-            console.log('Stream complete');
+            console.log('Stream complete. Total chunks processed:', chunkCount);
             break;
           }
 
-          buffer += decoder.decode(value, { stream: true });
+          const chunk = decoder.decode(value, { stream: true });
+          console.log('Raw chunk received, length:', chunk.length, 'Preview:', chunk.substring(0, 200));
+
+          buffer += chunk;
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
+
+          console.log('Processing', lines.length, 'lines from this chunk');
 
           for (const line of lines) {
             const trimmedLine = line.trim();
@@ -114,13 +123,15 @@ export default function Camera() {
             }
             
             if (!trimmedLine.startsWith('data: ')) {
+              console.log('Line does not start with "data: ":', trimmedLine.substring(0, 50));
               continue;
             }
 
             const data = trimmedLine.slice(6).trim();
             if (!data) continue;
 
-            console.log('Received SSE data:', data.substring(0, 100));
+            chunkCount++;
+            console.log(`[Chunk ${chunkCount}] Received:`, data.substring(0, 100));
 
             try {
               const parsed = JSON.parse(data);
@@ -132,15 +143,21 @@ export default function Camera() {
 
               if (parsed.chunk) {
                 receivedData = true;
-                // Use functional update to ensure we don't miss chunks
+                const chunkText = parsed.chunk;
+                console.log(`[Chunk ${chunkCount}] Adding to UI:`, chunkText.substring(0, 50));
+                
+                // Use functional update and requestAnimationFrame to ensure render
                 setStreamingText(prev => {
-                  const newText = prev + parsed.chunk;
-                  // Force a re-render by logging
-                  if (newText.length % 50 === 0) {
-                    console.log('Streaming progress:', newText.length, 'chars');
+                  const newText = prev + chunkText;
+                  // Force console update every 10 chunks
+                  if (chunkCount % 10 === 0) {
+                    console.log(`Total text length: ${newText.length} chars`);
                   }
                   return newText;
                 });
+                
+                // Force a microtask to allow React to render
+                await new Promise(resolve => setTimeout(resolve, 0));
               }
 
               if (parsed.done) {
