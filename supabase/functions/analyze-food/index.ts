@@ -84,7 +84,6 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-pro',
-        stream: true, // Enable streaming
         messages: [
           {
             role: 'system',
@@ -192,184 +191,79 @@ ACCURACY PRINCIPLES:
       throw new Error(`AI API error: ${errorText}`);
     }
 
-    // Stream the AI response with proper SSE formatting
-    console.log('Starting to stream AI response...');
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    console.log('AI response received');
+    
+    const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const nutritionData = JSON.parse(cleanContent);
+    
+    // Upload image to storage
+    const fileName = `${userId}/${Date.now()}.jpg`;
+    const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
+    const { error: uploadError } = await supabase.storage
+      .from('food-images')
+      .upload(fileName, buffer, {
+        contentType: 'image/jpeg',
+        upsert: false
+      });
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        // Send initial connection message
-        controller.enqueue(encoder.encode(': connected\n\n'));
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw new Error('Failed to upload image');
+    }
 
-        const reader = response.body?.getReader();
-        if (!reader) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'No response stream' })}\n\n`));
-          controller.close();
-          return;
+    const { data: { publicUrl } } = supabase.storage
+      .from('food-images')
+      .getPublicUrl(fileName);
+
+    console.log('Image uploaded with public URL');
+
+    // Insert food log
+    const { data: logData, error: logError } = await supabase
+      .from('food_logs')
+      .insert({
+        user_id: userId,
+        image_url: publicUrl,
+        food_name: nutritionData.food_name,
+        calories: nutritionData.calories,
+        protein: nutritionData.protein,
+        carbs: nutritionData.carbs,
+        fat: nutritionData.fat,
+        fiber: nutritionData.fiber,
+        sugar: nutritionData.sugar,
+        sodium: nutritionData.sodium,
+        vitamin_a: nutritionData.vitamin_a,
+        vitamin_c: nutritionData.vitamin_c,
+        calcium: nutritionData.calcium,
+        iron: nutritionData.iron,
+        logged_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (logError) {
+      console.error('Database insert error:', logError);
+      throw new Error('Failed to save food log');
+    }
+
+    console.log('Food log saved successfully');
+
+    return new Response(
+      JSON.stringify({
+        nutritionData: logData,
+        analysis: {
+          visual_analysis: nutritionData.visual_analysis,
+          portion_estimation: nutritionData.portion_estimation,
+          nutritional_reasoning: nutritionData.nutritional_reasoning
         }
-
-        let fullContent = '';
-        let textBuffer = '';
-        let lastSendTime = Date.now();
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            textBuffer += decoder.decode(value, { stream: true });
-            const lines = textBuffer.split('\n');
-            textBuffer = lines.pop() || '';
-
-            for (const line of lines) {
-              if (!line.trim() || line.startsWith(':')) continue;
-              if (!line.startsWith('data: ')) continue;
-
-              const data = line.slice(6);
-              if (data === '[DONE]') continue;
-
-              try {
-                const parsed = JSON.parse(data);
-                const content = parsed.choices?.[0]?.delta?.content;
-                
-                if (content) {
-                  fullContent += content;
-                  
-                  // Send chunk immediately with proper formatting
-                  const chunk = `data: ${JSON.stringify({ chunk: content })}\n\n`;
-                  controller.enqueue(encoder.encode(chunk));
-                  
-                  lastSendTime = Date.now();
-                }
-              } catch (e) {
-                console.error('Failed to parse chunk:', e);
-              }
-            }
-
-            // Send heartbeat if no data sent recently
-            if (Date.now() - lastSendTime > 1000) {
-              controller.enqueue(encoder.encode(': heartbeat\n\n'));
-              lastSendTime = Date.now();
-            }
-          }
-
-          // Process any remaining buffer
-          if (textBuffer.trim()) {
-            const line = textBuffer.trim();
-            if (line.startsWith('data: ') && line.slice(6) !== '[DONE]') {
-              try {
-                const parsed = JSON.parse(line.slice(6));
-                const content = parsed.choices?.[0]?.delta?.content;
-                if (content) {
-                  fullContent += content;
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: content })}\n\n`));
-                }
-              } catch (e) {
-                console.error('Failed to parse final chunk:', e);
-              }
-            }
-          }
-
-          console.log('AI streaming complete, processing data...');
-          
-          // Parse the complete response
-          const cleanContent = fullContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          let nutritionData;
-          
-          try {
-            nutritionData = JSON.parse(cleanContent);
-          } catch (e) {
-            console.error('Failed to parse nutrition data:', e, 'Content:', cleanContent.substring(0, 200));
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Failed to parse AI response' })}\n\n`));
-            controller.close();
-            return;
-          }
-
-          // Upload image to storage
-          const fileName = `${userId}/${Date.now()}.jpg`;
-          const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-
-          const { error: uploadError } = await supabase.storage
-            .from('food-images')
-            .upload(fileName, imageBuffer, {
-              contentType: 'image/jpeg',
-              upsert: false
-            });
-
-          if (uploadError) {
-            console.error('Storage upload error:', uploadError);
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Failed to upload image' })}\n\n`));
-            controller.close();
-            return;
-          }
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('food-images')
-            .getPublicUrl(fileName);
-
-          // Insert food log
-          const { data: logData, error: logError } = await supabase
-            .from('food_logs')
-            .insert({
-              user_id: userId,
-              image_url: publicUrl,
-              food_name: nutritionData.food_name,
-              calories: nutritionData.calories,
-              protein: nutritionData.protein,
-              carbs: nutritionData.carbs,
-              fat: nutritionData.fat,
-              fiber: nutritionData.fiber,
-              sugar: nutritionData.sugar,
-              sodium: nutritionData.sodium,
-              vitamin_a: nutritionData.vitamin_a,
-              vitamin_c: nutritionData.vitamin_c,
-              calcium: nutritionData.calcium,
-              iron: nutritionData.iron,
-              logged_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-
-          if (logError) {
-            console.error('Database insert error:', logError);
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Failed to save food log' })}\n\n`));
-            controller.close();
-            return;
-          }
-
-          // Send final result
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            done: true,
-            nutritionData: logData,
-            analysis: {
-              visual_analysis: nutritionData.visual_analysis,
-              portion_estimation: nutritionData.portion_estimation,
-              nutritional_reasoning: nutritionData.nutritional_reasoning
-            }
-          })}\n\n`));
-
-          controller.close();
-        } catch (error) {
-          console.error('Streaming error:', error);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            error: error instanceof Error ? error.message : 'Streaming error' 
-          })}\n\n`));
-          controller.close();
-        }
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
-    });
-
-    return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/event-stream; charset=utf-8',
-        'Cache-Control': 'no-cache, no-transform',
-        'X-Accel-Buffering': 'no',
-        'Connection': 'keep-alive',
-      },
-    });
+    );
 
   } catch (error) {
     console.error('Error in analyze-food function:', error);

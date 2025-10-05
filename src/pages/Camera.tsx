@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -37,21 +37,11 @@ export default function Camera() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [streamingText, setStreamingText] = useState('');
-  const streamingDivRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll streaming text
-  useEffect(() => {
-    if (streamingDivRef.current) {
-      streamingDivRef.current.scrollTop = streamingDivRef.current.scrollHeight;
-    }
-  }, [streamingText]);
 
   const handleCapture = async (imageData: string) => {
     setCapturedImage(imageData);
     setAnalyzing(true);
     setShowConfirmation(false);
-    setStreamingText('');
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -65,143 +55,20 @@ export default function Camera() {
         navigate('/auth');
         return;
       }
-
-      console.log('Starting analysis with streaming...');
       
-      // Use direct fetch for streaming
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-food`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ imageBase64: imageData }),
+      const { data, error } = await supabase.functions.invoke('analyze-food', {
+        body: { imageBase64: imageData }
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      if (error) throw error;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Analysis failed');
+      if (data?.nutritionData && data?.analysis) {
+        setNutritionData(data.nutritionData);
+        setAnalysisData(data.analysis);
+        setShowConfirmation(true);
+      } else {
+        throw new Error('Invalid response from analysis');
       }
-
-      if (!response.body) throw new Error('No response stream');
-
-      console.log('Stream started, processing chunks...');
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let receivedData = false;
-      let chunkCount = 0;
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          
-          if (done) {
-            console.log('Stream complete. Total chunks processed:', chunkCount);
-            break;
-          }
-
-          const chunk = decoder.decode(value, { stream: true });
-          console.log('Raw chunk received, length:', chunk.length, 'Preview:', chunk.substring(0, 200));
-
-          buffer += chunk;
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          console.log('Processing', lines.length, 'lines from this chunk');
-
-          for (const line of lines) {
-            const trimmedLine = line.trim();
-            
-            if (!trimmedLine || trimmedLine.startsWith(':')) {
-              continue;
-            }
-            
-            if (!trimmedLine.startsWith('data: ')) {
-              console.log('Line does not start with "data: ":', trimmedLine.substring(0, 50));
-              continue;
-            }
-
-            const data = trimmedLine.slice(6).trim();
-            if (!data) continue;
-
-            chunkCount++;
-            console.log(`[Chunk ${chunkCount}] Received:`, data.substring(0, 100));
-
-            try {
-              const parsed = JSON.parse(data);
-
-              if (parsed.error) {
-                console.error('Stream error:', parsed.error);
-                throw new Error(parsed.error);
-              }
-
-              if (parsed.chunk) {
-                receivedData = true;
-                const chunkText = parsed.chunk;
-                console.log(`[Chunk ${chunkCount}] Adding to UI:`, chunkText.substring(0, 50));
-                
-                // Use functional update and requestAnimationFrame to ensure render
-                setStreamingText(prev => {
-                  const newText = prev + chunkText;
-                  // Force console update every 10 chunks
-                  if (chunkCount % 10 === 0) {
-                    console.log(`Total text length: ${newText.length} chars`);
-                  }
-                  return newText;
-                });
-                
-                // Force a microtask to allow React to render
-                await new Promise(resolve => setTimeout(resolve, 0));
-              }
-
-              if (parsed.done) {
-                console.log('Stream marked as done, checking for final data...');
-                if (parsed.nutritionData && parsed.analysis) {
-                  console.log('Received complete nutrition data');
-                  setNutritionData(parsed.nutritionData);
-                  setAnalysisData(parsed.analysis);
-                  setShowConfirmation(true);
-                  setStreamingText('');
-                }
-              }
-            } catch (e) {
-              console.error('Failed to parse SSE data:', e, 'Data:', data.substring(0, 100));
-            }
-          }
-        }
-
-        // Process remaining buffer
-        if (buffer.trim() && buffer.startsWith('data: ')) {
-          const data = buffer.slice(6).trim();
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.done && parsed.nutritionData && parsed.analysis) {
-              console.log('Received final data from buffer');
-              setNutritionData(parsed.nutritionData);
-              setAnalysisData(parsed.analysis);
-              setShowConfirmation(true);
-              setStreamingText('');
-            }
-          } catch (e) {
-            console.error('Failed to parse final SSE data:', e);
-          }
-        }
-
-        if (!receivedData) {
-          console.warn('No streaming data received');
-        }
-
-      } catch (streamError) {
-        console.error('Stream reading error:', streamError);
-        throw streamError;
-      }
-
     } catch (error: any) {
       console.error('Analysis error:', error);
       toast({
@@ -209,7 +76,6 @@ export default function Camera() {
         description: error.message || "Failed to analyze food image. Please try again.",
         variant: "destructive",
       });
-      setStreamingText('');
     } finally {
       setAnalyzing(false);
     }
@@ -261,27 +127,12 @@ export default function Camera() {
         </div>
 
         {analyzing && (
-          <Card className="border border-border bg-card p-8 space-y-4">
-            <div className="flex items-center gap-3">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              <p className="text-lg font-medium">Analyzing your food...</p>
-            </div>
-            
-            {streamingText ? (
-              <div 
-                ref={streamingDivRef}
-                className="bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto"
-              >
-                <p className="text-sm whitespace-pre-wrap font-mono leading-relaxed">
-                  {streamingText}
-                  <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Connecting to AI...
-              </p>
-            )}
+          <Card className="border border-border bg-card p-12 text-center">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
+            <p className="text-lg font-medium">Analyzing your food...</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              This may take a few seconds
+            </p>
           </Card>
         )}
 
