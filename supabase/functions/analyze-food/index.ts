@@ -199,61 +199,26 @@ ACCURACY PRINCIPLES:
     const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const nutritionData = JSON.parse(cleanContent);
     
-    // Upload image to storage
-    const fileName = `${userId}/${Date.now()}.jpg`;
-    const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    console.log('AI analysis complete');
 
-    const { error: uploadError } = await supabase.storage
-      .from('food-images')
-      .upload(fileName, buffer, {
-        contentType: 'image/jpeg',
-        upsert: false
-      });
-
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError);
-      throw new Error('Failed to upload image');
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('food-images')
-      .getPublicUrl(fileName);
-
-    console.log('Image uploaded with public URL');
-
-    // Insert food log
-    const { data: logData, error: logError } = await supabase
-      .from('food_logs')
-      .insert({
-        user_id: userId,
-        image_url: publicUrl,
-        food_name: nutritionData.food_name,
-        calories: nutritionData.calories,
-        protein: nutritionData.protein,
-        carbs: nutritionData.carbs,
-        fat: nutritionData.fat,
-        fiber: nutritionData.fiber,
-        sugar: nutritionData.sugar,
-        sodium: nutritionData.sodium,
-        vitamin_a: nutritionData.vitamin_a,
-        vitamin_c: nutritionData.vitamin_c,
-        calcium: nutritionData.calcium,
-        iron: nutritionData.iron,
-        logged_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (logError) {
-      console.error('Database insert error:', logError);
-      throw new Error('Failed to save food log');
-    }
-
-    console.log('Food log saved successfully');
-
+    // Return analysis without saving to database
+    // The frontend will handle saving after user confirms
     return new Response(
       JSON.stringify({
-        nutritionData: logData,
+        nutritionData: {
+          food_name: nutritionData.food_name,
+          calories: nutritionData.calories,
+          protein: nutritionData.protein,
+          carbs: nutritionData.carbs,
+          fat: nutritionData.fat,
+          fiber: nutritionData.fiber,
+          sugar: nutritionData.sugar,
+          sodium: nutritionData.sodium,
+          vitamin_a: nutritionData.vitamin_a,
+          vitamin_c: nutritionData.vitamin_c,
+          calcium: nutritionData.calcium,
+          iron: nutritionData.iron
+        },
         analysis: {
           visual_analysis: nutritionData.visual_analysis,
           portion_estimation: nutritionData.portion_estimation,

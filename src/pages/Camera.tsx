@@ -84,13 +84,72 @@ export default function Camera() {
   const handleSaveToLog = async () => {
     if (!nutritionData) return;
 
-    // Food is already saved by the edge function, just navigate back
-    toast({
-      title: "Success!",
-      description: `${nutritionData.food_name} logged successfully`,
-    });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
 
-    navigate('/daily-log');
+      // Upload image to storage if available
+      let imageUrl = null;
+      if (capturedImage) {
+        const fileName = `${user.id}/${Date.now()}.jpg`;
+        const base64Data = capturedImage.split(',')[1];
+        const binaryData = atob(base64Data);
+        const bytes = new Uint8Array(binaryData.length);
+        for (let i = 0; i < binaryData.length; i++) {
+          bytes[i] = binaryData.charCodeAt(i);
+        }
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('food-images')
+          .upload(fileName, bytes, {
+            contentType: 'image/jpeg',
+            upsert: false
+          });
+
+        if (!uploadError && uploadData) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('food-images')
+            .getPublicUrl(uploadData.path);
+          imageUrl = publicUrl;
+        }
+      }
+
+      // Save to food_logs
+      const { error: insertError } = await supabase
+        .from('food_logs')
+        .insert({
+          user_id: user.id,
+          food_name: nutritionData.food_name,
+          calories: nutritionData.calories,
+          protein: nutritionData.protein,
+          carbs: nutritionData.carbs,
+          fat: nutritionData.fat,
+          fiber: nutritionData.fiber,
+          sugar: nutritionData.sugar,
+          sodium: nutritionData.sodium,
+          vitamin_a: nutritionData.vitamin_a,
+          vitamin_c: nutritionData.vitamin_c,
+          calcium: nutritionData.calcium,
+          iron: nutritionData.iron,
+          image_url: imageUrl,
+          logged_at: new Date().toISOString(),
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Success!",
+        description: `${nutritionData.food_name} logged successfully`,
+      });
+
+      navigate('/');
+    } catch (error: any) {
+      toast({
+        title: "Failed to save",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleReanalyze = () => {
