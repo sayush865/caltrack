@@ -405,29 +405,6 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Units Toggle */}
-        <Card className="border-0 shadow-sm">
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Scale className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">Metric System</p>
-                  <p className="text-xs text-muted-foreground">Kilograms & centimeters</p>
-                </div>
-              </div>
-              <Switch
-                checked={profile.units_preference === 'metric'}
-                onCheckedChange={(checked) => {
-                  setProfile({ ...profile, units_preference: checked ? 'metric' : 'imperial' });
-                  handleSaveProfile();
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Menu Items */}
         <div className="space-y-3">
