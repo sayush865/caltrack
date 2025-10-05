@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getFoodImage } from '@/lib/foodImages';
@@ -18,6 +19,7 @@ export default function EditFoodLog() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showImageDialog, setShowImageDialog] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<MeasurementUnit>('serving');
   const [servings, setServings] = useState(1);
   const [showOtherNutrition, setShowOtherNutrition] = useState(false);
@@ -161,10 +163,22 @@ export default function EditFoodLog() {
           <img
             src={foodImage}
             alt={currentData.food_name}
-            className="w-20 h-20 rounded-xl object-cover border border-border"
+            onClick={() => setShowImageDialog(true)}
+            className="w-20 h-20 rounded-xl object-cover border border-border cursor-pointer hover:opacity-80 transition-opacity"
           />
           <h2 className="text-2xl font-bold flex-1">{currentData.food_name}</h2>
         </div>
+
+        {/* Image Dialog */}
+        <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
+          <DialogContent className="max-w-3xl">
+            <img 
+              src={foodImage} 
+              alt={currentData.food_name}
+              className="w-full h-auto rounded-lg"
+            />
+          </DialogContent>
+        </Dialog>
 
         {/* Measurement Units */}
         <div>
