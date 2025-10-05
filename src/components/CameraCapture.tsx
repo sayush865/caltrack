@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { Camera, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { processImageForAI } from '@/lib/imageProcessing';
+import { toast } from 'sonner';
 
 interface CameraCaptureProps {
   onCapture: (imageData: string) => void;
@@ -13,15 +15,36 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const processFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      setPreview(result);
-      onCapture(result);
-    };
-    reader.readAsDataURL(file);
+  const processFile = async (file: File) => {
+    setIsProcessing(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const result = reader.result as string;
+          setPreview(result);
+          
+          // Enhance image for better AI analysis
+          toast.info('Enhancing image quality...');
+          const enhancedImage = await processImageForAI(result);
+          
+          onCapture(enhancedImage);
+        } catch (error) {
+          console.error('Error processing image:', error);
+          toast.error('Failed to process image');
+          onCapture(reader.result as string); // Fallback to original
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      toast.error('Failed to read image file');
+      setIsProcessing(false);
+    }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,7 +146,7 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
           <div className="grid grid-cols-2 gap-3">
             <Button
               onClick={() => cameraInputRef.current?.click()}
-              disabled={disabled}
+              disabled={disabled || isProcessing}
               className="w-full h-12 text-base"
               variant="default"
             >
@@ -132,7 +155,7 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
             </Button>
             <Button
               onClick={() => fileInputRef.current?.click()}
-              disabled={disabled}
+              disabled={disabled || isProcessing}
               variant="outline"
               className="w-full h-12 text-base border-border"
             >
