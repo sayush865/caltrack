@@ -36,6 +36,7 @@ export default function Settings() {
   const [showEditHeight, setShowEditHeight] = useState(false);
   const [showEditGender, setShowEditGender] = useState(false);
   const [showEditActivity, setShowEditActivity] = useState(false);
+  const [showEditWeight, setShowEditWeight] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -353,6 +354,44 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to update activity level",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveWeight = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('user_goals')
+        .update({ 
+          current_weight: goals.current_weight,
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Also update units preference
+      await supabase
+        .from('profiles')
+        .update({ units_preference: profile.units_preference })
+        .eq('id', user.id);
+
+      setShowEditWeight(false);
+      toast({
+        title: "Success!",
+        description: "Weight updated successfully",
+      });
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update weight",
         variant: "destructive",
       });
     } finally {
@@ -847,7 +886,7 @@ export default function Settings() {
               {/* Current Weight Display */}
               <div 
                 className="flex items-center justify-between py-4 cursor-pointer hover:bg-muted/50 transition-colors px-2 -mx-2 rounded-md"
-                onClick={() => setShowWeightGoalsDialog(true)}
+                onClick={() => setShowEditWeight(true)}
               >
                 <span className="text-sm text-muted-foreground">Current weight</span>
                 <div className="flex items-center gap-2">
@@ -941,6 +980,55 @@ export default function Settings() {
                 className="w-full rounded-full h-12"
               >
                 Save changes
+              </Button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+
+        {/* Edit Weight Drawer */}
+        <Drawer open={showEditWeight} onOpenChange={setShowEditWeight}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Edit Weight</DrawerTitle>
+            </DrawerHeader>
+            <div className="space-y-6 px-4 pb-6">
+              {/* Units Toggle */}
+              <div className="flex items-center justify-center gap-4">
+                <span className={`text-sm font-medium ${profile.units_preference === 'imperial' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Imperial (lbs)
+                </span>
+                <Switch 
+                  checked={profile.units_preference === 'metric'}
+                  onCheckedChange={(checked) => setProfile({ ...profile, units_preference: checked ? 'metric' : 'imperial' })}
+                />
+                <span className={`text-sm font-medium ${profile.units_preference === 'metric' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Metric (kg)
+                </span>
+              </div>
+
+              {/* Weight Input */}
+              <div className="space-y-3">
+                <Label className="text-center block">Current Weight</Label>
+                <div className="flex items-center justify-center gap-2">
+                  <Input
+                    type="number"
+                    value={goals.current_weight || ''}
+                    onChange={(e) => setGoals({ ...goals, current_weight: parseFloat(e.target.value) || 0 })}
+                    placeholder="0"
+                    className="text-center text-xl w-32 h-12"
+                  />
+                  <span className="text-lg text-muted-foreground">
+                    {profile.units_preference === 'imperial' ? 'lbs' : 'kg'}
+                  </span>
+                </div>
+              </div>
+
+              <Button 
+                onClick={handleSaveWeight} 
+                disabled={loading}
+                className="w-full h-12 rounded-full"
+              >
+                {loading ? 'Saving...' : 'Save changes'}
               </Button>
             </div>
           </DrawerContent>
