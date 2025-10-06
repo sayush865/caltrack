@@ -35,6 +35,9 @@ export default function Settings() {
   const [showNutritionGoalsDialog, setShowNutritionGoalsDialog] = useState(false);
   const [showWeightGoalsDialog, setShowWeightGoalsDialog] = useState(false);
   const [showAvatarOptions, setShowAvatarOptions] = useState(false);
+  const [showEditHeight, setShowEditHeight] = useState(false);
+  const [showEditGender, setShowEditGender] = useState(false);
+  const [showEditActivity, setShowEditActivity] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -259,6 +262,99 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to update goals",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveHeight = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          height: profile.height,
+          units_preference: profile.units_preference 
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setShowEditHeight(false);
+      toast({
+        title: "Success!",
+        description: "Height updated successfully",
+      });
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update height",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveGender = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ gender: profile.gender })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setShowEditGender(false);
+      toast({
+        title: "Success!",
+        description: "Gender updated successfully",
+      });
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update gender",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveActivity = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ activity_level: profile.activity_level })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setShowEditActivity(false);
+      toast({
+        title: "Success!",
+        description: "Activity level updated successfully",
+      });
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update activity level",
         variant: "destructive",
       });
     } finally {
@@ -748,76 +844,158 @@ export default function Settings() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Personal Details</DialogTitle>
-              <DialogDescription>Update your personal information</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-0 py-4">
+              {/* Current Weight Display */}
+              <div 
+                className="flex items-center justify-between py-4 cursor-pointer hover:bg-muted/50 transition-colors px-2 -mx-2 rounded-md"
+                onClick={() => setShowWeightGoalsDialog(true)}
+              >
+                <span className="text-sm text-muted-foreground">Current weight</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{goals.current_weight || 'Not set'} {weightUnit}</span>
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+              <div className="h-px bg-border" />
+
+              {/* Height */}
+              <div 
+                className="flex items-center justify-between py-4 cursor-pointer hover:bg-muted/50 transition-colors px-2 -mx-2 rounded-md"
+                onClick={() => setShowEditHeight(true)}
+              >
+                <span className="text-sm text-muted-foreground">Height</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{profile.height || 'Not set'} {heightUnit}</span>
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+              <div className="h-px bg-border" />
+
+              {/* Gender */}
+              <div 
+                className="flex items-center justify-between py-4 cursor-pointer hover:bg-muted/50 transition-colors px-2 -mx-2 rounded-md"
+                onClick={() => setShowEditGender(true)}
+              >
+                <span className="text-sm text-muted-foreground">Gender</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{getGenderLabel(profile.gender)}</span>
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+              <div className="h-px bg-border" />
+
+              {/* Activity Level */}
+              <div 
+                className="flex items-center justify-between py-4 cursor-pointer hover:bg-muted/50 transition-colors px-2 -mx-2 rounded-md"
+                onClick={() => setShowEditActivity(true)}
+              >
+                <span className="text-sm text-muted-foreground">Activity level</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{getActivityLevelLabel(profile.activity_level)}</span>
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Height Dialog */}
+        <Dialog open={showEditHeight} onOpenChange={setShowEditHeight}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Height</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 py-6">
+              {/* Units Toggle */}
+              <div className="flex items-center justify-center gap-4">
+                <span className={`text-sm font-medium ${profile.units_preference === 'imperial' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Imperial
+                </span>
+                <Switch 
+                  checked={profile.units_preference === 'metric'}
+                  onCheckedChange={(checked) => setProfile({ ...profile, units_preference: checked ? 'metric' : 'imperial' })}
+                />
+                <span className={`text-sm font-medium ${profile.units_preference === 'metric' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Metric
+                </span>
+              </div>
+
+              {/* Height Input */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between py-3 border-b">
-                  <span className="text-sm text-muted-foreground">Current weight</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{goals.current_weight || 'Not set'} {weightUnit}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between py-3 border-b">
-                  <span className="text-sm text-muted-foreground">Height</span>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      value={profile.height || ''}
-                      onChange={(e) => setProfile({ ...profile, height: parseFloat(e.target.value) || null })}
-                      placeholder="0"
-                      className="w-24 text-right"
-                    />
-                    <span className="text-sm font-medium">{heightUnit}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between py-3 border-b">
-                  <span className="text-sm text-muted-foreground">Age</span>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      value={profile.age || ''}
-                      onChange={(e) => setProfile({ ...profile, age: parseInt(e.target.value) || null })}
-                      placeholder="0"
-                      className="w-24 text-right"
-                    />
-                    <span className="text-sm font-medium">years</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between py-3 border-b">
-                  <span className="text-sm text-muted-foreground">Gender</span>
-                  <Select value={profile.gender || ''} onValueChange={(value) => setProfile({ ...profile, gender: value })}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                      <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-sm text-muted-foreground">Activity level</span>
-                  <Select value={profile.activity_level || ''} onValueChange={(value) => setProfile({ ...profile, activity_level: value })}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sedentary">Sedentary</SelectItem>
-                      <SelectItem value="lightly_active">Lightly Active</SelectItem>
-                      <SelectItem value="moderately_active">Moderately Active</SelectItem>
-                      <SelectItem value="very_active">Very Active</SelectItem>
-                      <SelectItem value="extra_active">Extra Active</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <Label className="text-center block">Height</Label>
+                <div className="flex items-center justify-center gap-2">
+                  <Input
+                    type="number"
+                    value={profile.height || ''}
+                    onChange={(e) => setProfile({ ...profile, height: parseFloat(e.target.value) || null })}
+                    placeholder="0"
+                    className="w-32 text-center text-lg"
+                  />
+                  <span className="text-lg font-medium">{heightUnit}</span>
                 </div>
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleSaveProfile} disabled={loading} className="w-full">
-                {loading ? 'Saving...' : 'Save Changes'}
+              <Button onClick={handleSaveHeight} disabled={loading} className="w-full h-12 rounded-full">
+                {loading ? 'Saving...' : 'Save changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Gender Dialog */}
+        <Dialog open={showEditGender} onOpenChange={setShowEditGender}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Gender</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-6">
+              <Label>Gender</Label>
+              <Select value={profile.gender || ''} onValueChange={(value) => setProfile({ ...profile, gender: value })}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleSaveGender} disabled={loading} className="w-full h-12 rounded-full">
+                {loading ? 'Saving...' : 'Save changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Activity Level Dialog */}
+        <Dialog open={showEditActivity} onOpenChange={setShowEditActivity}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Activity Level</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-6">
+              <Label>Activity Level</Label>
+              <Select value={profile.activity_level || ''} onValueChange={(value) => setProfile({ ...profile, activity_level: value })}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select activity level" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="sedentary">Sedentary</SelectItem>
+                  <SelectItem value="lightly_active">Lightly Active</SelectItem>
+                  <SelectItem value="moderately_active">Moderately Active</SelectItem>
+                  <SelectItem value="very_active">Very Active</SelectItem>
+                  <SelectItem value="extra_active">Extra Active</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleSaveActivity} disabled={loading} className="w-full h-12 rounded-full">
+                {loading ? 'Saving...' : 'Save changes'}
               </Button>
             </DialogFooter>
           </DialogContent>
