@@ -8,7 +8,6 @@ import { format, startOfDay, endOfDay } from 'date-fns';
 import CalorieProgress from '@/components/CalorieProgress';
 import MacroCard from '@/components/MacroCard';
 import WeekCalendar from '@/components/WeekCalendar';
-import ProfileMenu from '@/components/ProfileMenu';
 import FoodLogItem from '@/components/FoodLogItem';
 
 interface UserGoals {
@@ -137,7 +136,7 @@ export default function Index() {
       {/* Header */}
       <div className="bg-card border-b border-border">
         <div className="px-4 py-4 max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4">
             <div className="space-y-0.5">
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 CalTrack AI
@@ -146,7 +145,6 @@ export default function Index() {
                 {format(selectedDate, 'EEEE, MMM d')}
               </p>
             </div>
-            <ProfileMenu />
           </div>
           
           <WeekCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} />

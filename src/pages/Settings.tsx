@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Camera, User, Target, Activity, TrendingUp, Scale, AlertTriangle, ChevronRight, Edit } from 'lucide-react';
+import { ArrowLeft, Camera, User, Target, Activity, TrendingUp, Scale, AlertTriangle, ChevronRight, Edit, LogOut, Pencil, X } from 'lucide-react';
 import { nutritionGoalsSchema, profileSchema } from '@/lib/validation';
 import { WeightHistoryChart } from '@/components/WeightHistoryChart';
 import { HealthMetrics } from '@/components/HealthMetrics';
@@ -34,8 +34,11 @@ export default function Settings() {
   const [showPersonalDetailsDialog, setShowPersonalDetailsDialog] = useState(false);
   const [showNutritionGoalsDialog, setShowNutritionGoalsDialog] = useState(false);
   const [showWeightGoalsDialog, setShowWeightGoalsDialog] = useState(false);
+  const [showAvatarOptions, setShowAvatarOptions] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [editingAge, setEditingAge] = useState(false);
   const [profile, setProfile] = useState({
     username: '',
     email: '',
@@ -327,6 +330,138 @@ export default function Settings() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ profile_picture_url: null })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setProfile({ ...profile, profile_picture_url: null });
+      toast({
+        title: "Success!",
+        description: "Profile picture removed",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove picture",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const preGeneratedAvatars = [
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Bailey',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Milo',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Luna',
+  ];
+
+  const handleSelectAvatar = async (avatarUrl: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ profile_picture_url: avatarUrl })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setProfile({ ...profile, profile_picture_url: avatarUrl });
+      setShowAvatarOptions(false);
+      toast({
+        title: "Success!",
+        description: "Profile picture updated",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update picture",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveName = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ username: profile.username })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setEditingName(false);
+      toast({
+        title: "Success!",
+        description: "Name updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update name",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveAge = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ age: profile.age })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setEditingAge(false);
+      toast({
+        title: "Success!",
+        description: "Age updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update age",
+        variant: "destructive",
+      });
+    }
+  };
+
   const weightUnit = profile.units_preference === 'imperial' ? 'lbs' : 'kg';
   const heightUnit = profile.units_preference === 'imperial' ? 'inches' : 'cm';
 
@@ -371,10 +506,10 @@ export default function Settings() {
 
         {/* Profile Card */}
         <Card className="border-0 shadow-sm">
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 space-y-4">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <Avatar className="h-16 w-16">
+                <Avatar className="h-16 w-16 cursor-pointer" onClick={() => setShowAvatarOptions(!showAvatarOptions)}>
                   <AvatarImage src={profile.profile_picture_url || undefined} />
                   <AvatarFallback className="text-xl bg-primary/10 text-primary">
                     {profile.username?.[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || '?'}
@@ -384,11 +519,109 @@ export default function Settings() {
                   size="icon"
                   variant="secondary"
                   className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full shadow-md"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingPicture}
+                  onClick={() => setShowAvatarOptions(!showAvatarOptions)}
                 >
                   <Camera className="h-3.5 w-3.5" />
                 </Button>
+              </div>
+              <div className="flex-1">
+                {editingName ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={profile.username}
+                      onChange={(e) => setProfile({ ...profile, username: e.target.value })}
+                      className="h-8 text-lg font-semibold"
+                      autoFocus
+                    />
+                    <Button size="sm" onClick={handleSaveName}>Save</Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold">{profile.username || 'User'}</h2>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => setEditingName(true)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+                {editingAge ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      type="number"
+                      value={profile.age || ''}
+                      onChange={(e) => setProfile({ ...profile, age: parseInt(e.target.value) || null })}
+                      className="h-7 w-20 text-sm"
+                      autoFocus
+                    />
+                    <span className="text-sm text-muted-foreground">years old</span>
+                    <Button size="sm" onClick={handleSaveAge} className="h-7">Save</Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-sm text-muted-foreground">{profile.age ? `${profile.age} years old` : 'Add your age'}</p>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-5 w-5"
+                      onClick={() => setEditingAge(true)}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Avatar Options */}
+            {showAvatarOptions && (
+              <div className="space-y-3 pt-3 border-t">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Choose avatar</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowAvatarOptions(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-6 gap-2">
+                  {preGeneratedAvatars.map((avatarUrl, index) => (
+                    <Avatar
+                      key={index}
+                      className="h-12 w-12 cursor-pointer hover:ring-2 ring-primary transition-all"
+                      onClick={() => handleSelectAvatar(avatarUrl)}
+                    >
+                      <AvatarImage src={avatarUrl} />
+                    </Avatar>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingPicture}
+                  >
+                    <Camera className="h-3.5 w-3.5 mr-2" />
+                    Upload
+                  </Button>
+                  {profile.profile_picture_url && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleRemoveAvatar}
+                    >
+                      <X className="h-3.5 w-3.5 mr-2" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -397,11 +630,7 @@ export default function Settings() {
                   onChange={handleProfilePictureUpload}
                 />
               </div>
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold">{profile.username || 'User'}</h2>
-                <p className="text-sm text-muted-foreground">{profile.age ? `${profile.age} years old` : 'Add your age'}</p>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -477,23 +706,42 @@ export default function Settings() {
           </Card>
         </div>
 
-        {/* Danger Zone */}
-        <Card className="border-destructive/50 shadow-sm">
-          <CardContent className="py-4">
-            <button
-              onClick={() => setShowDeleteDialog(true)}
-              className="w-full flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
+        {/* Account Actions */}
+        <div className="space-y-3">
+          <Card 
+            className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            onClick={handleLogout}
+          >
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                    <LogOut className="h-5 w-5 text-foreground" />
+                  </div>
+                  <span className="font-medium">Log out</span>
                 </div>
-                <span className="font-medium text-destructive">Delete account</span>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </button>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="py-4">
+              <button
+                onClick={() => setShowDeleteDialog(true)}
+                className="w-full flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                    <AlertTriangle className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <span className="font-medium text-muted-foreground">Delete account</span>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Personal Details Dialog */}
         <Dialog open={showPersonalDetailsDialog} onOpenChange={setShowPersonalDetailsDialog}>
@@ -682,7 +930,7 @@ export default function Settings() {
               <AlertDialogAction
                 onClick={handleDeleteAccount}
                 disabled={deleting}
-                className="bg-destructive hover:bg-destructive/90"
+                className="bg-foreground hover:bg-foreground/90 text-background"
               >
                 {deleting ? 'Deleting...' : 'Delete Account'}
               </AlertDialogAction>
