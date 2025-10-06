@@ -8,17 +8,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { 
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Camera, User, Target, Activity, TrendingUp, Scale, AlertTriangle, ChevronRight, Edit, LogOut, Pencil, X } from 'lucide-react';
 import { nutritionGoalsSchema, profileSchema } from '@/lib/validation';
@@ -839,13 +837,13 @@ export default function Settings() {
           </Card>
         </div>
 
-        {/* Personal Details Dialog */}
-        <Dialog open={showPersonalDetailsDialog} onOpenChange={setShowPersonalDetailsDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Personal Details</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-0 py-4">
+        {/* Personal Details Drawer */}
+        <Drawer open={showPersonalDetailsDialog} onOpenChange={setShowPersonalDetailsDialog}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Personal Details</DrawerTitle>
+            </DrawerHeader>
+            <div className="space-y-0 px-4 pb-6">
               {/* Current Weight Display */}
               <div 
                 className="flex items-center justify-between py-4 cursor-pointer hover:bg-muted/50 transition-colors px-2 -mx-2 rounded-md"
@@ -897,16 +895,16 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          </DrawerContent>
+        </Drawer>
 
-        {/* Edit Height Dialog */}
-        <Dialog open={showEditHeight} onOpenChange={setShowEditHeight}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Edit Height</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6 py-6">
+        {/* Edit Height Drawer */}
+        <Drawer open={showEditHeight} onOpenChange={setShowEditHeight}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Edit Height</DrawerTitle>
+            </DrawerHeader>
+            <div className="space-y-6 px-4 pb-6">
               {/* Units Toggle */}
               <div className="flex items-center justify-center gap-4">
                 <span className={`text-sm font-medium ${profile.units_preference === 'imperial' ? 'text-foreground' : 'text-muted-foreground'}`}>
@@ -930,150 +928,180 @@ export default function Settings() {
                     value={profile.height || ''}
                     onChange={(e) => setProfile({ ...profile, height: parseFloat(e.target.value) || null })}
                     placeholder="0"
-                    className="w-32 text-center text-lg"
+                    className="text-center text-xl w-32 h-12"
                   />
                   <span className="text-lg font-medium">{heightUnit}</span>
                 </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleSaveHeight} disabled={loading} className="w-full h-12 rounded-full">
-                {loading ? 'Saving...' : 'Save changes'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
-        {/* Edit Gender Dialog */}
-        <Dialog open={showEditGender} onOpenChange={setShowEditGender}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Edit Gender</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-6">
-              <Label>Gender</Label>
-              <Select value={profile.gender || ''} onValueChange={(value) => setProfile({ ...profile, gender: value })}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover z-50">
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                  <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleSaveGender} disabled={loading} className="w-full h-12 rounded-full">
-                {loading ? 'Saving...' : 'Save changes'}
+              {/* Save Button */}
+              <Button 
+                onClick={handleSaveHeight}
+                disabled={loading}
+                className="w-full rounded-full h-12"
+              >
+                Save changes
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Activity Level Dialog */}
-        <Dialog open={showEditActivity} onOpenChange={setShowEditActivity}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Edit Activity Level</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-6">
-              <Label>Activity Level</Label>
-              <Select value={profile.activity_level || ''} onValueChange={(value) => setProfile({ ...profile, activity_level: value })}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select activity level" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover z-50">
-                  <SelectItem value="sedentary">Sedentary</SelectItem>
-                  <SelectItem value="lightly_active">Lightly Active</SelectItem>
-                  <SelectItem value="moderately_active">Moderately Active</SelectItem>
-                  <SelectItem value="very_active">Very Active</SelectItem>
-                  <SelectItem value="extra_active">Extra Active</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
-            <DialogFooter>
-              <Button onClick={handleSaveActivity} disabled={loading} className="w-full h-12 rounded-full">
-                {loading ? 'Saving...' : 'Save changes'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </DrawerContent>
+        </Drawer>
 
-        {/* Nutrition Goals Dialog */}
-        <Dialog open={showNutritionGoalsDialog} onOpenChange={setShowNutritionGoalsDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Nutrition Goals</DialogTitle>
-              <DialogDescription>Set your daily macro targets</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
+        {/* Edit Gender Drawer */}
+        <Drawer open={showEditGender} onOpenChange={setShowEditGender}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Edit Gender</DrawerTitle>
+            </DrawerHeader>
+            <div className="space-y-6 px-4 pb-6">
+              <div className="space-y-3">
+                <Label>Gender</Label>
+                <Select
+                  value={profile.gender || ''}
+                  onValueChange={(value) => setProfile({ ...profile, gender: value })}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button 
+                onClick={handleSaveGender}
+                disabled={loading}
+                className="w-full rounded-full h-12"
+              >
+                Save changes
+              </Button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+
+        {/* Edit Activity Level Drawer */}
+        <Drawer open={showEditActivity} onOpenChange={setShowEditActivity}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Edit Activity Level</DrawerTitle>
+            </DrawerHeader>
+            <div className="space-y-6 px-4 pb-6">
+              <div className="space-y-3">
+                <Label>Activity Level</Label>
+                <Select
+                  value={profile.activity_level || ''}
+                  onValueChange={(value) => setProfile({ ...profile, activity_level: value })}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Select activity level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sedentary">Sedentary</SelectItem>
+                    <SelectItem value="lightly_active">Lightly Active</SelectItem>
+                    <SelectItem value="moderately_active">Moderately Active</SelectItem>
+                    <SelectItem value="very_active">Very Active</SelectItem>
+                    <SelectItem value="extra_active">Extra Active</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button 
+                onClick={handleSaveActivity}
+                disabled={loading}
+                className="w-full rounded-full h-12"
+              >
+                Save changes
+              </Button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+
+        {/* Nutrition Goals Drawer */}
+        <Drawer open={showNutritionGoalsDialog} onOpenChange={setShowNutritionGoalsDialog}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Edit Nutrition Goals</DrawerTitle>
+              <DrawerDescription>Set your daily macro and calorie targets</DrawerDescription>
+            </DrawerHeader>
+            <div className="space-y-4 px-4 pb-6">
               <div className="space-y-2">
-                <Label>Calories</Label>
+                <Label htmlFor="calories">Daily Calories</Label>
                 <Input
+                  id="calories"
                   type="number"
                   value={goals.daily_calories}
-                  onChange={(e) => setGoals({ ...goals, daily_calories: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setGoals({ ...goals, daily_calories: parseInt(e.target.value) })}
+                  className="h-12"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Protein (g)</Label>
+                <Label htmlFor="protein">Daily Protein (g)</Label>
                 <Input
+                  id="protein"
                   type="number"
                   value={goals.daily_protein}
-                  onChange={(e) => setGoals({ ...goals, daily_protein: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setGoals({ ...goals, daily_protein: parseInt(e.target.value) })}
+                  className="h-12"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Carbs (g)</Label>
+                <Label htmlFor="carbs">Daily Carbs (g)</Label>
                 <Input
+                  id="carbs"
                   type="number"
                   value={goals.daily_carbs}
-                  onChange={(e) => setGoals({ ...goals, daily_carbs: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setGoals({ ...goals, daily_carbs: parseInt(e.target.value) })}
+                  className="h-12"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Fat (g)</Label>
+                <Label htmlFor="fat">Daily Fat (g)</Label>
                 <Input
+                  id="fat"
                   type="number"
                   value={goals.daily_fat}
-                  onChange={(e) => setGoals({ ...goals, daily_fat: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setGoals({ ...goals, daily_fat: parseInt(e.target.value) })}
+                  className="h-12"
                 />
               </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleSaveGoals} disabled={loading} className="w-full">
-                {loading ? 'Saving...' : 'Save Goals'}
+              <Button 
+                onClick={handleSaveGoals} 
+                disabled={loading}
+                className="w-full rounded-full h-12"
+              >
+                Save changes
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </div>
+          </DrawerContent>
+        </Drawer>
 
-        {/* Weight Goals Dialog */}
-        <Dialog open={showWeightGoalsDialog} onOpenChange={setShowWeightGoalsDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Weight Goals</DialogTitle>
-              <DialogDescription>Track your weight progress</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
+        {/* Weight Goals Drawer */}
+        <Drawer open={showWeightGoalsDialog} onOpenChange={setShowWeightGoalsDialog}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Weight Goals</DrawerTitle>
+              <DrawerDescription>Track your weight progress</DrawerDescription>
+            </DrawerHeader>
+            <div className="space-y-4 px-4 pb-6">
               <div className="space-y-2">
-                <Label>Current Weight ({weightUnit})</Label>
+                <Label htmlFor="current-weight">Current Weight ({weightUnit})</Label>
                 <Input
+                  id="current-weight"
                   type="number"
                   value={goals.current_weight || ''}
-                  onChange={(e) => setGoals({ ...goals, current_weight: parseFloat(e.target.value) || 0 })}
-                  placeholder="150"
+                  onChange={(e) => setGoals({ ...goals, current_weight: parseFloat(e.target.value) })}
+                  className="h-12"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Goal Weight ({weightUnit})</Label>
+                <Label htmlFor="goal-weight">Goal Weight ({weightUnit})</Label>
                 <Input
+                  id="goal-weight"
                   type="number"
                   value={goals.goal_weight || ''}
-                  onChange={(e) => setGoals({ ...goals, goal_weight: parseFloat(e.target.value) || 0 })}
-                  placeholder="140"
+                  onChange={(e) => setGoals({ ...goals, goal_weight: parseFloat(e.target.value) })}
+                  className="h-12"
                 />
               </div>
               <WeightHistoryChart unitsPreference={profile.units_preference} />
@@ -1085,36 +1113,44 @@ export default function Settings() {
                 activityLevel={profile.activity_level}
                 unitsPreference={profile.units_preference}
               />
-            </div>
-            <DialogFooter>
-              <Button onClick={handleSaveWeightGoals} disabled={loading} className="w-full">
-                {loading ? 'Saving...' : 'Save Goals'}
+              <Button 
+                onClick={handleSaveWeightGoals} 
+                disabled={loading}
+                className="w-full rounded-full h-12"
+              >
+                Save changes
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </div>
+          </DrawerContent>
+        </Drawer>
 
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete your account and remove all your data.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
+        {/* Delete Account Confirmation Drawer */}
+        <Drawer open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Are you absolutely sure?</DrawerTitle>
+              <DrawerDescription>
+                This action cannot be undone. This will permanently delete your account
+                and remove all your data from our servers.
+              </DrawerDescription>
+            </DrawerHeader>
+            <DrawerFooter className="px-4 pb-6">
+              <Button
                 onClick={handleDeleteAccount}
                 disabled={deleting}
-                className="bg-foreground hover:bg-foreground/90 text-background"
+                variant="destructive"
+                className="w-full rounded-full h-12"
               >
                 {deleting ? 'Deleting...' : 'Delete Account'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              </Button>
+              <DrawerClose asChild>
+                <Button variant="outline" className="w-full rounded-full h-12">
+                  Cancel
+                </Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );
