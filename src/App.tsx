@@ -13,21 +13,34 @@ import FoodDatabase from "./pages/FoodDatabase";
 import Settings from "./pages/Settings";
 import Goals from "./pages/Goals";
 import EditFoodLog from "./pages/EditFoodLog";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, requireOnboarding = true }: { children: React.ReactNode; requireOnboarding?: boolean }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setIsAuthenticated(!!session);
+      
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('id', session.user.id)
+          .single();
+        
+        setOnboardingComplete(profile?.onboarding_completed || false);
+      }
+      
       setIsLoading(false);
     });
 
@@ -37,6 +50,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       await new Promise(resolve => setTimeout(resolve, 100));
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
+      
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('id', session.user.id)
+          .single();
+        
+        setOnboardingComplete(profile?.onboarding_completed || false);
+      }
+      
       setIsLoading(false);
     };
     
@@ -49,13 +73,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
-  return isAuthenticated ? (
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" />;
+  }
+
+  if (requireOnboarding && !onboardingComplete) {
+    return <Navigate to="/onboarding" />;
+  }
+
+  return (
     <>
       {children}
       <BottomNav />
     </>
-  ) : (
-    <Navigate to="/auth" />
   );
 }
 
@@ -67,6 +97,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/onboarding" element={<ProtectedRoute requireOnboarding={false}><Onboarding /></ProtectedRoute>} />
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/daily-log" element={<ProtectedRoute><DailyLog /></ProtectedRoute>} />
           <Route path="/camera" element={<ProtectedRoute><Camera /></ProtectedRoute>} />

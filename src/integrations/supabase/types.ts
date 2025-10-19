@@ -161,6 +161,7 @@ export type Database = {
           gender: string | null
           height: number | null
           id: string
+          onboarding_completed: boolean | null
           profile_picture_url: string | null
           units_preference: string | null
           username: string | null
@@ -173,6 +174,7 @@ export type Database = {
           gender?: string | null
           height?: number | null
           id: string
+          onboarding_completed?: boolean | null
           profile_picture_url?: string | null
           units_preference?: string | null
           username?: string | null
@@ -185,6 +187,7 @@ export type Database = {
           gender?: string | null
           height?: number | null
           id?: string
+          onboarding_completed?: boolean | null
           profile_picture_url?: string | null
           units_preference?: string | null
           username?: string | null
@@ -199,6 +202,7 @@ export type Database = {
           daily_carbs: number
           daily_fat: number
           daily_protein: number
+          goal_type: string | null
           goal_weight: number | null
           id: string
           updated_at: string | null
@@ -211,6 +215,7 @@ export type Database = {
           daily_carbs?: number
           daily_fat?: number
           daily_protein?: number
+          goal_type?: string | null
           goal_weight?: number | null
           id?: string
           updated_at?: string | null
@@ -223,6 +228,7 @@ export type Database = {
           daily_carbs?: number
           daily_fat?: number
           daily_protein?: number
+          goal_type?: string | null
           goal_weight?: number | null
           id?: string
           updated_at?: string | null
