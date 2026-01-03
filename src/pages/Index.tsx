@@ -11,6 +11,9 @@ import WeekCalendar from '@/components/WeekCalendar';
 import FoodLogItem from '@/components/FoodLogItem';
 import QuickAddWidget from '@/components/QuickAddWidget';
 import WaterTracker from '@/components/WaterTracker';
+import StreakBadge from '@/components/StreakBadge';
+import HealthMetricsWidget from '@/components/HealthMetricsWidget';
+import DailyInsightCard from '@/components/DailyInsightCard';
 
 interface UserGoals {
   daily_calories: number;
@@ -141,7 +144,7 @@ export default function Index() {
       {/* Header */}
       <div className="bg-card border-b border-border">
         <div className="px-4 py-4 max-w-4xl mx-auto">
-          <div className="mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <div className="space-y-0.5">
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 CalTrack AI
@@ -150,6 +153,7 @@ export default function Index() {
                 {format(selectedDate, 'EEEE, MMM d')}
               </p>
             </div>
+            <StreakBadge />
           </div>
           
           <WeekCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} />
@@ -157,6 +161,9 @@ export default function Index() {
       </div>
 
       <div className="px-4 py-6 max-w-4xl mx-auto space-y-6">
+        {/* Daily Insight Card */}
+        {isToday(selectedDate) && <DailyInsightCard />}
+        
         {/* Calorie Progress */}
         <CalorieProgress consumed={consumed.calories} goal={goals.daily_calories} />
 
@@ -184,6 +191,9 @@ export default function Index() {
             color="text-foreground"
           />
         </div>
+
+        {/* Health Metrics Widget */}
+        <HealthMetricsWidget />
 
         {/* Water Tracker */}
         <WaterTracker selectedDate={selectedDate} goal={goals.daily_water} />
