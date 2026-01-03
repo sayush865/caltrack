@@ -16,7 +16,7 @@ export default function WaterTracker({ selectedDate, goal = 2000 }: WaterTracker
   const { toast } = useToast();
   const [totalMl, setTotalMl] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
+  const [selectedAmount, setSelectedAmount] = useState(250);
 
   useEffect(() => {
     fetchWaterLogs();
@@ -84,8 +84,6 @@ export default function WaterTracker({ selectedDate, goal = 2000 }: WaterTracker
 
       if (error) throw error;
 
-      setLastAddedId(data.id);
-      
       toast({
         title: `+${amount}ml`,
         description: "Water logged",
@@ -111,6 +109,37 @@ export default function WaterTracker({ selectedDate, goal = 2000 }: WaterTracker
     }
   };
 
+  const removeWater = async (amount: number) => {
+    if (totalMl <= 0) return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('water_logs')
+        .insert({
+          user_id: user.id,
+          amount_ml: -Math.min(amount, totalMl),
+          logged_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: `-${Math.min(amount, totalMl)}ml`,
+        description: "Water removed",
+      });
+    } catch (error: any) {
+      console.error('Error removing water:', error);
+      toast({
+        title: "Failed to remove water",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleUndo = async (id: string) => {
     try {
       await supabase
@@ -122,64 +151,89 @@ export default function WaterTracker({ selectedDate, goal = 2000 }: WaterTracker
         title: "Undone",
         description: "Water entry removed",
       });
-      
-      setLastAddedId(null);
     } catch (error) {
       console.error('Undo error:', error);
     }
   };
 
   const percentage = Math.min((totalMl / goal) * 100, 100);
-  const glasses = Math.floor(totalMl / 250);
 
-  const quickAddOptions = [
-    { label: 'Glass', amount: 250, emoji: '🥛' },
-    { label: 'Bottle', amount: 500, emoji: '🍶' },
-    { label: 'Large', amount: 750, emoji: '🫗' },
+  const amountOptions = [
+    { label: '250ml', value: 250 },
+    { label: '500ml', value: 500 },
+    { label: '1L', value: 1000 },
   ];
 
   if (loading) {
     return (
       <Card className="border border-border bg-card p-4 animate-pulse">
-        <div className="h-20 bg-muted rounded" />
+        <div className="h-24 bg-muted rounded" />
       </Card>
     );
   }
 
   return (
     <Card className="border border-border bg-card p-4 space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
             <Droplets className="w-5 h-5 text-primary" />
           </div>
           <div>
             <h3 className="font-semibold">Hydration</h3>
             <p className="text-xs text-muted-foreground">
-              {glasses} glasses • {totalMl}ml / {goal}ml
+              {totalMl}ml / {goal}ml
             </p>
           </div>
         </div>
-        <div className="text-2xl font-bold">
+        <div className="text-2xl font-bold text-primary">
           {Math.round(percentage)}%
         </div>
       </div>
 
-      <Progress value={percentage} className="h-2" />
+      {/* Progress */}
+      <Progress value={percentage} className="h-2.5" />
 
+      {/* Quantity Selection */}
       <div className="flex gap-2">
-        {quickAddOptions.map((option) => (
+        {amountOptions.map((option) => (
           <Button
-            key={option.amount}
-            variant="outline"
+            key={option.value}
+            variant={selectedAmount === option.value ? "default" : "outline"}
             size="sm"
-            className="flex-1 h-10 gap-1.5"
-            onClick={() => addWater(option.amount)}
+            className="flex-1 h-9"
+            onClick={() => setSelectedAmount(option.value)}
           >
-            <span>{option.emoji}</span>
-            <span className="text-xs">{option.amount}ml</span>
+            {option.label}
           </Button>
         ))}
+      </div>
+
+      {/* Add/Remove Controls */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-12 w-12 rounded-full shrink-0"
+          onClick={() => removeWater(selectedAmount)}
+          disabled={totalMl <= 0}
+        >
+          <Minus className="w-5 h-5" />
+        </Button>
+        
+        <div className="flex-1 text-center">
+          <div className="text-2xl font-bold">{selectedAmount}ml</div>
+          <p className="text-xs text-muted-foreground">selected</p>
+        </div>
+        
+        <Button
+          size="icon"
+          className="h-12 w-12 rounded-full shrink-0"
+          onClick={() => addWater(selectedAmount)}
+        >
+          <Plus className="w-5 h-5" />
+        </Button>
       </div>
     </Card>
   );

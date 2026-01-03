@@ -140,15 +140,34 @@ const Goals = () => {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="water">Daily Water (ml)</Label>
+              <div className="flex gap-2">
+                {[
+                  { label: '2L', value: 2000 },
+                  { label: '2.5L', value: 2500 },
+                  { label: '3L', value: 3000 },
+                ].map((preset) => (
+                  <Button
+                    key={preset.value}
+                    type="button"
+                    variant={goals.daily_water === preset.value ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleInputChange("daily_water", preset.value.toString())}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
               <Input
                 id="water"
                 type="number"
                 value={goals.daily_water}
                 onChange={(e) => handleInputChange("daily_water", e.target.value)}
+                placeholder="Custom amount"
               />
-              <p className="text-xs text-muted-foreground">Recommended: 2000-3000ml per day</p>
+              <p className="text-xs text-muted-foreground">Or enter a custom amount above</p>
             </div>
 
             <Button
