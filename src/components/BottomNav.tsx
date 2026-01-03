@@ -1,4 +1,4 @@
-import { Home, FileText, Plus, Target, User, Camera, Database, MessageSquare } from "lucide-react";
+import { Home, FileText, Plus, Target, User, Camera, Database, MessageSquare, BarChart3, Trophy } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -10,11 +10,11 @@ const BottomNav = () => {
 
   const leftNavItems = [
     { to: "/", icon: Home, label: "Home" },
-    { to: "/daily-log", icon: FileText, label: "Log" },
+    { to: "/weekly-summary", icon: BarChart3, label: "Insights" },
   ];
 
   const rightNavItems = [
-    { to: "/goals", icon: Target, label: "Goals" },
+    { to: "/achievements", icon: Trophy, label: "Awards" },
     { to: "/settings", icon: User, label: "Profile" },
   ];
 

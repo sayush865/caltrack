@@ -18,9 +18,14 @@ import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Pencil } from 'lucide-react';
+import { Trash2, Pencil, ChevronDown } from 'lucide-react';
 import { getFoodImage } from '@/lib/foodImages';
 
 interface FoodLogItemProps {
@@ -31,6 +36,9 @@ interface FoodLogItemProps {
     protein: number;
     carbs: number;
     fat: number;
+    fiber?: number | null;
+    sugar?: number | null;
+    sodium?: number | null;
     image_url: string;
     logged_at: string;
     status?: number;
@@ -46,6 +54,9 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
   const [imgKey, setImgKey] = useState(0);
   const [showUndo, setShowUndo] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [showMicronutrients, setShowMicronutrients] = useState(false);
+
+  const hasMicronutrients = (log.fiber && log.fiber > 0) || (log.sugar && log.sugar > 0) || (log.sodium && log.sodium > 0);
   
   // Prioritize actual captured image (from camera) over predefined food images
   const shouldUseFallback = retryCount >= 2;
@@ -215,6 +226,40 @@ export default function FoodLogItem({ log }: FoodLogItemProps) {
                   <span className="text-muted-foreground">F</span>
                 </div>
               </div>
+
+              {/* Micronutrients expandable section */}
+              {hasMicronutrients && (
+                <Collapsible open={showMicronutrients} onOpenChange={setShowMicronutrients}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground">
+                      <ChevronDown className={`w-3 h-3 mr-1 transition-transform ${showMicronutrients ? 'rotate-180' : ''}`} />
+                      More nutrients
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-2">
+                    <div className="flex gap-3 text-xs flex-wrap bg-muted/50 rounded-md p-2">
+                      {log.fiber && log.fiber > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span className="font-semibold">{log.fiber}g</span>
+                          <span className="text-muted-foreground">Fiber</span>
+                        </div>
+                      )}
+                      {log.sugar && log.sugar > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span className="font-semibold">{log.sugar}g</span>
+                          <span className="text-muted-foreground">Sugar</span>
+                        </div>
+                      )}
+                      {log.sodium && log.sodium > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span className="font-semibold">{log.sodium}mg</span>
+                          <span className="text-muted-foreground">Sodium</span>
+                        </div>
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </CardContent>
           </div>
         </Card>
