@@ -3,5 +3,8 @@ project_id = "misnkzxiahkxmrfinknn"
 [functions.analyze-food]
 verify_jwt = true
 
+[functions.analyze-food-text]
+verify_jwt = true
+
 [functions.delete-account]
 verify_jwt = true

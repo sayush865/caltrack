@@ -1,15 +1,15 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import CameraCapture from '@/components/CameraCapture';
 import NutritionDisplay from '@/components/NutritionDisplay';
 import AnalysisProgress from '@/components/AnalysisProgress';
 import MealTypeSelector from '@/components/MealTypeSelector';
 import PortionSlider from '@/components/PortionSlider';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Send } from 'lucide-react';
 
 interface NutritionData {
   food_name: string;
@@ -32,20 +32,27 @@ interface AnalysisData {
   nutritional_reasoning: string;
 }
 
-export default function Camera() {
+export default function TextFood() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [description, setDescription] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [mealType, setMealType] = useState<string>('');
   const [portionMultiplier, setPortionMultiplier] = useState(1);
-  
-  // Cache the image for reanalysis
-  const cachedImageRef = useRef<string | null>(null);
 
-  const analyzeImage = async (imageData: string) => {
+  const analyzeDescription = async () => {
+    if (!description.trim()) {
+      toast({
+        title: "Enter a description",
+        description: "Please describe what you ate",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setAnalyzing(true);
     setShowConfirmation(false);
 
@@ -62,8 +69,8 @@ export default function Camera() {
         return;
       }
       
-      const { data, error } = await supabase.functions.invoke('analyze-food', {
-        body: { imageBase64: imageData }
+      const { data, error } = await supabase.functions.invoke('analyze-food-text', {
+        body: { description: description.trim() }
       });
 
       if (error) throw error;
@@ -80,18 +87,12 @@ export default function Camera() {
       console.error('Analysis error:', error);
       toast({
         title: "Analysis Failed",
-        description: error.message || "Failed to analyze food image. Please try again.",
+        description: error.message || "Failed to analyze food description. Please try again.",
         variant: "destructive",
       });
     } finally {
       setAnalyzing(false);
     }
-  };
-
-  const handleCapture = async (imageData: string) => {
-    // Cache the image for potential reanalysis
-    cachedImageRef.current = imageData;
-    await analyzeImage(imageData);
   };
 
   const getAdjustedNutrition = (): NutritionData | null => {
@@ -120,37 +121,6 @@ export default function Camera() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Upload image to storage if available
-      let imageUrl = null;
-      if (cachedImageRef.current) {
-        const fileName = `${user.id}/${Date.now()}.jpg`;
-        const base64Data = cachedImageRef.current.split(',')[1];
-        const binaryData = atob(base64Data);
-        const bytes = new Uint8Array(binaryData.length);
-        for (let i = 0; i < binaryData.length; i++) {
-          bytes[i] = binaryData.charCodeAt(i);
-        }
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('food-images')
-          .upload(fileName, bytes, {
-            contentType: 'image/jpeg',
-            upsert: false
-          });
-
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw uploadError;
-        }
-
-        if (uploadData) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('food-images')
-            .getPublicUrl(uploadData.path);
-          imageUrl = publicUrl;
-        }
-      }
-
       const { error: insertError } = await supabase
         .from('food_logs')
         .insert({
@@ -167,7 +137,6 @@ export default function Camera() {
           vitamin_c: adjustedData.vitamin_c,
           calcium: adjustedData.calcium,
           iron: adjustedData.iron,
-          image_url: imageUrl,
           meal_type: mealType || null,
           logged_at: new Date().toISOString(),
           status: 1
@@ -175,10 +144,9 @@ export default function Camera() {
 
       if (insertError) throw insertError;
 
-      const adjustedData2 = getAdjustedNutrition();
       toast({
         title: "Success!",
-        description: `${adjustedData2?.food_name} logged successfully`,
+        description: `${adjustedData.food_name} logged successfully`,
       });
 
       navigate('/');
@@ -193,22 +161,23 @@ export default function Camera() {
   };
 
   const handleReanalyze = () => {
-    // Use cached image instead of re-uploading
-    if (cachedImageRef.current) {
-      analyzeImage(cachedImageRef.current);
-    }
+    setShowConfirmation(false);
+    setNutritionData(null);
+    setAnalysisData(null);
   };
 
   const handleCancel = () => {
     setNutritionData(null);
     setAnalysisData(null);
-    cachedImageRef.current = null;
     setShowConfirmation(false);
+    setDescription('');
   };
+
+  const adjustedNutrition = getAdjustedNutrition();
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <div className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
+      <div className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center gap-4 border-b border-border pb-6">
           <Button
             variant="ghost"
@@ -219,62 +188,108 @@ export default function Camera() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Log Meal</h1>
+            <h1 className="text-3xl font-bold">Type Your Meal</h1>
             <p className="text-sm text-muted-foreground">
-              Snap a photo to analyze nutrition
+              Describe what you ate for nutrition analysis
             </p>
           </div>
         </div>
 
         <AnalysisProgress isAnalyzing={analyzing} />
 
-        {showConfirmation && nutritionData && (
-          <Card className="border border-border bg-card p-6 space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-4">Review Analysis</h2>
-              <NutritionDisplay data={getAdjustedNutrition()!} analysis={analysisData || undefined} />
-            </div>
+        {showConfirmation && adjustedNutrition && (
+          <div className="space-y-4">
+            <Card className="border border-border bg-card p-6 space-y-6">
+              <div>
+                <h2 className="text-2xl font-semibold mb-4">Review Analysis</h2>
+                <NutritionDisplay data={adjustedNutrition} analysis={analysisData || undefined} />
+              </div>
 
-            <PortionSlider 
-              value={portionMultiplier} 
-              onChange={setPortionMultiplier}
-            />
+              <PortionSlider 
+                value={portionMultiplier} 
+                onChange={setPortionMultiplier}
+              />
 
-            <MealTypeSelector 
-              value={mealType} 
-              onChange={setMealType}
-            />
+              <MealTypeSelector 
+                value={mealType} 
+                onChange={setMealType}
+              />
 
-            <div className="flex gap-3 pt-4 border-t">
-              <Button
-                onClick={handleSaveToLog}
-                className="flex-1"
-                size="lg"
-              >
-                Save to Log
-              </Button>
-              <Button
-                onClick={handleReanalyze}
-                variant="outline"
-                className="flex-1"
-                size="lg"
-              >
-                Re-analyze
-              </Button>
-              <Button
-                onClick={handleCancel}
-                variant="ghost"
-                size="lg"
-              >
-                Cancel
-              </Button>
-            </div>
-          </Card>
+              <div className="flex gap-3 pt-4 border-t">
+                <Button
+                  onClick={handleSaveToLog}
+                  className="flex-1"
+                  size="lg"
+                >
+                  Save to Log
+                </Button>
+                <Button
+                  onClick={handleReanalyze}
+                  variant="outline"
+                  className="flex-1"
+                  size="lg"
+                >
+                  Edit & Re-analyze
+                </Button>
+                <Button
+                  onClick={handleCancel}
+                  variant="ghost"
+                  size="lg"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </Card>
+          </div>
         )}
 
         {!analyzing && !showConfirmation && (
-          <Card className="border border-border bg-card">
-            <CameraCapture onCapture={handleCapture} disabled={analyzing} />
+          <Card className="border border-border bg-card p-6 space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">What did you eat?</label>
+              <Textarea
+                placeholder="e.g., 2 scrambled eggs with toast and butter, a glass of orange juice"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="min-h-[120px] resize-none text-base"
+                maxLength={1000}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {description.length}/1000 characters
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Examples:</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "Chicken salad with olive oil",
+                  "2 eggs, toast, coffee",
+                  "Large pepperoni pizza slice",
+                  "Grilled salmon with rice"
+                ].map((example) => (
+                  <Button
+                    key={example}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-8"
+                    onClick={() => setDescription(example)}
+                  >
+                    {example}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <Button 
+              onClick={analyzeDescription} 
+              className="w-full" 
+              size="lg"
+              disabled={!description.trim()}
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Analyze Nutrition
+            </Button>
           </Card>
         )}
       </div>

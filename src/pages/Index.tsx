@@ -4,11 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { History } from 'lucide-react';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay, isToday } from 'date-fns';
 import CalorieProgress from '@/components/CalorieProgress';
 import MacroCard from '@/components/MacroCard';
 import WeekCalendar from '@/components/WeekCalendar';
 import FoodLogItem from '@/components/FoodLogItem';
+import QuickAddWidget from '@/components/QuickAddWidget';
 
 interface UserGoals {
   daily_calories: number;
@@ -179,6 +180,9 @@ export default function Index() {
             color="text-foreground"
           />
         </div>
+
+        {/* Quick Add - only show for today */}
+        {isToday(selectedDate) && <QuickAddWidget />}
 
         {/* Recent Meals */}
         <div className="space-y-4">
