@@ -16,6 +16,7 @@ const Goals = () => {
     daily_protein: 150,
     daily_carbs: 200,
     daily_fat: 65,
+    daily_fiber: 25,
     daily_water: 2000,
     current_weight: null as number | null,
     goal_weight: null as number | null,
@@ -51,6 +52,7 @@ const Goals = () => {
           daily_protein: goalsRes.data.daily_protein || 150,
           daily_carbs: goalsRes.data.daily_carbs || 200,
           daily_fat: goalsRes.data.daily_fat || 65,
+          daily_fiber: goalsRes.data.daily_fiber || 25,
           daily_water: goalsRes.data.daily_water || 2000,
           current_weight: goalsRes.data.current_weight ? Number(goalsRes.data.current_weight) : null,
           goal_weight: goalsRes.data.goal_weight ? Number(goalsRes.data.goal_weight) : null,
@@ -79,6 +81,7 @@ const Goals = () => {
           daily_protein: goals.daily_protein,
           daily_carbs: goals.daily_carbs,
           daily_fat: goals.daily_fat,
+          daily_fiber: goals.daily_fiber,
           daily_water: goals.daily_water,
           updated_at: new Date().toISOString(),
         });
@@ -165,6 +168,16 @@ const Goals = () => {
                 type="number"
                 value={goals.daily_fat}
                 onChange={(e) => handleInputChange("daily_fat", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fiber">Daily Fiber (g)</Label>
+              <Input
+                id="fiber"
+                type="number"
+                value={goals.daily_fiber}
+                onChange={(e) => handleInputChange("daily_fiber", e.target.value)}
               />
             </div>
 

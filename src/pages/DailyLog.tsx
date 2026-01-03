@@ -26,7 +26,8 @@ export default function DailyLog() {
     calories: 0,
     protein: 0,
     carbs: 0,
-    fat: 0
+    fat: 0,
+    fiber: 0
   });
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     breakfast: true,
@@ -85,8 +86,9 @@ export default function DailyLog() {
         calories: acc.calories + (Number(log.calories) || 0),
         protein: acc.protein + (Number(log.protein) || 0),
         carbs: acc.carbs + (Number(log.carbs) || 0),
-        fat: acc.fat + (Number(log.fat) || 0)
-      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        fat: acc.fat + (Number(log.fat) || 0),
+        fiber: acc.fiber + (Number(log.fiber) || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
 
       setDailyTotals(totals);
     } catch (error) {
@@ -179,7 +181,7 @@ export default function DailyLog() {
           <CardHeader>
             <CardTitle className="text-xl">{isToday ? "Today's" : format(selectedDate, 'MMM d')} Nutrition</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <CardContent className="grid grid-cols-2 md:grid-cols-5 gap-6">
             <div className="space-y-1">
               <div className="text-3xl font-bold">{Math.round(dailyTotals.calories)}</div>
               <div className="text-sm text-muted-foreground">Calories</div>
@@ -195,6 +197,10 @@ export default function DailyLog() {
             <div className="space-y-1">
               <div className="text-3xl font-bold">{Math.round(dailyTotals.fat)}g</div>
               <div className="text-sm text-muted-foreground">Fat</div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-3xl font-bold">{Math.round(dailyTotals.fiber)}g</div>
+              <div className="text-sm text-muted-foreground">Fiber</div>
             </div>
           </CardContent>
         </Card>
