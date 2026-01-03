@@ -7,6 +7,7 @@ import { ArrowLeft, CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, Chevro
 import FoodLogItem from '@/components/FoodLogItem';
 import { format, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import WaterHistory from '@/components/WaterHistory';
 
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Breakfast', emoji: '🌅' },
@@ -264,6 +265,12 @@ export default function DailyLog() {
               })}
             </div>
           )}
+        </div>
+
+        {/* Water Intake History */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Hydration</h2>
+          <WaterHistory selectedDate={selectedDate} />
         </div>
       </div>
     </div>
