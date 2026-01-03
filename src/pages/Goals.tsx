@@ -5,16 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { WeightProgressChart } from "@/components/WeightProgressChart";
 
 const Goals = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [unitsPreference, setUnitsPreference] = useState<'imperial' | 'metric'>('imperial');
   const [goals, setGoals] = useState({
     daily_calories: 2000,
     daily_protein: 150,
     daily_carbs: 200,
     daily_fat: 65,
     daily_water: 2000,
+    current_weight: null as number | null,
+    goal_weight: null as number | null,
   });
 
   useEffect(() => {
@@ -26,22 +30,35 @@ const Goals = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from("user_goals")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const [goalsRes, profileRes] = await Promise.all([
+        supabase
+          .from("user_goals")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("units_preference")
+          .eq("id", user.id)
+          .maybeSingle(),
+      ]);
 
-      if (error) throw error;
+      if (goalsRes.error) throw goalsRes.error;
 
-      if (data) {
+      if (goalsRes.data) {
         setGoals({
-          daily_calories: data.daily_calories || 2000,
-          daily_protein: data.daily_protein || 150,
-          daily_carbs: data.daily_carbs || 200,
-          daily_fat: data.daily_fat || 65,
-          daily_water: data.daily_water || 2000,
+          daily_calories: goalsRes.data.daily_calories || 2000,
+          daily_protein: goalsRes.data.daily_protein || 150,
+          daily_carbs: goalsRes.data.daily_carbs || 200,
+          daily_fat: goalsRes.data.daily_fat || 65,
+          daily_water: goalsRes.data.daily_water || 2000,
+          current_weight: goalsRes.data.current_weight ? Number(goalsRes.data.current_weight) : null,
+          goal_weight: goalsRes.data.goal_weight ? Number(goalsRes.data.goal_weight) : null,
         });
+      }
+
+      if (profileRes.data?.units_preference) {
+        setUnitsPreference(profileRes.data.units_preference as 'imperial' | 'metric');
       }
     } catch (error) {
       console.error("Error fetching goals:", error);
@@ -58,7 +75,11 @@ const Goals = () => {
         .from("user_goals")
         .upsert({
           user_id: user.id,
-          ...goals,
+          daily_calories: goals.daily_calories,
+          daily_protein: goals.daily_protein,
+          daily_carbs: goals.daily_carbs,
+          daily_fat: goals.daily_fat,
+          daily_water: goals.daily_water,
           updated_at: new Date().toISOString(),
         });
 
@@ -89,8 +110,15 @@ const Goals = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <div className="container max-w-2xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">Nutrition Goals</h1>
+      <div className="container max-w-2xl mx-auto px-4 py-8 space-y-6">
+        <h1 className="text-3xl font-bold">Nutrition Goals</h1>
+
+        {/* Weight Progress Chart */}
+        <WeightProgressChart 
+          unitsPreference={unitsPreference}
+          goalWeight={goals.goal_weight}
+          currentWeight={goals.current_weight}
+        />
 
         <Card>
           <CardHeader>
