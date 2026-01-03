@@ -18,6 +18,7 @@ const Onboarding = () => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Form data
   const [name, setName] = useState("");
@@ -120,7 +121,11 @@ const Onboarding = () => {
         description: "Your personalized goals have been set up.",
       });
 
-      navigate('/');
+      // Show success screen for 2 seconds before navigating
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -165,6 +170,27 @@ const Onboarding = () => {
     { value: 'maintain', label: 'Maintain Weight', icon: '⚖️', desc: 'Maintain current weight' },
     { value: 'gain', label: 'Gain Weight', icon: '📈', desc: '15% calorie surplus' },
   ];
+
+  // Success screen
+  if (showSuccess) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 animate-fade-in">
+        <div className="text-center space-y-6">
+          <div className="w-24 h-24 mx-auto bg-primary/10 rounded-full flex items-center justify-center animate-scale-in">
+            <span className="text-5xl">🎉</span>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold">You're All Set!</h1>
+            <p className="text-muted-foreground">Your personalized nutrition plan is ready</p>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+            <span>Taking you to your dashboard...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
