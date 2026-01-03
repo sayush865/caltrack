@@ -2,8 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -19,58 +19,93 @@ import BottomNav from "./components/BottomNav";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children, requireOnboarding = true }: { children: React.ReactNode; requireOnboarding?: boolean }) {
+function ProtectedRoute({
+  children,
+  requireOnboarding = true,
+}: {
+  children: React.ReactNode;
+  requireOnboarding?: boolean;
+}) {
+  const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchOnboardingStatus = useCallback(async (userId: string) => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", userId)
+      .single();
+
+    setOnboardingComplete(!!profile?.onboarding_completed);
+  }, []);
+
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // Listener MUST be synchronous; defer any backend calls.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setIsAuthenticated(!!session);
-      
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarding_completed')
-          .eq('id', session.user.id)
-          .single();
-        
-        setOnboardingComplete(profile?.onboarding_completed || false);
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const authed = !!session;
+      setIsAuthenticated(authed);
+
+      if (!session?.user) {
+        setOnboardingComplete(false);
+        setIsLoading(false);
+        return;
       }
-      
-      setIsLoading(false);
+
+      setIsLoading(true);
+      setTimeout(() => {
+        fetchOnboardingStatus(session.user.id)
+          .catch(() => setOnboardingComplete(false))
+          .finally(() => setIsLoading(false));
+      }, 0);
     });
 
-    // THEN check for existing session with a small delay to ensure storage is ready
     const checkSession = async () => {
       // Small timeout to allow localStorage to be fully ready after hot reload
-      await new Promise(resolve => setTimeout(resolve, 100));
-      const { data: { session } } = await supabase.auth.getSession();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       setIsAuthenticated(!!session);
-      
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarding_completed')
-          .eq('id', session.user.id)
-          .single();
-        
-        setOnboardingComplete(profile?.onboarding_completed || false);
+
+      if (!session?.user) {
+        setOnboardingComplete(false);
+        setIsLoading(false);
+        return;
       }
-      
+
+      setIsLoading(true);
+      await fetchOnboardingStatus(session.user.id).catch(() => setOnboardingComplete(false));
       setIsLoading(false);
     };
-    
+
     checkSession();
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchOnboardingStatus]);
+
+  // Re-check profile when navigating, so finishing onboarding immediately reflects on protected routes.
+  useEffect(() => {
+    const refresh = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user) {
+        await fetchOnboardingStatus(session.user.id).catch(() => setOnboardingComplete(false));
+      }
+    };
+
+    refresh();
+  }, [location.pathname, fetchOnboardingStatus]);
 
   if (isLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>
+    );
   }
 
   if (!isAuthenticated) {
