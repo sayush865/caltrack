@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,8 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import CameraCapture from '@/components/CameraCapture';
 import NutritionDisplay from '@/components/NutritionDisplay';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import AnalysisProgress from '@/components/AnalysisProgress';
+import { ArrowLeft } from 'lucide-react';
 
 interface NutritionData {
   food_name: string;
@@ -35,11 +36,12 @@ export default function Camera() {
   const [analyzing, setAnalyzing] = useState(false);
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  
+  // Cache the image for reanalysis
+  const cachedImageRef = useRef<string | null>(null);
 
-  const handleCapture = async (imageData: string) => {
-    setCapturedImage(imageData);
+  const analyzeImage = async (imageData: string) => {
     setAnalyzing(true);
     setShowConfirmation(false);
 
@@ -81,6 +83,12 @@ export default function Camera() {
     }
   };
 
+  const handleCapture = async (imageData: string) => {
+    // Cache the image for potential reanalysis
+    cachedImageRef.current = imageData;
+    await analyzeImage(imageData);
+  };
+
   const handleSaveToLog = async () => {
     if (!nutritionData) return;
 
@@ -88,15 +96,11 @@ export default function Camera() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      console.log('Saving food log for user:', user.id);
-      console.log('Nutrition data:', nutritionData);
-
       // Upload image to storage if available
       let imageUrl = null;
-      if (capturedImage) {
-        console.log('Uploading image to storage...');
+      if (cachedImageRef.current) {
         const fileName = `${user.id}/${Date.now()}.jpg`;
-        const base64Data = capturedImage.split(',')[1];
+        const base64Data = cachedImageRef.current.split(',')[1];
         const binaryData = atob(base64Data);
         const bytes = new Uint8Array(binaryData.length);
         for (let i = 0; i < binaryData.length; i++) {
@@ -120,13 +124,10 @@ export default function Camera() {
             .from('food-images')
             .getPublicUrl(uploadData.path);
           imageUrl = publicUrl;
-          console.log('Image uploaded:', imageUrl);
         }
       }
 
-      // Save to food_logs
-      console.log('Inserting into food_logs...');
-      const { data: insertData, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('food_logs')
         .insert({
           user_id: user.id,
@@ -145,16 +146,9 @@ export default function Camera() {
           image_url: imageUrl,
           logged_at: new Date().toISOString(),
           status: 1
-        })
-        .select()
-        .single();
+        });
 
-      if (insertError) {
-        console.error('Insert error:', insertError);
-        throw insertError;
-      }
-
-      console.log('Food log saved successfully:', insertData);
+      if (insertError) throw insertError;
 
       toast({
         title: "Success!",
@@ -173,15 +167,16 @@ export default function Camera() {
   };
 
   const handleReanalyze = () => {
-    if (capturedImage) {
-      handleCapture(capturedImage);
+    // Use cached image instead of re-uploading
+    if (cachedImageRef.current) {
+      analyzeImage(cachedImageRef.current);
     }
   };
 
   const handleCancel = () => {
     setNutritionData(null);
     setAnalysisData(null);
-    setCapturedImage(null);
+    cachedImageRef.current = null;
     setShowConfirmation(false);
   };
 
@@ -205,15 +200,7 @@ export default function Camera() {
           </div>
         </div>
 
-        {analyzing && (
-          <Card className="border border-border bg-card p-12 text-center">
-            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
-            <p className="text-lg font-medium">Analyzing your food...</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              This may take a few seconds
-            </p>
-          </Card>
-        )}
+        <AnalysisProgress isAnalyzing={analyzing} />
 
         {showConfirmation && nutritionData && (
           <Card className="border border-border bg-card p-6 space-y-6">

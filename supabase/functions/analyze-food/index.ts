@@ -12,8 +12,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
-    // Extract userId from authenticated JWT token instead of trusting client
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -26,7 +27,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify JWT and get user
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
@@ -37,7 +37,7 @@ serve(async (req) => {
       );
     }
 
-    const userId = user.id;
+    console.log(`Auth completed in ${Date.now() - startTime}ms`);
 
     const { imageBase64 } = await req.json();
     
@@ -45,36 +45,30 @@ serve(async (req) => {
       throw new Error('Missing required field: imageBase64');
     }
 
-    // Validate imageBase64 format and size
     if (!imageBase64.startsWith('data:image/')) {
       throw new Error('Invalid image format - must be a data URL');
     }
 
-    // Extract base64 data and validate size (10MB limit)
     const base64Data = imageBase64.split(',')[1];
     if (!base64Data) {
       throw new Error('Invalid image data format');
     }
 
     const estimatedSizeBytes = (base64Data.length * 3) / 4;
-    const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+    const maxSizeBytes = 10 * 1024 * 1024;
     if (estimatedSizeBytes > maxSizeBytes) {
       throw new Error('Image size exceeds 10MB limit');
     }
 
-    // Validate base64 format
-    try {
-      atob(base64Data.substring(0, 100)); // Test decode a small portion
-    } catch {
-      throw new Error('Invalid base64 encoding');
-    }
+    console.log(`Image size: ${Math.round(estimatedSizeBytes / 1024)}KB`);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('Analyzing food image with AI...');
+    const aiStartTime = Date.now();
+    console.log('Starting AI analysis with openai/gpt-5-mini...');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -83,54 +77,18 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'openai/gpt-5-mini',
         messages: [
           {
             role: 'system',
-            content: `You are a professional nutritionist and food scientist with expertise in visual portion estimation and nutritional analysis. Your goal is to provide accurate, consistent nutritional data from food images.
+            content: `You are a nutritionist analyzing food images. Identify foods, estimate portions using plate/utensil references, and calculate accurate nutrition.
 
-ANALYSIS PROTOCOL:
-
-1. VISUAL IDENTIFICATION (Be Specific):
-   - Identify ALL food items, ingredients, and components visible
-   - Describe cooking methods (fried, grilled, baked, raw, steamed, etc.)
-   - Note preparation details (sauces, oils, seasonings, toppings)
-   - Identify serving vessels for size reference (plate diameter, bowl size, container type)
-
-2. PORTION ESTIMATION (Use Multiple References):
-   - Compare to standard plate size (10-12 inches typical dinner plate)
-   - Use utensils as reference (fork ~7 inches, spoon ~6 inches)
-   - Apply common portion references:
-     * Fist = ~1 cup
-     * Palm (without fingers) = 3-4 oz protein
-     * Thumb = 1 oz cheese or 1 tbsp
-     * Handful = 1-2 oz snacks
-   - Estimate weight in grams and volume in cups/tablespoons
-   - Account for food density (rice vs lettuce have different weights per cup)
-
-3. NUTRITIONAL CALCULATION (Double-Check Math):
-   - Calculate macros using USDA database standards
-   - Include ALL components: base food + oils + sauces + toppings + garnishes
-   - Cooking method adjustments:
-     * Fried foods: add 5-10g fat per serving for oil absorption
-     * Grilled/baked: minimal added fat unless visible
-     * Sauces/dressings: estimate 1-2 tbsp = 10-20g fat typically
-   - Verify: Total calories = (Protein × 4) + (Carbs × 4) + (Fat × 9)
-   - Cross-check if values match typical servings of this food type
-
-4. CONSISTENCY CHECKS:
-   - Does the portion size match what's typically served?
-   - Are macros proportional to the food type? (e.g., pizza should be higher carbs/fat, chicken breast higher protein)
-   - Do micronutrients align with ingredients? (vegetables = vitamins, dairy = calcium)
-   - If values seem off, re-evaluate portion size or ingredients
-
-5. OUTPUT FORMAT:
-Return ONLY valid JSON (no markdown, no code blocks, no explanations outside JSON):
+Return ONLY valid JSON:
 {
-  "visual_analysis": "Comprehensive description: all foods identified, cooking methods, visible ingredients, serving vessel details for reference",
-  "portion_estimation": "Detailed size estimates with multiple reference comparisons (plate coverage, utensil comparison, standard portions) and weight/volume in grams and cups",
-  "nutritional_reasoning": "Step-by-step: initial portion × base nutrition + cooking adjustments + sauce/topping additions = final values. Include verification that calories match macro distribution",
-  "food_name": "Specific descriptive name (e.g., 'Grilled Chicken Caesar Salad' not just 'Salad')",
+  "visual_analysis": "Foods identified, cooking methods, ingredients",
+  "portion_estimation": "Size estimates with references (plate coverage, grams, cups)",
+  "nutritional_reasoning": "Calculation steps: portion × base nutrition + adjustments",
+  "food_name": "Descriptive name",
   "calories": number,
   "protein": number,
   "carbs": number,
@@ -144,19 +102,14 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations outside JSO
   "iron": number
 }
 
-ACCURACY PRINCIPLES:
-- Be conservative with portion sizes when uncertain (slightly underestimate rather than overestimate)
-- Account for hidden ingredients (oils in cooking, butter on bread, dressings)
-- Use consistent reference standards across all analyses
-- Provide specific numbers, not ranges
-- Ensure all nutritional values are realistic and properly calculated`
+Be conservative with portions. Account for oils, sauces, toppings. Verify: calories ≈ (protein×4)+(carbs×4)+(fat×9).`
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Analyze this food image following the multi-step process. Be thorough in portion estimation and verify your calculations for accuracy before providing the final nutrition data.'
+                text: 'Analyze this food image. Identify items, estimate portions, calculate nutrition.'
               },
               {
                 type: 'image_url',
@@ -169,6 +122,8 @@ ACCURACY PRINCIPLES:
         ]
       }),
     });
+
+    console.log(`AI response received in ${Date.now() - aiStartTime}ms`);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -194,15 +149,11 @@ ACCURACY PRINCIPLES:
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
     
-    console.log('AI response received');
-    
     const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const nutritionData = JSON.parse(cleanContent);
     
-    console.log('AI analysis complete');
+    console.log(`Total processing time: ${Date.now() - startTime}ms`);
 
-    // Return analysis without saving to database
-    // The frontend will handle saving after user confirms
     return new Response(
       JSON.stringify({
         nutritionData: {

@@ -1,5 +1,5 @@
-const MAX_DIMENSION = 2048;
-const JPEG_QUALITY = 0.95;
+const MAX_DIMENSION = 1024;
+const JPEG_QUALITY = 0.80;
 
 interface ProcessImageOptions {
   maxDimension?: number;
