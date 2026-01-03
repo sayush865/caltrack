@@ -14,6 +14,7 @@ const Goals = () => {
     daily_protein: 150,
     daily_carbs: 200,
     daily_fat: 65,
+    daily_water: 2000,
   });
 
   useEffect(() => {
@@ -39,6 +40,7 @@ const Goals = () => {
           daily_protein: data.daily_protein || 150,
           daily_carbs: data.daily_carbs || 200,
           daily_fat: data.daily_fat || 65,
+          daily_water: data.daily_water || 2000,
         });
       }
     } catch (error) {
@@ -136,6 +138,17 @@ const Goals = () => {
                 value={goals.daily_fat}
                 onChange={(e) => handleInputChange("daily_fat", e.target.value)}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="water">Daily Water (ml)</Label>
+              <Input
+                id="water"
+                type="number"
+                value={goals.daily_water}
+                onChange={(e) => handleInputChange("daily_water", e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Recommended: 2000-3000ml per day</p>
             </div>
 
             <Button
