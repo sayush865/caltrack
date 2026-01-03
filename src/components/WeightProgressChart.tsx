@@ -3,6 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { format, addDays, differenceInDays } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface WeightLog {
   weight: number;
@@ -18,10 +22,41 @@ interface WeightProgressChartProps {
 export const WeightProgressChart = ({ unitsPreference, goalWeight, currentWeight }: WeightProgressChartProps) => {
   const [weightData, setWeightData] = useState<WeightLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newWeight, setNewWeight] = useState("");
+  const [isLogging, setIsLogging] = useState(false);
 
   useEffect(() => {
     fetchWeightHistory();
   }, []);
+
+  const handleLogWeight = async () => {
+    const weightValue = parseFloat(newWeight);
+    if (isNaN(weightValue) || weightValue <= 0) {
+      toast({ title: "Invalid weight", description: "Please enter a valid weight", variant: "destructive" });
+      return;
+    }
+
+    setIsLogging(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from('weight_logs')
+        .insert({ user_id: user.id, weight: weightValue });
+
+      if (error) throw error;
+
+      toast({ title: "Weight logged!", description: `${weightValue} ${unitsPreference === 'imperial' ? 'lbs' : 'kg'} recorded` });
+      setNewWeight("");
+      fetchWeightHistory();
+    } catch (error) {
+      console.error('Error logging weight:', error);
+      toast({ title: "Error", description: "Failed to log weight", variant: "destructive" });
+    } finally {
+      setIsLogging(false);
+    }
+  };
 
   const fetchWeightHistory = async () => {
     try {
@@ -87,6 +122,24 @@ export const WeightProgressChart = ({ unitsPreference, goalWeight, currentWeight
 
   const unit = unitsPreference === 'imperial' ? 'lbs' : 'kg';
 
+  const WeightLogForm = () => (
+    <div className="flex gap-2 mb-4">
+      <Input
+        type="number"
+        placeholder={`Weight (${unit})`}
+        value={newWeight}
+        onChange={(e) => setNewWeight(e.target.value)}
+        className="flex-1"
+        step="0.1"
+        min="0"
+      />
+      <Button onClick={handleLogWeight} disabled={isLogging} size="sm">
+        <Plus className="h-4 w-4 mr-1" />
+        Log
+      </Button>
+    </div>
+  );
+
   if (loading) {
     return (
       <Card>
@@ -94,6 +147,7 @@ export const WeightProgressChart = ({ unitsPreference, goalWeight, currentWeight
           <CardTitle className="text-base">Weight Progress</CardTitle>
         </CardHeader>
         <CardContent>
+          <WeightLogForm />
           <div className="h-[200px] flex items-center justify-center text-muted-foreground">
             Loading...
           </div>
@@ -109,9 +163,10 @@ export const WeightProgressChart = ({ unitsPreference, goalWeight, currentWeight
           <CardTitle className="text-base">Weight Progress</CardTitle>
         </CardHeader>
         <CardContent>
+          <WeightLogForm />
           <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground text-center px-4">
             <p>No weight data logged yet</p>
-            <p className="text-xs mt-1">Log your weight in the Profile section to see your progress</p>
+            <p className="text-xs mt-1">Log your first weight above to start tracking</p>
           </div>
         </CardContent>
       </Card>
@@ -149,6 +204,7 @@ export const WeightProgressChart = ({ unitsPreference, goalWeight, currentWeight
         )}
       </CardHeader>
       <CardContent>
+        <WeightLogForm />
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
