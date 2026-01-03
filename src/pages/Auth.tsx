@@ -7,9 +7,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import caltrackLogo from "@/assets/caltrack-logo.png";
 import { authSignUpSchema, authSignInSchema } from '@/lib/validation';
+
+// Rate limiting constants
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+const STORAGE_KEY = 'login_attempts';
+
+interface LoginAttempts {
+  timestamps: number[];
+  lockoutUntil: number | null;
+}
+
+const getLoginAttempts = (): LoginAttempts => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch {}
+  return { timestamps: [], lockoutUntil: null };
+};
+
+const saveLoginAttempts = (attempts: LoginAttempts) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(attempts));
+};
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -22,7 +46,26 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [usernameError, setUsernameError] = useState('');
   const [lastUsernameCheck, setLastUsernameCheck] = useState(0);
-  const USERNAME_CHECK_DELAY = 2000; // 2 second delay between checks
+  const [lockoutTime, setLockoutTime] = useState<number | null>(null);
+  const USERNAME_CHECK_DELAY = 2000;
+
+  // Check lockout status on mount and update countdown
+  useEffect(() => {
+    const checkLockout = () => {
+      const attempts = getLoginAttempts();
+      if (attempts.lockoutUntil && attempts.lockoutUntil > Date.now()) {
+        setLockoutTime(attempts.lockoutUntil);
+      } else if (attempts.lockoutUntil) {
+        // Lockout expired, clear it
+        saveLoginAttempts({ timestamps: [], lockoutUntil: null });
+        setLockoutTime(null);
+      }
+    };
+
+    checkLockout();
+    const interval = setInterval(checkLockout, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -48,24 +91,58 @@ export default function Auth() {
       return;
     }
 
-    // Rate limiting: prevent rapid username enumeration
     const now = Date.now();
     if (now - lastUsernameCheck < USERNAME_CHECK_DELAY) {
       return;
     }
     setLastUsernameCheck(now);
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('username', usernameToCheck)
-      .maybeSingle();
+    // Use secure RPC function for case-insensitive check
+    const { data, error } = await supabase.rpc('check_username_exists', {
+      lookup_username: usernameToCheck
+    });
 
-    if (data) {
+    if (!error && data === true) {
       setUsernameError('Username already taken. Please try a different one.');
     } else {
       setUsernameError('');
     }
+  };
+
+  const recordFailedAttempt = () => {
+    const attempts = getLoginAttempts();
+    const now = Date.now();
+    
+    // Filter out old attempts
+    const recentAttempts = attempts.timestamps.filter(
+      t => now - t < LOCKOUT_DURATION
+    );
+    recentAttempts.push(now);
+
+    if (recentAttempts.length >= MAX_LOGIN_ATTEMPTS) {
+      const lockoutUntil = now + LOCKOUT_DURATION;
+      saveLoginAttempts({ timestamps: recentAttempts, lockoutUntil });
+      setLockoutTime(lockoutUntil);
+    } else {
+      saveLoginAttempts({ timestamps: recentAttempts, lockoutUntil: null });
+    }
+  };
+
+  const clearLoginAttempts = () => {
+    saveLoginAttempts({ timestamps: [], lockoutUntil: null });
+    setLockoutTime(null);
+  };
+
+  const isLockedOut = () => {
+    return lockoutTime !== null && lockoutTime > Date.now();
+  };
+
+  const getRemainingLockoutTime = () => {
+    if (!lockoutTime) return '';
+    const remaining = Math.max(0, lockoutTime - Date.now());
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -83,7 +160,6 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      // Validate inputs
       const validationResult = authSignUpSchema.safeParse({
         username,
         email,
@@ -131,10 +207,19 @@ export default function Auth() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isLockedOut()) {
+      toast({
+        title: 'Too many attempts',
+        description: `Please wait ${getRemainingLockoutTime()} before trying again.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Validate inputs
       const validationResult = authSignInSchema.safeParse({
         identifier,
         password,
@@ -147,19 +232,18 @@ export default function Auth() {
 
       let loginEmail = validationResult.data.identifier;
 
-      // Check if identifier is a username (no @ symbol)
+      // Check if identifier is a username (no @ symbol) - use case-insensitive RPC
       if (!validationResult.data.identifier.includes('@')) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('username', validationResult.data.identifier)
-          .maybeSingle();
+        const { data: email, error } = await supabase.rpc('get_email_by_username', {
+          lookup_username: validationResult.data.identifier
+        });
 
-        if (error || !data) {
+        if (error || !email) {
+          recordFailedAttempt();
           throw new Error('Invalid username or password');
         }
 
-        loginEmail = data.email;
+        loginEmail = email;
       }
 
       const { error } = await supabase.auth.signInWithPassword({
@@ -167,7 +251,13 @@ export default function Auth() {
         password: validationResult.data.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        recordFailedAttempt();
+        throw error;
+      }
+
+      // Clear attempts on successful login
+      clearLoginAttempts();
 
       toast({
         title: 'Welcome back!',
@@ -195,6 +285,15 @@ export default function Auth() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {isLockedOut() && (
+            <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-destructive">Too many failed attempts</p>
+                <p className="text-sm text-muted-foreground">Try again in {getRemainingLockoutTime()}</p>
+              </div>
+            </div>
+          )}
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-muted h-12">
               <TabsTrigger value="signin" className="text-base">Sign In</TabsTrigger>
@@ -212,6 +311,7 @@ export default function Auth() {
                     onChange={(e) => setIdentifier(e.target.value)}
                     className="h-11 bg-background border-border"
                     required
+                    disabled={isLockedOut()}
                   />
                 </div>
                 <div className="space-y-2">
@@ -225,6 +325,7 @@ export default function Auth() {
                       onChange={(e) => setPassword(e.target.value)}
                       className="h-11 bg-background border-border pr-10"
                       required
+                      disabled={isLockedOut()}
                     />
                     <button
                       type="button"
@@ -235,7 +336,7 @@ export default function Auth() {
                     </button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
+                <Button type="submit" className="w-full h-11 text-base" disabled={loading || isLockedOut()}>
                   {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
               </form>
@@ -252,7 +353,6 @@ export default function Auth() {
                     onChange={(e) => {
                       const newUsername = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').substring(0, 20);
                       setUsername(newUsername);
-                      // Debounced username check to prevent enumeration
                       setTimeout(() => checkUsernameAvailability(newUsername), 500);
                     }}
                     className={`h-11 bg-background border-border ${usernameError ? 'border-destructive' : ''}`}

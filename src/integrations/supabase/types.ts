@@ -273,6 +273,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_username_exists: {
+        Args: { lookup_username: string }
+        Returns: boolean
+      }
+      get_email_by_username: {
+        Args: { lookup_username: string }
+        Returns: string
+      }
       get_user_by_username_or_email: {
         Args: { identifier: string }
         Returns: {
