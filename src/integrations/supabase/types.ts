@@ -159,6 +159,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           gender: string | null
+          has_seen_tutorial: boolean | null
           height: number | null
           id: string
           onboarding_completed: boolean | null
@@ -172,6 +173,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           gender?: string | null
+          has_seen_tutorial?: boolean | null
           height?: number | null
           id: string
           onboarding_completed?: boolean | null
@@ -185,12 +187,37 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           gender?: string | null
+          has_seen_tutorial?: boolean | null
           height?: number | null
           id?: string
           onboarding_completed?: boolean | null
           profile_picture_url?: string | null
           units_preference?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          created_at: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          created_at?: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          created_at?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }

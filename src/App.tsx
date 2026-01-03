@@ -16,6 +16,8 @@ import Goals from "./pages/Goals";
 import EditFoodLog from "./pages/EditFoodLog";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
+import WeeklySummary from "./pages/WeeklySummary";
+import Achievements from "./pages/Achievements";
 import BottomNav from "./components/BottomNav";
 
 const queryClient = new QueryClient();
@@ -142,6 +144,8 @@ const App = () => (
           <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/edit-food/:id" element={<ProtectedRoute><EditFoodLog /></ProtectedRoute>} />
+          <Route path="/weekly-summary" element={<ProtectedRoute><WeeklySummary /></ProtectedRoute>} />
+          <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
