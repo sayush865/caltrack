@@ -18,9 +18,8 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Camera, User, Target, Activity, TrendingUp, Scale, AlertTriangle, ChevronRight, Edit, LogOut, Pencil, X } from 'lucide-react';
+import { ArrowLeft, Camera, User, Target, Activity, Scale, AlertTriangle, ChevronRight, Edit, LogOut, Pencil, X } from 'lucide-react';
 import { nutritionGoalsSchema, profileSchema } from '@/lib/validation';
-import { WeightHistoryChart } from '@/components/WeightHistoryChart';
 import { HealthMetrics } from '@/components/HealthMetrics';
 
 export default function Settings() {
@@ -821,22 +820,6 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          <Card 
-            className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/daily-log')}
-          >
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="font-medium">Weight history</span>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Account Actions */}
@@ -1192,7 +1175,7 @@ export default function Settings() {
                   className="h-12"
                 />
               </div>
-              <WeightHistoryChart unitsPreference={profile.units_preference} />
+              
               <HealthMetrics
                 age={profile.age}
                 gender={profile.gender}
