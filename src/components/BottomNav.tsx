@@ -1,4 +1,4 @@
-import { Home, FileText, Plus, Target, User, Camera, Database } from "lucide-react";
+import { Home, FileText, Plus, Target, User, Camera, Database, MessageSquare } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -29,8 +29,17 @@ const BottomNav = () => {
       },
     },
     {
+      icon: MessageSquare,
+      label: "Type Food",
+      description: "Describe what you ate",
+      onClick: () => {
+        setOpen(false);
+        navigate("/text-food");
+      },
+    },
+    {
       icon: Database,
-      label: "Select from Database",
+      label: "Food Database",
       description: "Choose from our food database",
       onClick: () => {
         setOpen(false);
