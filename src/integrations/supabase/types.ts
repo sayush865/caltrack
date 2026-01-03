@@ -228,6 +228,7 @@ export type Database = {
           daily_calories: number
           daily_carbs: number
           daily_fat: number
+          daily_fiber: number
           daily_protein: number
           daily_water: number
           goal_type: string | null
@@ -242,6 +243,7 @@ export type Database = {
           daily_calories?: number
           daily_carbs?: number
           daily_fat?: number
+          daily_fiber?: number
           daily_protein?: number
           daily_water?: number
           goal_type?: string | null
@@ -256,6 +258,7 @@ export type Database = {
           daily_calories?: number
           daily_carbs?: number
           daily_fat?: number
+          daily_fiber?: number
           daily_protein?: number
           daily_water?: number
           goal_type?: string | null

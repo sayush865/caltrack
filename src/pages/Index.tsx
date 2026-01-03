@@ -20,6 +20,7 @@ interface UserGoals {
   daily_protein: number;
   daily_carbs: number;
   daily_fat: number;
+  daily_fiber: number;
   daily_water: number;
 }
 
@@ -31,6 +32,7 @@ export default function Index() {
     daily_protein: 150,
     daily_carbs: 250,
     daily_fat: 65,
+    daily_fiber: 25,
     daily_water: 2000,
   });
   const [consumed, setConsumed] = useState({
@@ -38,6 +40,7 @@ export default function Index() {
     protein: 0,
     carbs: 0,
     fat: 0,
+    fiber: 0,
   });
   const [recentMeals, setRecentMeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +95,7 @@ export default function Index() {
           daily_protein: goalsData.daily_protein,
           daily_carbs: goalsData.daily_carbs,
           daily_fat: goalsData.daily_fat,
+          daily_fiber: goalsData.daily_fiber || 25,
           daily_water: goalsData.daily_water || 2000,
         });
       }
@@ -117,7 +121,8 @@ export default function Index() {
           protein: acc.protein + (Number(log.protein) || 0),
           carbs: acc.carbs + (Number(log.carbs) || 0),
           fat: acc.fat + (Number(log.fat) || 0),
-        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+          fiber: acc.fiber + (Number(log.fiber) || 0),
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
 
         setConsumed(totals);
       }
@@ -168,7 +173,7 @@ export default function Index() {
         <CalorieProgress consumed={consumed.calories} goal={goals.daily_calories} />
 
         {/* Macro Cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <MacroCard
             label="Protein"
             consumed={consumed.protein}
@@ -188,6 +193,13 @@ export default function Index() {
             consumed={consumed.fat}
             goal={goals.daily_fat}
             icon="🥑"
+            color="text-foreground"
+          />
+          <MacroCard
+            label="Fiber"
+            consumed={consumed.fiber}
+            goal={goals.daily_fiber}
+            icon="🥬"
             color="text-foreground"
           />
         </div>

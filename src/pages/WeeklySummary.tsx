@@ -13,6 +13,7 @@ interface DailyData {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
   water: number;
 }
 
@@ -20,7 +21,7 @@ const WeeklySummary = () => {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [weeklyData, setWeeklyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [goals, setGoals] = useState({ calories: 2000, protein: 150, carbs: 250, fat: 65, water: 2000 });
+  const [goals, setGoals] = useState({ calories: 2000, protein: 150, carbs: 250, fat: 65, fiber: 25, water: 2000 });
 
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
   const isCurrentWeek = isSameWeek(new Date(), weekStart, { weekStartsOn: 1 });
@@ -47,6 +48,7 @@ const WeeklySummary = () => {
         protein: goalsData.daily_protein,
         carbs: goalsData.daily_carbs,
         fat: goalsData.daily_fat,
+        fiber: goalsData.daily_fiber || 25,
         water: goalsData.daily_water,
       });
     }
@@ -85,6 +87,7 @@ const WeeklySummary = () => {
         protein: dayFoodLogs.reduce((sum, log) => sum + (Number(log.protein) || 0), 0),
         carbs: dayFoodLogs.reduce((sum, log) => sum + (Number(log.carbs) || 0), 0),
         fat: dayFoodLogs.reduce((sum, log) => sum + (Number(log.fat) || 0), 0),
+        fiber: dayFoodLogs.reduce((sum, log) => sum + (Number(log.fiber) || 0), 0),
         water: dayWaterLogs.reduce((sum, log) => sum + log.amount_ml, 0),
       };
     });
@@ -109,6 +112,9 @@ const WeeklySummary = () => {
     : 0;
   const avgFat = daysWithData > 0 
     ? Math.round(weeklyData.reduce((sum, d) => sum + d.fat, 0) / daysWithData) 
+    : 0;
+  const avgFiber = daysWithData > 0 
+    ? Math.round(weeklyData.reduce((sum, d) => sum + d.fiber, 0) / daysWithData) 
     : 0;
 
   const totalWater = weeklyData.reduce((sum, d) => sum + d.water, 0);
@@ -190,7 +196,7 @@ const WeeklySummary = () => {
                 <CardTitle className="text-base">Daily Averages</CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
                     <p className="text-lg font-semibold text-blue-500">{avgProtein}g</p>
                     <p className="text-xs text-muted-foreground">Protein</p>
@@ -205,6 +211,11 @@ const WeeklySummary = () => {
                     <p className="text-lg font-semibold text-rose-500">{avgFat}g</p>
                     <p className="text-xs text-muted-foreground">Fat</p>
                     <p className="text-xs text-muted-foreground/70">Goal: {goals.fat}g</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold text-green-500">{avgFiber}g</p>
+                    <p className="text-xs text-muted-foreground">Fiber</p>
+                    <p className="text-xs text-muted-foreground/70">Goal: {goals.fiber}g</p>
                   </div>
                 </div>
               </CardContent>
