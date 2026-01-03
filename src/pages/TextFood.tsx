@@ -92,12 +92,70 @@ export default function TextFood() {
     }
   };
 
+  const isWaterEntry = (foodName: string): boolean => {
+    const waterKeywords = ['water', 'h2o', 'hydration', 'glass of water', 'cup of water', 'bottle of water'];
+    const lowerName = foodName.toLowerCase();
+    return waterKeywords.some(keyword => lowerName.includes(keyword));
+  };
+
+  const extractWaterAmount = (foodName: string): number => {
+    const lowerName = foodName.toLowerCase();
+    
+    // Check for specific amounts
+    const mlMatch = lowerName.match(/(\d+)\s*ml/);
+    if (mlMatch) return parseInt(mlMatch[1]);
+    
+    const literMatch = lowerName.match(/(\d+(?:\.\d+)?)\s*(?:l|liter|litre)/);
+    if (literMatch) return parseFloat(literMatch[1]) * 1000;
+    
+    const ozMatch = lowerName.match(/(\d+)\s*(?:oz|ounce)/);
+    if (ozMatch) return Math.round(parseInt(ozMatch[1]) * 29.5735);
+    
+    const cupMatch = lowerName.match(/(\d+)\s*cup/);
+    if (cupMatch) return parseInt(cupMatch[1]) * 240;
+    
+    const glassMatch = lowerName.match(/(\d+)\s*glass/);
+    if (glassMatch) return parseInt(glassMatch[1]) * 250;
+    
+    const bottleMatch = lowerName.match(/(\d+)\s*bottle/);
+    if (bottleMatch) return parseInt(bottleMatch[1]) * 500;
+    
+    // Default amounts
+    if (lowerName.includes('bottle')) return 500;
+    if (lowerName.includes('glass') || lowerName.includes('cup')) return 250;
+    
+    return 250; // Default to 250ml
+  };
+
   const handleSaveToLog = async () => {
     if (!nutritionData) return;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+
+      // Check if this is a water entry
+      if (isWaterEntry(nutritionData.food_name)) {
+        const waterAmount = extractWaterAmount(nutritionData.food_name);
+        
+        const { error: waterError } = await supabase
+          .from('water_logs')
+          .insert({
+            user_id: user.id,
+            amount_ml: waterAmount,
+            logged_at: new Date().toISOString(),
+          });
+
+        if (waterError) throw waterError;
+
+        toast({
+          title: "Water logged!",
+          description: `${waterAmount}ml added to your hydration tracker`,
+        });
+
+        navigate('/');
+        return;
+      }
 
       const { error: insertError } = await supabase
         .from('food_logs')
