@@ -132,7 +132,7 @@ export default function HealthMetricsWidget() {
   if (!bmi && !tdee && !weightToGoal) return null;
 
   return (
-    <Card className="overflow-hidden border border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+    <Card className="overflow-hidden border border-border/50 bg-card">
       <div className="p-4">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
           Health Metrics

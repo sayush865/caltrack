@@ -65,7 +65,7 @@ export default function CalorieProgress({ consumed, goal }: CalorieProgressProps
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-4xl">{isPerfect ? '🎉' : '🔥'}</span>
+            <span className="text-4xl">🔥</span>
           </div>
         </div>
       </div>
