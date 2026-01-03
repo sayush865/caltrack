@@ -8,7 +8,6 @@ import CameraCapture from '@/components/CameraCapture';
 import NutritionDisplay from '@/components/NutritionDisplay';
 import AnalysisProgress from '@/components/AnalysisProgress';
 import MealTypeSelector from '@/components/MealTypeSelector';
-import PortionSlider from '@/components/PortionSlider';
 import { ArrowLeft } from 'lucide-react';
 
 interface NutritionData {
@@ -40,7 +39,6 @@ export default function Camera() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [mealType, setMealType] = useState<string>('');
-  const [portionMultiplier, setPortionMultiplier] = useState(1);
   
   // Cache the image for reanalysis
   const cachedImageRef = useRef<string | null>(null);
@@ -72,7 +70,6 @@ export default function Camera() {
         setNutritionData(data.nutritionData);
         setAnalysisData(data.analysis);
         setShowConfirmation(true);
-        setPortionMultiplier(1);
       } else {
         throw new Error('Invalid response from analysis');
       }
@@ -94,27 +91,8 @@ export default function Camera() {
     await analyzeImage(imageData);
   };
 
-  const getAdjustedNutrition = (): NutritionData | null => {
-    if (!nutritionData) return null;
-    return {
-      ...nutritionData,
-      calories: Math.round(nutritionData.calories * portionMultiplier),
-      protein: Math.round(nutritionData.protein * portionMultiplier),
-      carbs: Math.round(nutritionData.carbs * portionMultiplier),
-      fat: Math.round(nutritionData.fat * portionMultiplier),
-      fiber: Math.round(nutritionData.fiber * portionMultiplier),
-      sugar: Math.round(nutritionData.sugar * portionMultiplier),
-      sodium: Math.round(nutritionData.sodium * portionMultiplier),
-      vitamin_a: Math.round(nutritionData.vitamin_a * portionMultiplier),
-      vitamin_c: Math.round(nutritionData.vitamin_c * portionMultiplier),
-      calcium: Math.round(nutritionData.calcium * portionMultiplier),
-      iron: Math.round(nutritionData.iron * portionMultiplier),
-    };
-  };
-
   const handleSaveToLog = async () => {
-    const adjustedData = getAdjustedNutrition();
-    if (!adjustedData) return;
+    if (!nutritionData) return;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -155,18 +133,18 @@ export default function Camera() {
         .from('food_logs')
         .insert({
           user_id: user.id,
-          food_name: adjustedData.food_name,
-          calories: adjustedData.calories,
-          protein: adjustedData.protein,
-          carbs: adjustedData.carbs,
-          fat: adjustedData.fat,
-          fiber: adjustedData.fiber,
-          sugar: adjustedData.sugar,
-          sodium: adjustedData.sodium,
-          vitamin_a: adjustedData.vitamin_a,
-          vitamin_c: adjustedData.vitamin_c,
-          calcium: adjustedData.calcium,
-          iron: adjustedData.iron,
+          food_name: nutritionData.food_name,
+          calories: nutritionData.calories,
+          protein: nutritionData.protein,
+          carbs: nutritionData.carbs,
+          fat: nutritionData.fat,
+          fiber: nutritionData.fiber,
+          sugar: nutritionData.sugar,
+          sodium: nutritionData.sodium,
+          vitamin_a: nutritionData.vitamin_a,
+          vitamin_c: nutritionData.vitamin_c,
+          calcium: nutritionData.calcium,
+          iron: nutritionData.iron,
           image_url: imageUrl,
           meal_type: mealType || null,
           logged_at: new Date().toISOString(),
@@ -175,10 +153,9 @@ export default function Camera() {
 
       if (insertError) throw insertError;
 
-      const adjustedData2 = getAdjustedNutrition();
       toast({
         title: "Success!",
-        description: `${adjustedData2?.food_name} logged successfully`,
+        description: `${nutritionData.food_name} logged successfully`,
       });
 
       navigate('/');
@@ -232,13 +209,8 @@ export default function Camera() {
           <Card className="border border-border bg-card p-6 space-y-6">
             <div>
               <h2 className="text-2xl font-semibold mb-4">Review Analysis</h2>
-              <NutritionDisplay data={getAdjustedNutrition()!} analysis={analysisData || undefined} />
+              <NutritionDisplay data={nutritionData} analysis={analysisData || undefined} />
             </div>
-
-            <PortionSlider 
-              value={portionMultiplier} 
-              onChange={setPortionMultiplier}
-            />
 
             <MealTypeSelector 
               value={mealType} 

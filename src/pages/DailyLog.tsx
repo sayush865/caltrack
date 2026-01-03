@@ -3,9 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import FoodLogItem from '@/components/FoodLogItem';
 import { format, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
+const MEAL_TYPES = [
+  { value: 'breakfast', label: 'Breakfast', emoji: '🌅' },
+  { value: 'lunch', label: 'Lunch', emoji: '☀️' },
+  { value: 'dinner', label: 'Dinner', emoji: '🌙' },
+  { value: 'snack', label: 'Snacks', emoji: '🍪' },
+  { value: 'other', label: 'Other', emoji: '🍽️' },
+];
 
 export default function DailyLog() {
   const navigate = useNavigate();
@@ -17,6 +26,13 @@ export default function DailyLog() {
     protein: 0,
     carbs: 0,
     fat: 0
+  });
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    breakfast: true,
+    lunch: true,
+    dinner: true,
+    snack: true,
+    other: true,
   });
 
   useEffect(() => {
@@ -84,6 +100,30 @@ export default function DailyLog() {
   const goToToday = () => setSelectedDate(new Date());
 
   const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+
+  // Group logs by meal type
+  const groupedLogs = MEAL_TYPES.reduce((acc, mealType) => {
+    const mealsOfType = logs.filter(log => {
+      const logMealType = log.meal_type?.toLowerCase() || 'other';
+      if (mealType.value === 'other') {
+        return !['breakfast', 'lunch', 'dinner', 'snack'].includes(logMealType);
+      }
+      return logMealType === mealType.value;
+    });
+    acc[mealType.value] = mealsOfType;
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const getMealTypeCalories = (mealType: string) => {
+    return groupedLogs[mealType]?.reduce((sum, log) => sum + (Number(log.calories) || 0), 0) || 0;
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -159,7 +199,8 @@ export default function DailyLog() {
         </Card>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Meal History</h2>
+          <h2 className="text-xl font-semibold">Meals by Category</h2>
+          
           {loading ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">Loading meals...</p>
@@ -178,9 +219,50 @@ export default function DailyLog() {
               </Button>
             </Card>
           ) : (
-            logs.map((log) => (
-              <FoodLogItem key={log.id} log={log} />
-            ))
+            <div className="space-y-3">
+              {MEAL_TYPES.map((mealType) => {
+                const meals = groupedLogs[mealType.value];
+                if (!meals || meals.length === 0) return null;
+                
+                const calories = getMealTypeCalories(mealType.value);
+                
+                return (
+                  <Collapsible
+                    key={mealType.value}
+                    open={expandedSections[mealType.value]}
+                    onOpenChange={() => toggleSection(mealType.value)}
+                  >
+                    <Card className="border border-border bg-card overflow-hidden">
+                      <CollapsibleTrigger asChild>
+                        <button className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{mealType.emoji}</span>
+                            <div className="text-left">
+                              <h3 className="font-semibold">{mealType.label}</h3>
+                              <p className="text-xs text-muted-foreground">
+                                {meals.length} item{meals.length !== 1 ? 's' : ''} • {Math.round(calories)} cal
+                              </p>
+                            </div>
+                          </div>
+                          {expandedSections[mealType.value] ? (
+                            <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="px-4 pb-4 space-y-2">
+                          {meals.map((log) => (
+                            <FoodLogItem key={log.id} log={log} />
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

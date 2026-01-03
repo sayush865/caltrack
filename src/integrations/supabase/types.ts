@@ -202,6 +202,7 @@ export type Database = {
           daily_carbs: number
           daily_fat: number
           daily_protein: number
+          daily_water: number
           goal_type: string | null
           goal_weight: number | null
           id: string
@@ -215,6 +216,7 @@ export type Database = {
           daily_carbs?: number
           daily_fat?: number
           daily_protein?: number
+          daily_water?: number
           goal_type?: string | null
           goal_weight?: number | null
           id?: string
@@ -228,10 +230,35 @@ export type Database = {
           daily_carbs?: number
           daily_fat?: number
           daily_protein?: number
+          daily_water?: number
           goal_type?: string | null
           goal_weight?: number | null
           id?: string
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      water_logs: {
+        Row: {
+          amount_ml: number
+          created_at: string
+          id: string
+          logged_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_ml?: number
+          created_at?: string
+          id?: string
+          logged_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_ml?: number
+          created_at?: string
+          id?: string
+          logged_at?: string
           user_id?: string
         }
         Relationships: []

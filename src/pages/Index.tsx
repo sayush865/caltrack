@@ -10,12 +10,14 @@ import MacroCard from '@/components/MacroCard';
 import WeekCalendar from '@/components/WeekCalendar';
 import FoodLogItem from '@/components/FoodLogItem';
 import QuickAddWidget from '@/components/QuickAddWidget';
+import WaterTracker from '@/components/WaterTracker';
 
 interface UserGoals {
   daily_calories: number;
   daily_protein: number;
   daily_carbs: number;
   daily_fat: number;
+  daily_water: number;
 }
 
 export default function Index() {
@@ -26,6 +28,7 @@ export default function Index() {
     daily_protein: 150,
     daily_carbs: 250,
     daily_fat: 65,
+    daily_water: 2000,
   });
   const [consumed, setConsumed] = useState({
     calories: 0,
@@ -86,6 +89,7 @@ export default function Index() {
           daily_protein: goalsData.daily_protein,
           daily_carbs: goalsData.daily_carbs,
           daily_fat: goalsData.daily_fat,
+          daily_water: goalsData.daily_water || 2000,
         });
       }
 
@@ -180,6 +184,9 @@ export default function Index() {
             color="text-foreground"
           />
         </div>
+
+        {/* Water Tracker */}
+        <WaterTracker selectedDate={selectedDate} goal={goals.daily_water} />
 
         {/* Quick Add - only show for today */}
         {isToday(selectedDate) && <QuickAddWidget />}
