@@ -19,7 +19,7 @@ export default function MacroCard({ label, consumed, goal, icon }: MacroCardProp
     <div className={`bg-card border border-border/50 rounded-xl p-4 space-y-3 ${isComplete ? 'ring-1 ring-green-500/30' : ''}`}>
       <div className="flex flex-col items-center gap-2">
         <span className="text-3xl">
-          {isComplete ? '✅' : icon}
+          {icon}
         </span>
         <div className="text-center">
           <div className="text-2xl font-bold text-foreground">
