@@ -174,7 +174,7 @@ export default function AnalysisProgress({ isAnalyzing, imagePreview, analysisTy
         {/* Helpful tip */}
         <div className="text-center pt-2 border-t border-border">
           <p className="text-xs text-muted-foreground">
-            Powered by Gemini 2.5 Pro • Usually takes 10-25 seconds
+            Usually takes 10-25 seconds
           </p>
         </div>
       </div>
