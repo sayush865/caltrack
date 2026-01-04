@@ -9,9 +9,9 @@ interface AnalysisProgressProps {
 }
 
 const stages = [
-  { id: 'upload', label: 'Uploading image', icon: Upload, duration: 1500 },
-  { id: 'analyze', label: 'AI analyzing food', icon: Brain, duration: 6000 },
-  { id: 'process', label: 'Processing nutrition', icon: Sparkles, duration: 2000 },
+  { id: 'upload', label: 'Processing image', icon: Upload, duration: 800 },
+  { id: 'analyze', label: 'AI recognizing food', icon: Brain, duration: 4000 },
+  { id: 'process', label: 'Calculating nutrition', icon: Sparkles, duration: 1500 },
 ];
 
 export default function AnalysisProgress({ isAnalyzing }: AnalysisProgressProps) {
