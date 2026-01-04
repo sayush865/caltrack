@@ -72,12 +72,17 @@ export default function WaterTracker({ selectedDate, goal = 2000 }: WaterTracker
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Use selectedDate but set to current time of day for that date
+      const logTime = new Date(selectedDate);
+      const now = new Date();
+      logTime.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+
       const { data, error } = await supabase
         .from('water_logs')
         .insert({
           user_id: user.id,
           amount_ml: amount,
-          logged_at: new Date().toISOString(),
+          logged_at: logTime.toISOString(),
         })
         .select('id')
         .single();
@@ -116,12 +121,17 @@ export default function WaterTracker({ selectedDate, goal = 2000 }: WaterTracker
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Use selectedDate but set to current time of day for that date
+      const logTime = new Date(selectedDate);
+      const now = new Date();
+      logTime.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+
       const { error } = await supabase
         .from('water_logs')
         .insert({
           user_id: user.id,
           amount_ml: -Math.min(amount, totalMl),
-          logged_at: new Date().toISOString(),
+          logged_at: logTime.toISOString(),
         });
 
       if (error) throw error;
