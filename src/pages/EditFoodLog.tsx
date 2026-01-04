@@ -64,14 +64,36 @@ export default function EditFoodLog() {
 
   const fetchFoodLog = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: 'Not authenticated',
+          description: 'Please log in to edit food entries.',
+          variant: 'destructive',
+        });
+        navigate('/auth');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('food_logs')
         .select('*')
         .eq('id', id)
-        .eq('status', 1)
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
 
       if (error) throw error;
+
+      if (!data) {
+        toast({
+          title: 'Food entry not found',
+          description: 'This entry may have been deleted.',
+          variant: 'destructive',
+        });
+        navigate('/daily-log');
+        return;
+      }
 
       setOriginalData(data);
       setCurrentData(data);
