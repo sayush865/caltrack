@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { History, Heart } from 'lucide-react';
 import { format, startOfDay, endOfDay, isToday } from 'date-fns';
-import CalorieProgress from '@/components/CalorieProgress';
+import NetCalorieProgress from '@/components/NetCalorieProgress';
 import MacroCard from '@/components/MacroCard';
 import WeekCalendar from '@/components/WeekCalendar';
 import FoodLogItem from '@/components/FoodLogItem';
@@ -14,6 +14,7 @@ import WaterTracker from '@/components/WaterTracker';
 import StreakBadge from '@/components/StreakBadge';
 import HealthMetricsWidget from '@/components/HealthMetricsWidget';
 import DailyInsightCard from '@/components/DailyInsightCard';
+import ExerciseSummaryWidget from '@/components/ExerciseSummaryWidget';
 import { TrendBadge } from '@/components/TrendBadge';
 import { SkeletonDashboard } from '@/components/SkeletonCard';
 import { MealTemplatesSheet } from '@/components/MealTemplatesSheet';
@@ -47,6 +48,7 @@ export default function Index() {
     fat: 0,
     fiber: 0,
   });
+  const [caloriesBurned, setCaloriesBurned] = useState(0);
   const [recentMeals, setRecentMeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const trends = useTrends();
@@ -175,19 +177,29 @@ export default function Index() {
         {/* Daily Insight Card */}
         {isToday(selectedDate) && <DailyInsightCard />}
         
-        {/* Calorie Progress with Trend */}
+        {/* Net Calorie Progress with Trend */}
         <div className="space-y-2">
-          <CalorieProgress consumed={consumed.calories} goal={goals.daily_calories} />
+          <NetCalorieProgress 
+            consumed={consumed.calories} 
+            burned={caloriesBurned}
+            goal={goals.daily_calories} 
+          />
           {isToday(selectedDate) && !trends.loading && trends.yesterdayCalories > 0 && (
             <div className="flex justify-center">
               <TrendBadge
-                current={consumed.calories}
+                current={consumed.calories - caloriesBurned}
                 previous={trends.yesterdayCalories}
-                label="vs yesterday"
+                label="net vs yesterday"
               />
             </div>
           )}
         </div>
+
+        {/* Exercise Summary Widget */}
+        <ExerciseSummaryWidget 
+          selectedDate={selectedDate} 
+          onCaloriesBurnedChange={setCaloriesBurned}
+        />
 
         {/* Macro Cards */}
         <div className="grid grid-cols-2 gap-3">

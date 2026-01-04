@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Flame, Dumbbell } from 'lucide-react';
 import FoodLogItem from '@/components/FoodLogItem';
+import ExerciseLogItem from '@/components/ExerciseLogItem';
 import { format, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import WaterHistory from '@/components/WaterHistory';
@@ -21,13 +22,15 @@ export default function DailyLog() {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [logs, setLogs] = useState<any[]>([]);
+  const [exerciseLogs, setExerciseLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dailyTotals, setDailyTotals] = useState({
     calories: 0,
     protein: 0,
     carbs: 0,
     fat: 0,
-    fiber: 0
+    fiber: 0,
+    caloriesBurned: 0,
   });
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     breakfast: true,
@@ -35,12 +38,13 @@ export default function DailyLog() {
     dinner: true,
     snack: true,
     other: true,
+    exercise: true,
   });
 
   useEffect(() => {
     fetchLogs();
 
-    const channel = supabase
+    const foodChannel = supabase
       .channel('food_logs_changes')
       .on(
         'postgres_changes',
@@ -55,8 +59,24 @@ export default function DailyLog() {
       )
       .subscribe();
 
+    const exerciseChannel = supabase
+      .channel('exercise_logs_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'exercise_logs'
+        },
+        () => {
+          fetchLogs();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(foodChannel);
+      supabase.removeChannel(exerciseChannel);
     };
   }, [selectedDate]);
 
@@ -69,7 +89,8 @@ export default function DailyLog() {
       const dayStart = startOfDay(selectedDate);
       const dayEnd = endOfDay(selectedDate);
 
-      const { data, error } = await supabase
+      // Fetch food logs
+      const { data: foodData, error: foodError } = await supabase
         .from('food_logs')
         .select('*')
         .eq('user_id', user.id)
@@ -78,11 +99,24 @@ export default function DailyLog() {
         .lte('logged_at', dayEnd.toISOString())
         .order('logged_at', { ascending: false });
 
-      if (error) throw error;
+      if (foodError) throw foodError;
 
-      setLogs(data || []);
+      // Fetch exercise logs
+      const { data: exerciseData, error: exerciseError } = await supabase
+        .from('exercise_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 1)
+        .gte('logged_at', dayStart.toISOString())
+        .lte('logged_at', dayEnd.toISOString())
+        .order('logged_at', { ascending: false });
 
-      const totals = (data || []).reduce((acc, log) => ({
+      if (exerciseError) throw exerciseError;
+
+      setLogs(foodData || []);
+      setExerciseLogs(exerciseData || []);
+
+      const foodTotals = (foodData || []).reduce((acc, log) => ({
         calories: acc.calories + (Number(log.calories) || 0),
         protein: acc.protein + (Number(log.protein) || 0),
         carbs: acc.carbs + (Number(log.carbs) || 0),
@@ -90,7 +124,11 @@ export default function DailyLog() {
         fiber: acc.fiber + (Number(log.fiber) || 0)
       }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
 
-      setDailyTotals(totals);
+      const caloriesBurned = (exerciseData || []).reduce(
+        (sum, log) => sum + (Number(log.calories_burned) || 0), 0
+      );
+
+      setDailyTotals({ ...foodTotals, caloriesBurned });
     } catch (error) {
       console.error('Error fetching logs:', error);
     } finally {
@@ -179,31 +217,90 @@ export default function DailyLog() {
 
         <Card className="border border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-xl">{isToday ? "Today's" : format(selectedDate, 'MMM d')} Nutrition</CardTitle>
+            <CardTitle className="text-xl">{isToday ? "Today's" : format(selectedDate, 'MMM d')} Summary</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            <div className="space-y-1">
-              <div className="text-3xl font-bold">{Math.round(dailyTotals.calories)}</div>
-              <div className="text-sm text-muted-foreground">Calories</div>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <div className="text-3xl font-bold">{Math.round(dailyTotals.calories)}</div>
+                <div className="text-sm text-muted-foreground">Food Calories</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
+                  <Flame className="w-6 h-6" />
+                  -{Math.round(dailyTotals.caloriesBurned)}
+                </div>
+                <div className="text-sm text-muted-foreground">Burned</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-3xl font-bold">
+                  {Math.round(dailyTotals.calories - dailyTotals.caloriesBurned)}
+                </div>
+                <div className="text-sm text-muted-foreground">Net Calories</div>
+              </div>
             </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold">{Math.round(dailyTotals.protein)}g</div>
-              <div className="text-sm text-muted-foreground">Protein</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold">{Math.round(dailyTotals.carbs)}g</div>
-              <div className="text-sm text-muted-foreground">Carbs</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold">{Math.round(dailyTotals.fat)}g</div>
-              <div className="text-sm text-muted-foreground">Fat</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold">{Math.round(dailyTotals.fiber)}g</div>
-              <div className="text-sm text-muted-foreground">Fiber</div>
+            <div className="border-t border-border pt-4 grid grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{Math.round(dailyTotals.protein)}g</div>
+                <div className="text-xs text-muted-foreground">Protein</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{Math.round(dailyTotals.carbs)}g</div>
+                <div className="text-xs text-muted-foreground">Carbs</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{Math.round(dailyTotals.fat)}g</div>
+                <div className="text-xs text-muted-foreground">Fat</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{Math.round(dailyTotals.fiber)}g</div>
+                <div className="text-xs text-muted-foreground">Fiber</div>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Exercise Section */}
+        {exerciseLogs.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Dumbbell className="w-5 h-5" />
+              Exercise
+            </h2>
+            <Collapsible
+              open={expandedSections.exercise}
+              onOpenChange={() => toggleSection('exercise')}
+            >
+              <Card className="border border-border bg-card overflow-hidden">
+                <CollapsibleTrigger asChild>
+                  <button className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">💪</span>
+                      <div className="text-left">
+                        <h3 className="font-semibold">Workouts</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {exerciseLogs.length} workout{exerciseLogs.length !== 1 ? 's' : ''} • {Math.round(dailyTotals.caloriesBurned)} cal burned
+                        </p>
+                      </div>
+                    </div>
+                    {expandedSections.exercise ? (
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="px-4 pb-4 space-y-2">
+                    {exerciseLogs.map((log) => (
+                      <ExerciseLogItem key={log.id} log={log} onDelete={fetchLogs} />
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          </div>
+        )}
 
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Meals by Category</h2>
