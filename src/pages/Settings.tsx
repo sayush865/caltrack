@@ -18,9 +18,11 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Camera, User, Target, Activity, Scale, AlertTriangle, ChevronRight, Edit, LogOut, Pencil, X } from 'lucide-react';
+import { ArrowLeft, Camera, User, Target, Activity, Scale, AlertTriangle, ChevronRight, Edit, LogOut, Pencil, X, Moon, Sun, Share2, Star } from 'lucide-react';
 import { nutritionGoalsSchema, profileSchema } from '@/lib/validation';
 import { HealthMetrics } from '@/components/HealthMetrics';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { useTheme } from 'next-themes';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -620,20 +622,25 @@ export default function Settings() {
     return labels[gender] || gender;
   };
 
+  const { theme, setTheme, resolvedTheme } = useTheme();
+
   return (
     <div className="min-h-screen bg-muted/30 pb-24">
       <div className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4 pb-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/')}
-            className="h-10 w-10 rounded-full"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-3xl font-bold">Settings</h1>
+        <div className="flex items-center justify-between pb-2">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/')}
+              className="h-10 w-10 rounded-full"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-3xl font-bold">Settings</h1>
+          </div>
+          <ThemeToggle />
         </div>
 
         {/* Profile Card */}
@@ -767,8 +774,41 @@ export default function Settings() {
         </Card>
 
 
-        {/* Menu Items */}
+        {/* Preferences Section */}
         <div className="space-y-3">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide px-1">Preferences</h3>
+          
+          <Card className="border-0 shadow-sm">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    {resolvedTheme === 'dark' ? (
+                      <Moon className="h-5 w-5 text-primary" />
+                    ) : (
+                      <Sun className="h-5 w-5 text-primary" />
+                    )}
+                  </div>
+                  <div>
+                    <span className="font-medium">Dark Mode</span>
+                    <p className="text-xs text-muted-foreground">
+                      {resolvedTheme === 'dark' ? 'On' : 'Off'}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={resolvedTheme === 'dark'}
+                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Profile & Health Section */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide px-1">Profile & Health</h3>
+          
           <Card 
             className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => setShowPersonalDetailsDialog(true)}
@@ -819,11 +859,12 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
-
         </div>
 
-        {/* Account Actions */}
+        {/* Account Section */}
         <div className="space-y-3">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide px-1">Account</h3>
+          
           <Card 
             className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
             onClick={handleLogout}
