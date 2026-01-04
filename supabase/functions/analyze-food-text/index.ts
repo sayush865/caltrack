@@ -57,7 +57,7 @@ serve(async (req) => {
     }
 
     const aiStartTime = Date.now();
-    console.log('Starting AI analysis with openai/gpt-5...');
+    console.log('Starting AI analysis with google/gemini-2.5-pro...');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -66,7 +66,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5',
+        model: 'google/gemini-2.5-pro',
         messages: [
           {
             role: 'system',
