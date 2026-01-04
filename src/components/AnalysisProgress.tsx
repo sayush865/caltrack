@@ -171,12 +171,6 @@ export default function AnalysisProgress({ isAnalyzing, imagePreview, analysisTy
           })}
         </div>
 
-        {/* Helpful tip */}
-        <div className="text-center pt-2 border-t border-border">
-          <p className="text-xs text-muted-foreground">
-            Usually takes 10-25 seconds
-          </p>
-        </div>
       </div>
     </Card>
   );
