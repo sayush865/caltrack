@@ -1,4 +1,4 @@
-import { Home, FileText, Plus, Target, User, Camera, Database, MessageSquare, BarChart3, Trophy } from "lucide-react";
+import { Home, FileText, Plus, Target, User, Camera, Database, MessageSquare, BarChart3, Trophy, Dumbbell } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -44,6 +44,15 @@ const BottomNav = () => {
       onClick: () => {
         setOpen(false);
         navigate("/food-database");
+      },
+    },
+    {
+      icon: Dumbbell,
+      label: "Log Exercise",
+      description: "Track your workouts and burn calories",
+      onClick: () => {
+        setOpen(false);
+        navigate("/exercise-database");
       },
     },
   ];

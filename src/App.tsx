@@ -12,6 +12,7 @@ import DailyLog from "./pages/DailyLog";
 import Camera from "./pages/Camera";
 import TextFood from "./pages/TextFood";
 import FoodDatabase from "./pages/FoodDatabase";
+import ExerciseDatabase from "./pages/ExerciseDatabase";
 import Settings from "./pages/Settings";
 import Goals from "./pages/Goals";
 import EditFoodLog from "./pages/EditFoodLog";
@@ -143,6 +144,7 @@ const App = () => (
             <Route path="/camera" element={<ProtectedRoute><Camera /></ProtectedRoute>} />
             <Route path="/text-food" element={<ProtectedRoute><TextFood /></ProtectedRoute>} />
             <Route path="/food-database" element={<ProtectedRoute><FoodDatabase /></ProtectedRoute>} />
+            <Route path="/exercise-database" element={<ProtectedRoute><ExerciseDatabase /></ProtectedRoute>} />
             <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/edit-food/:id" element={<ProtectedRoute><EditFoodLog /></ProtectedRoute>} />

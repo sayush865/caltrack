@@ -14,6 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
+      exercise_database: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          met_value: number
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          met_value: number
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          met_value?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      exercise_logs: {
+        Row: {
+          calories_burned: number
+          created_at: string | null
+          distance_km: number | null
+          duration_minutes: number
+          exercise_name: string
+          exercise_type: string
+          id: string
+          intensity: string | null
+          logged_at: string | null
+          notes: string | null
+          reps: number | null
+          sets: number | null
+          status: number | null
+          user_id: string
+        }
+        Insert: {
+          calories_burned: number
+          created_at?: string | null
+          distance_km?: number | null
+          duration_minutes: number
+          exercise_name: string
+          exercise_type: string
+          id?: string
+          intensity?: string | null
+          logged_at?: string | null
+          notes?: string | null
+          reps?: number | null
+          sets?: number | null
+          status?: number | null
+          user_id: string
+        }
+        Update: {
+          calories_burned?: number
+          created_at?: string | null
+          distance_km?: number | null
+          duration_minutes?: number
+          exercise_name?: string
+          exercise_type?: string
+          id?: string
+          intensity?: string | null
+          logged_at?: string | null
+          notes?: string | null
+          reps?: number | null
+          sets?: number | null
+          status?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       food_database: {
         Row: {
           calcium: number | null
@@ -294,8 +375,10 @@ export type Database = {
         Row: {
           created_at: string | null
           current_weight: number | null
+          daily_active_calories: number
           daily_calories: number
           daily_carbs: number
+          daily_exercise_minutes: number
           daily_fat: number
           daily_fiber: number
           daily_protein: number
@@ -305,12 +388,15 @@ export type Database = {
           id: string
           updated_at: string | null
           user_id: string
+          weekly_exercise_days: number
         }
         Insert: {
           created_at?: string | null
           current_weight?: number | null
+          daily_active_calories?: number
           daily_calories?: number
           daily_carbs?: number
+          daily_exercise_minutes?: number
           daily_fat?: number
           daily_fiber?: number
           daily_protein?: number
@@ -320,12 +406,15 @@ export type Database = {
           id?: string
           updated_at?: string | null
           user_id: string
+          weekly_exercise_days?: number
         }
         Update: {
           created_at?: string | null
           current_weight?: number | null
+          daily_active_calories?: number
           daily_calories?: number
           daily_carbs?: number
+          daily_exercise_minutes?: number
           daily_fat?: number
           daily_fiber?: number
           daily_protein?: number
@@ -335,6 +424,7 @@ export type Database = {
           id?: string
           updated_at?: string | null
           user_id?: string
+          weekly_exercise_days?: number
         }
         Relationships: []
       }
