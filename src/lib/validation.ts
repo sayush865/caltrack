@@ -6,6 +6,8 @@ export const nutritionGoalsSchema = z.object({
   daily_protein: z.number().int().min(0, 'Protein cannot be negative').max(500, 'Protein cannot exceed 500g'),
   daily_carbs: z.number().int().min(0, 'Carbs cannot be negative').max(1000, 'Carbs cannot exceed 1,000g'),
   daily_fat: z.number().int().min(0, 'Fat cannot be negative').max(500, 'Fat cannot exceed 500g'),
+  daily_fiber: z.number().int().min(0, 'Fiber cannot be negative').max(100, 'Fiber cannot exceed 100g'),
+  daily_water: z.number().int().min(500, 'Water must be at least 500ml').max(10000, 'Water cannot exceed 10,000ml'),
   current_weight: z.number().min(20, 'Weight must be at least 20 lbs').max(500, 'Weight cannot exceed 500 lbs').optional().nullable(),
   goal_weight: z.number().min(20, 'Weight must be at least 20 lbs').max(500, 'Weight cannot exceed 500 lbs').optional().nullable(),
 });
