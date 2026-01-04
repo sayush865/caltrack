@@ -225,7 +225,7 @@ const WeeklySummary = () => {
             <WeeklyCalorieChart data={weeklyData} goal={goals.calories} />
 
             {/* Macro Distribution */}
-            <MacroPieChart protein={avgProtein} carbs={avgCarbs} fat={avgFat} />
+            <MacroPieChart protein={avgProtein} carbs={avgCarbs} fat={avgFat} fiber={avgFiber} />
 
             {/* Best Day */}
             {bestDay && bestDay.calories > 0 && (
