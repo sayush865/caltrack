@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { WeightProgressChart } from "@/components/WeightProgressChart";
+import { nutritionGoalsSchema } from "@/lib/validation";
 
 const Goals = () => {
   const { toast } = useToast();
@@ -70,6 +71,19 @@ const Goals = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
+      // Validate goals before saving
+      const validationResult = nutritionGoalsSchema.safeParse(goals);
+      if (!validationResult.success) {
+        const errorMessage = validationResult.error.errors[0]?.message || 'Invalid input';
+        toast({
+          title: "Validation Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
