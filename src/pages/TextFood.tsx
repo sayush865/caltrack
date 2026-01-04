@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import NutritionDisplay from '@/components/NutritionDisplay';
 import AnalysisProgress from '@/components/AnalysisProgress';
 import MealTypeSelector from '@/components/MealTypeSelector';
-import { ArrowLeft, Send } from 'lucide-react';
+import NavigationConfirmDialog from '@/components/NavigationConfirmDialog';
+import { useAnalysisAbort, useNavigationGuard } from '@/hooks/useAnalysisAbort';
+import { ArrowLeft, Send, Sparkles } from 'lucide-react';
 
 interface NutritionData {
   food_name: string;
@@ -40,6 +42,38 @@ export default function TextFood() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [mealType, setMealType] = useState<string>('');
+  const [showNavDialog, setShowNavDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
+  // Abort handling for graceful cancellation
+  const { startAnalysis, completeAnalysis, abortAnalysis } = useAnalysisAbort();
+  
+  // Prevent accidental browser refresh/close during analysis
+  useNavigationGuard(analyzing);
+
+  // Handle navigation with confirmation during analysis
+  const handleNavigate = useCallback((path: string) => {
+    if (analyzing) {
+      setPendingNavigation(path);
+      setShowNavDialog(true);
+    } else {
+      navigate(path);
+    }
+  }, [analyzing, navigate]);
+
+  const confirmNavigation = useCallback(() => {
+    abortAnalysis();
+    setAnalyzing(false);
+    setShowNavDialog(false);
+    if (pendingNavigation) {
+      navigate(pendingNavigation);
+    }
+  }, [abortAnalysis, navigate, pendingNavigation]);
+
+  const cancelNavigation = useCallback(() => {
+    setShowNavDialog(false);
+    setPendingNavigation(null);
+  }, []);
 
   const analyzeDescription = async () => {
     if (!description.trim()) {
@@ -50,6 +84,9 @@ export default function TextFood() {
       });
       return;
     }
+
+    // Start analysis with abort signal
+    const signal = startAnalysis();
 
     setAnalyzing(true);
     setShowConfirmation(false);
@@ -71,16 +108,33 @@ export default function TextFood() {
         body: { description: description.trim() }
       });
 
+      // Check if we were aborted
+      if (signal.aborted) {
+        console.log('Analysis was cancelled by user');
+        return;
+      }
+
       if (error) throw error;
 
       if (data?.nutritionData && data?.analysis) {
         setNutritionData(data.nutritionData);
         setAnalysisData(data.analysis);
         setShowConfirmation(true);
+        
+        toast({
+          title: "Analysis complete!",
+          description: `Identified: ${data.nutritionData.food_name}`,
+        });
       } else {
         throw new Error('Invalid response from analysis');
       }
     } catch (error: any) {
+      // Don't show error if we were intentionally aborted
+      if (signal.aborted) {
+        console.log('Analysis was cancelled');
+        return;
+      }
+      
       console.error('Analysis error:', error);
       toast({
         title: "Analysis Failed",
@@ -89,6 +143,7 @@ export default function TextFood() {
       });
     } finally {
       setAnalyzing(false);
+      completeAnalysis();
     }
   };
 
@@ -209,6 +264,13 @@ export default function TextFood() {
     setDescription('');
   };
 
+  const exampleMeals = [
+    { text: "Chicken salad with olive oil", icon: "🥗" },
+    { text: "2 eggs, toast, coffee", icon: "🍳" },
+    { text: "Large pepperoni pizza slice", icon: "🍕" },
+    { text: "Grilled salmon with rice", icon: "🐟" },
+  ];
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <div className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
@@ -216,7 +278,7 @@ export default function TextFood() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/')}
+            onClick={() => handleNavigate('/')}
             className="h-11 w-11"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -224,20 +286,25 @@ export default function TextFood() {
           <div>
             <h1 className="text-3xl font-bold">Type Your Meal</h1>
             <p className="text-sm text-muted-foreground">
-              Describe what you ate for nutrition analysis
+              {analyzing ? 'Analyzing your description...' : 'Describe what you ate for nutrition analysis'}
             </p>
           </div>
         </div>
 
-        <AnalysisProgress isAnalyzing={analyzing} />
+        <AnalysisProgress 
+          isAnalyzing={analyzing}
+          analysisType="text"
+        />
 
         {showConfirmation && nutritionData && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
             <Card className="border border-border bg-card p-6 space-y-6">
-              <div>
-                <h2 className="text-2xl font-semibold mb-4">Review Analysis</h2>
-                <NutritionDisplay data={nutritionData} analysis={analysisData || undefined} />
+              <div className="flex items-center gap-2 text-sm text-primary">
+                <Sparkles className="w-4 h-4" />
+                <span className="font-medium">Analysis Complete</span>
               </div>
+              
+              <NutritionDisplay data={nutritionData} analysis={analysisData || undefined} />
 
               <MealTypeSelector 
                 value={mealType} 
@@ -274,8 +341,10 @@ export default function TextFood() {
 
         {!analyzing && !showConfirmation && (
           <Card className="border border-border bg-card p-6 space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">What did you eat?</label>
+            <div className="space-y-3">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <span>What did you eat?</span>
+              </label>
               <Textarea
                 placeholder="e.g., 2 scrambled eggs with toast and butter, a glass of orange juice"
                 value={description}
@@ -283,28 +352,29 @@ export default function TextFood() {
                 className="min-h-[120px] resize-none text-base"
                 maxLength={1000}
               />
-              <p className="text-xs text-muted-foreground text-right">
-                {description.length}/1000 characters
-              </p>
+              <div className="flex justify-between items-center">
+                <p className="text-xs text-muted-foreground">
+                  Be specific about portions for better accuracy
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {description.length}/1000
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Examples:</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  "Chicken salad with olive oil",
-                  "2 eggs, toast, coffee",
-                  "Large pepperoni pizza slice",
-                  "Grilled salmon with rice"
-                ].map((example) => (
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-muted-foreground">Quick examples:</p>
+              <div className="grid grid-cols-2 gap-2">
+                {exampleMeals.map((example) => (
                   <Button
-                    key={example}
+                    key={example.text}
                     variant="outline"
                     size="sm"
-                    className="text-xs h-8"
-                    onClick={() => setDescription(example)}
+                    className="h-auto py-2 px-3 justify-start text-left"
+                    onClick={() => setDescription(example.text)}
                   >
-                    {example}
+                    <span className="mr-2">{example.icon}</span>
+                    <span className="text-xs truncate">{example.text}</span>
                   </Button>
                 ))}
               </div>
@@ -322,6 +392,13 @@ export default function TextFood() {
           </Card>
         )}
       </div>
+      
+      {/* Navigation confirmation dialog */}
+      <NavigationConfirmDialog
+        open={showNavDialog}
+        onConfirm={confirmNavigation}
+        onCancel={cancelNavigation}
+      />
     </div>
   );
 }

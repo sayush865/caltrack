@@ -1,32 +1,51 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Brain, Sparkles, Check } from 'lucide-react';
+import { Upload, Brain, Sparkles, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AnalysisProgressProps {
   isAnalyzing: boolean;
+  imagePreview?: string | null;
+  analysisType?: 'image' | 'text';
 }
 
-const stages = [
-  { id: 'upload', label: 'Processing image', icon: Upload, duration: 800 },
-  { id: 'analyze', label: 'AI recognizing food', icon: Brain, duration: 4000 },
-  { id: 'process', label: 'Calculating nutrition', icon: Sparkles, duration: 1500 },
+const imageStages = [
+  { id: 'upload', label: 'Processing image', sublabel: 'Optimizing for analysis', icon: Upload, duration: 600 },
+  { id: 'analyze', label: 'Identifying food items', sublabel: 'AI vision analyzing your meal', icon: Brain, duration: 8000 },
+  { id: 'process', label: 'Calculating nutrition', sublabel: 'Estimating portions & macros', icon: Sparkles, duration: 3000 },
 ];
 
-export default function AnalysisProgress({ isAnalyzing }: AnalysisProgressProps) {
+const textStages = [
+  { id: 'parse', label: 'Parsing description', sublabel: 'Understanding your meal', icon: Upload, duration: 400 },
+  { id: 'analyze', label: 'Analyzing ingredients', sublabel: 'AI identifying food components', icon: Brain, duration: 6000 },
+  { id: 'process', label: 'Calculating nutrition', sublabel: 'Estimating portions & macros', icon: Sparkles, duration: 2000 },
+];
+
+export default function AnalysisProgress({ isAnalyzing, imagePreview, analysisType = 'image' }: AnalysisProgressProps) {
   const [currentStage, setCurrentStage] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  const stages = analysisType === 'image' ? imageStages : textStages;
 
   useEffect(() => {
     if (!isAnalyzing) {
       setCurrentStage(0);
       setProgress(0);
+      setElapsedTime(0);
       return;
     }
 
+    const startTime = Date.now();
     let stageTimeout: NodeJS.Timeout;
     let progressInterval: NodeJS.Timeout;
+    let timerInterval: NodeJS.Timeout;
+
+    // Update elapsed time every second
+    timerInterval = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
 
     const advanceStage = (stage: number) => {
       if (stage >= stages.length) return;
@@ -37,7 +56,7 @@ export default function AnalysisProgress({ isAnalyzing }: AnalysisProgressProps)
       
       let currentProgress = stageProgress;
       progressInterval = setInterval(() => {
-        currentProgress += 0.5;
+        currentProgress += 0.3;
         if (currentProgress >= nextStageProgress - 5) {
           clearInterval(progressInterval);
         }
@@ -55,24 +74,50 @@ export default function AnalysisProgress({ isAnalyzing }: AnalysisProgressProps)
     return () => {
       clearTimeout(stageTimeout);
       clearInterval(progressInterval);
+      clearInterval(timerInterval);
     };
-  }, [isAnalyzing]);
+  }, [isAnalyzing, stages]);
 
   if (!isAnalyzing) return null;
 
   return (
-    <Card className="border border-border bg-card p-8">
-      <div className="space-y-6">
-        <div className="text-center space-y-2">
-          <h2 className="text-xl font-semibold">Analyzing Your Food</h2>
-          <p className="text-sm text-muted-foreground">
-            Our AI is identifying ingredients and calculating nutrition
+    <Card className="border border-border bg-card overflow-hidden">
+      <div className="p-6 space-y-6">
+        {/* Header with image preview */}
+        <div className="flex gap-4 items-start">
+          {imagePreview && analysisType === 'image' && (
+            <div className="w-20 h-20 rounded-lg overflow-hidden border border-border shrink-0 bg-muted">
+              <img 
+                src={imagePreview} 
+                alt="Food being analyzed" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <h2 className="text-lg font-semibold">Analyzing Your {analysisType === 'image' ? 'Photo' : 'Meal'}</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {stages[currentStage]?.sublabel || 'Processing...'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {elapsedTime}s elapsed
+            </p>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="space-y-2">
+          <Progress value={progress} className="h-2" />
+          <p className="text-xs text-muted-foreground text-right">
+            {Math.round(progress)}%
           </p>
         </div>
 
-        <Progress value={progress} className="h-2" />
-
-        <div className="space-y-3">
+        {/* Stage indicators */}
+        <div className="space-y-2">
           {stages.map((stage, index) => {
             const Icon = stage.icon;
             const isActive = index === currentStage;
@@ -84,27 +129,29 @@ export default function AnalysisProgress({ isAnalyzing }: AnalysisProgressProps)
                 className={cn(
                   'flex items-center gap-3 p-3 rounded-lg transition-all duration-300',
                   isActive && 'bg-primary/10',
-                  isComplete && 'opacity-60'
+                  isComplete && 'opacity-50'
                 )}
               >
                 <div
                   className={cn(
-                    'w-10 h-10 rounded-full flex items-center justify-center transition-all',
-                    isActive && 'bg-primary text-primary-foreground animate-pulse',
+                    'w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0',
+                    isActive && 'bg-primary text-primary-foreground',
                     isComplete && 'bg-primary/20 text-primary',
                     !isActive && !isComplete && 'bg-muted text-muted-foreground'
                   )}
                 >
                   {isComplete ? (
-                    <Check className="w-5 h-5" />
+                    <Check className="w-4 h-4" />
+                  ) : isActive ? (
+                    <Icon className="w-4 h-4 animate-pulse" />
                   ) : (
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                   )}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p
                     className={cn(
-                      'font-medium transition-colors',
+                      'text-sm font-medium transition-colors truncate',
                       isActive && 'text-foreground',
                       !isActive && 'text-muted-foreground'
                     )}
@@ -113,7 +160,7 @@ export default function AnalysisProgress({ isAnalyzing }: AnalysisProgressProps)
                   </p>
                 </div>
                 {isActive && (
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 shrink-0">
                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -122,6 +169,13 @@ export default function AnalysisProgress({ isAnalyzing }: AnalysisProgressProps)
               </div>
             );
           })}
+        </div>
+
+        {/* Helpful tip */}
+        <div className="text-center pt-2 border-t border-border">
+          <p className="text-xs text-muted-foreground">
+            Powered by Gemini 2.5 Pro • Usually takes 10-25 seconds
+          </p>
         </div>
       </div>
     </Card>

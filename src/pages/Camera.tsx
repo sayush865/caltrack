@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,8 @@ import CameraCapture from '@/components/CameraCapture';
 import AnalysisProgress from '@/components/AnalysisProgress';
 import MealTypeSelector from '@/components/MealTypeSelector';
 import FoodItemsList, { FoodItem } from '@/components/FoodItemsList';
+import NavigationConfirmDialog from '@/components/NavigationConfirmDialog';
+import { useAnalysisAbort, useNavigationGuard } from '@/hooks/useAnalysisAbort';
 import { ArrowLeft } from 'lucide-react';
 
 interface AnalysisData {
@@ -24,10 +26,43 @@ export default function Camera() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [mealType, setMealType] = useState<string>('');
+  const [showNavDialog, setShowNavDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   // Cache the image for reanalysis and parallel upload
   const cachedImageRef = useRef<string | null>(null);
   const uploadPromiseRef = useRef<Promise<string | null> | null>(null);
+  
+  // Abort handling for graceful cancellation
+  const { startAnalysis, completeAnalysis, abortAnalysis } = useAnalysisAbort();
+  
+  // Prevent accidental browser refresh/close during analysis
+  useNavigationGuard(analyzing);
+
+  // Handle navigation with confirmation during analysis
+  const handleNavigate = useCallback((path: string) => {
+    if (analyzing) {
+      setPendingNavigation(path);
+      setShowNavDialog(true);
+    } else {
+      navigate(path);
+    }
+  }, [analyzing, navigate]);
+
+  const confirmNavigation = useCallback(() => {
+    abortAnalysis();
+    setAnalyzing(false);
+    setShowNavDialog(false);
+    if (pendingNavigation) {
+      navigate(pendingNavigation);
+    }
+  }, [abortAnalysis, navigate, pendingNavigation]);
+
+  const cancelNavigation = useCallback(() => {
+    setShowNavDialog(false);
+    setPendingNavigation(null);
+  }, []);
 
   // Start uploading image in parallel with analysis
   const startParallelUpload = async (imageData: string) => {
@@ -70,8 +105,12 @@ export default function Camera() {
   };
 
   const analyzeImage = async (imageData: string) => {
+    // Start analysis with abort signal
+    const signal = startAnalysis();
+    
     setAnalyzing(true);
     setShowConfirmation(false);
+    setImagePreview(imageData);
 
     // Start parallel upload immediately
     uploadPromiseRef.current = startParallelUpload(imageData);
@@ -92,6 +131,12 @@ export default function Camera() {
       const { data, error } = await supabase.functions.invoke('analyze-food', {
         body: { imageBase64: imageData }
       });
+
+      // Check if we were aborted
+      if (signal.aborted) {
+        console.log('Analysis was cancelled by user');
+        return;
+      }
 
       if (error) throw error;
 
@@ -119,6 +164,11 @@ export default function Camera() {
         setFoodItems(items);
         setAnalysisData(data.analysis || null);
         setShowConfirmation(true);
+        
+        toast({
+          title: "Analysis complete!",
+          description: `Found ${items.length} item${items.length !== 1 ? 's' : ''} in your meal`,
+        });
       } else if (data?.nutritionData) {
         // Fallback for backward compatibility
         const item: FoodItem = {
@@ -147,6 +197,12 @@ export default function Camera() {
         throw new Error('Invalid response from analysis');
       }
     } catch (error: any) {
+      // Don't show error if we were intentionally aborted
+      if (signal.aborted) {
+        console.log('Analysis was cancelled');
+        return;
+      }
+      
       console.error('Analysis error:', error);
       toast({
         title: "Analysis Failed",
@@ -155,6 +211,7 @@ export default function Camera() {
       });
     } finally {
       setAnalyzing(false);
+      completeAnalysis();
     }
   };
 
@@ -260,6 +317,7 @@ export default function Camera() {
   const handleCancel = () => {
     setFoodItems([]);
     setAnalysisData(null);
+    setImagePreview(null);
     cachedImageRef.current = null;
     uploadPromiseRef.current = null;
     setShowConfirmation(false);
@@ -272,7 +330,7 @@ export default function Camera() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/')}
+            onClick={() => handleNavigate('/')}
             className="h-11 w-11"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -280,15 +338,19 @@ export default function Camera() {
           <div>
             <h1 className="text-3xl font-bold">Log Meal</h1>
             <p className="text-sm text-muted-foreground">
-              Snap a photo to analyze nutrition
+              {analyzing ? 'Analyzing your food...' : 'Snap a photo to analyze nutrition'}
             </p>
           </div>
         </div>
 
-        <AnalysisProgress isAnalyzing={analyzing} />
+        <AnalysisProgress 
+          isAnalyzing={analyzing} 
+          imagePreview={imagePreview}
+          analysisType="image"
+        />
 
         {showConfirmation && foodItems.length > 0 && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
             {/* AI Analysis summary */}
             {analysisData && (
               <Card className="border border-border bg-muted/30 p-4">
@@ -346,6 +408,13 @@ export default function Camera() {
           </Card>
         )}
       </div>
+      
+      {/* Navigation confirmation dialog */}
+      <NavigationConfirmDialog
+        open={showNavDialog}
+        onConfirm={confirmNavigation}
+        onCancel={cancelNavigation}
+      />
     </div>
   );
 }
