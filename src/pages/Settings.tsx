@@ -773,38 +773,6 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-
-        {/* Preferences Section */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide px-1">Preferences</h3>
-          
-          <Card className="border-0 shadow-sm">
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    {resolvedTheme === 'dark' ? (
-                      <Moon className="h-5 w-5 text-primary" />
-                    ) : (
-                      <Sun className="h-5 w-5 text-primary" />
-                    )}
-                  </div>
-                  <div>
-                    <span className="font-medium">Dark Mode</span>
-                    <p className="text-xs text-muted-foreground">
-                      {resolvedTheme === 'dark' ? 'On' : 'Off'}
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={resolvedTheme === 'dark'}
-                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Profile & Health Section */}
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide px-1">Profile & Health</h3>
