@@ -152,6 +152,75 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_templates: {
+        Row: {
+          calcium: number | null
+          calories: number | null
+          carbs: number | null
+          created_at: string
+          fat: number | null
+          fiber: number | null
+          food_name: string
+          id: string
+          image_url: string | null
+          iron: number | null
+          meal_type: string | null
+          name: string
+          protein: number | null
+          sodium: number | null
+          sugar: number | null
+          updated_at: string
+          use_count: number
+          user_id: string
+          vitamin_a: number | null
+          vitamin_c: number | null
+        }
+        Insert: {
+          calcium?: number | null
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          fat?: number | null
+          fiber?: number | null
+          food_name: string
+          id?: string
+          image_url?: string | null
+          iron?: number | null
+          meal_type?: string | null
+          name: string
+          protein?: number | null
+          sodium?: number | null
+          sugar?: number | null
+          updated_at?: string
+          use_count?: number
+          user_id: string
+          vitamin_a?: number | null
+          vitamin_c?: number | null
+        }
+        Update: {
+          calcium?: number | null
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          fat?: number | null
+          fiber?: number | null
+          food_name?: string
+          id?: string
+          image_url?: string | null
+          iron?: number | null
+          meal_type?: string | null
+          name?: string
+          protein?: number | null
+          sodium?: number | null
+          sugar?: number | null
+          updated_at?: string
+          use_count?: number
+          user_id?: string
+          vitamin_a?: number | null
+          vitamin_c?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           activity_level: string | null
@@ -320,6 +389,39 @@ export type Database = {
           id?: string
           logged_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_challenges: {
+        Row: {
+          challenge_type: string
+          completed: boolean
+          created_at: string
+          id: string
+          progress: number
+          target: number
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          challenge_type: string
+          completed?: boolean
+          created_at?: string
+          id?: string
+          progress?: number
+          target: number
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          challenge_type?: string
+          completed?: boolean
+          created_at?: string
+          id?: string
+          progress?: number
+          target?: number
+          user_id?: string
+          week_start?: string
         }
         Relationships: []
       }

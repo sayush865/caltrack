@@ -7,11 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Activity, Target, User, Weight } from "lucide-react";
+import { Activity, Target, User, Weight, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type GoalType = 'lose' | 'maintain' | 'gain';
 type Gender = 'male' | 'female' | 'other' | 'prefer_not_to_say';
 type ActivityLevel = 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extra_active';
+
+const TOTAL_STEPS = 4;
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -26,6 +33,7 @@ const Onboarding = () => {
   const [age, setAge] = useState<number>(25);
   const [height, setHeight] = useState<number>(170);
   const [weight, setWeight] = useState<number>(70);
+  const [goalWeight, setGoalWeight] = useState<number>(70);
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('moderately_active');
   const [goalType, setGoalType] = useState<GoalType>('maintain');
   const [unitsPreference, setUnitsPreference] = useState<'imperial' | 'metric'>('metric');
@@ -80,6 +88,14 @@ const Onboarding = () => {
     };
   };
 
+  const getWeeksToGoal = () => {
+    if (goalType === 'maintain') return null;
+    const weightDiff = Math.abs(weight - goalWeight);
+    const weeklyChange = goalType === 'lose' ? 0.5 : 0.25; // kg per week
+    const weeks = Math.ceil(weightDiff / weeklyChange);
+    return weeks;
+  };
+
   const handleComplete = async () => {
     setLoading(true);
     try {
@@ -110,6 +126,7 @@ const Onboarding = () => {
         .update({
           ...goals,
           current_weight: weight,
+          goal_weight: goalWeight,
           goal_type: goalType,
         })
         .eq('user_id', user.id);
@@ -198,8 +215,20 @@ const Onboarding = () => {
       <div className="w-full bg-muted h-1">
         <div 
           className="bg-primary h-1 transition-all duration-300"
-          style={{ width: `${(step / 4) * 100}%` }}
+          style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
         />
+      </div>
+
+      {/* Step Indicators */}
+      <div className="flex items-center justify-center gap-2 py-4">
+        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+          <div
+            key={i}
+            className={`h-2 w-2 rounded-full transition-all ${
+              i + 1 <= step ? 'bg-primary' : 'bg-muted'
+            } ${i + 1 === step ? 'w-6' : ''}`}
+          />
+        ))}
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-4">
@@ -224,7 +253,17 @@ const Onboarding = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Gender</Label>
+                  <div className="flex items-center gap-2">
+                    <Label>Gender</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">Used to calculate your basal metabolic rate (BMR) more accurately</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     {[
                       { value: 'male', label: 'Male' },
@@ -245,7 +284,17 @@ const Onboarding = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Age</Label>
+                  <div className="flex items-center gap-2">
+                    <Label>Age</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">Age affects your metabolism and daily calorie needs</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Input
                     type="number"
                     value={age}
@@ -287,7 +336,17 @@ const Onboarding = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Height</Label>
+                  <div className="flex items-center gap-2">
+                    <Label>Height</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">Used with weight to calculate your body composition</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <div className="flex items-center gap-2">
                     <Input
                       type="number"
@@ -307,7 +366,39 @@ const Onboarding = () => {
                     <Input
                       type="number"
                       value={weight}
-                      onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value) || 0;
+                        setWeight(val);
+                        // Sync goal weight if not set differently
+                        if (goalWeight === weight) {
+                          setGoalWeight(val);
+                        }
+                      }}
+                      className="text-xl"
+                    />
+                    <span className="text-muted-foreground">
+                      {unitsPreference === 'imperial' ? 'lbs' : 'kg'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label>Goal Weight</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">Your target weight helps us adjust your calorie goals</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={goalWeight}
+                      onChange={(e) => setGoalWeight(parseFloat(e.target.value) || 0)}
                       className="text-xl"
                     />
                     <span className="text-muted-foreground">
@@ -416,6 +507,13 @@ const Onboarding = () => {
                       <div className="font-medium">{calculateGoals().daily_fat}g</div>
                     </div>
                   </div>
+                  {getWeeksToGoal() && (
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-sm text-muted-foreground">
+                        Estimated time to goal: <span className="font-semibold text-foreground">{getWeeksToGoal()} weeks</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </Card>
 

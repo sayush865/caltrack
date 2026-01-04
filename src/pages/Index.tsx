@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { History } from 'lucide-react';
+import { History, Heart } from 'lucide-react';
 import { format, startOfDay, endOfDay, isToday } from 'date-fns';
 import CalorieProgress from '@/components/CalorieProgress';
 import MacroCard from '@/components/MacroCard';
@@ -14,6 +14,11 @@ import WaterTracker from '@/components/WaterTracker';
 import StreakBadge from '@/components/StreakBadge';
 import HealthMetricsWidget from '@/components/HealthMetricsWidget';
 import DailyInsightCard from '@/components/DailyInsightCard';
+import { TrendBadge } from '@/components/TrendBadge';
+import { SkeletonDashboard } from '@/components/SkeletonCard';
+import { MealTemplatesSheet } from '@/components/MealTemplatesSheet';
+import { WeeklyChallengeCard } from '@/components/WeeklyChallengeCard';
+import { useTrends } from '@/hooks/useTrends';
 
 interface UserGoals {
   daily_calories: number;
@@ -44,6 +49,7 @@ export default function Index() {
   });
   const [recentMeals, setRecentMeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const trends = useTrends();
 
   useEffect(() => {
     fetchGoalsAndData();
@@ -135,11 +141,8 @@ export default function Index() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🍽️</div>
-          <p className="text-muted-foreground">Loading your dashboard...</p>
-        </div>
+      <div className="min-h-screen bg-background pb-24">
+        <SkeletonDashboard />
       </div>
     );
   }
@@ -166,11 +169,25 @@ export default function Index() {
       </div>
 
       <div className="px-4 py-6 max-w-4xl mx-auto space-y-6">
+        {/* Weekly Challenge - only show for today */}
+        {isToday(selectedDate) && <WeeklyChallengeCard />}
+        
         {/* Daily Insight Card */}
         {isToday(selectedDate) && <DailyInsightCard />}
         
-        {/* Calorie Progress */}
-        <CalorieProgress consumed={consumed.calories} goal={goals.daily_calories} />
+        {/* Calorie Progress with Trend */}
+        <div className="space-y-2">
+          <CalorieProgress consumed={consumed.calories} goal={goals.daily_calories} />
+          {isToday(selectedDate) && !trends.loading && trends.yesterdayCalories > 0 && (
+            <div className="flex justify-center">
+              <TrendBadge
+                current={consumed.calories}
+                previous={trends.yesterdayCalories}
+                label="vs yesterday"
+              />
+            </div>
+          )}
+        </div>
 
         {/* Macro Cards */}
         <div className="grid grid-cols-2 gap-3">
@@ -204,14 +221,48 @@ export default function Index() {
           />
         </div>
 
+        {/* Weekly Trend Summary - only show for today */}
+        {isToday(selectedDate) && !trends.loading && trends.lastWeekCalories > 0 && (
+          <Card className="p-4 border-border/50">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Weekly Progress</p>
+                <p className="text-xs text-muted-foreground">Compared to last week</p>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <TrendBadge
+                  current={trends.currentWeekCalories}
+                  previous={trends.lastWeekCalories}
+                  label="calories"
+                  showPercentage={true}
+                />
+                <TrendBadge
+                  current={trends.currentWeekProtein}
+                  previous={trends.lastWeekProtein}
+                  label="protein"
+                  showPercentage={true}
+                />
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Health Metrics Widget */}
         <HealthMetricsWidget />
 
         {/* Water Tracker */}
         <WaterTracker selectedDate={selectedDate} goal={goals.daily_water} />
 
-        {/* Quick Add - only show for today */}
-        {isToday(selectedDate) && <QuickAddWidget />}
+        {/* Quick Add & Favorites - only show for today */}
+        {isToday(selectedDate) && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-muted-foreground">Quick Add</h3>
+              <MealTemplatesSheet />
+            </div>
+            <QuickAddWidget />
+          </div>
+        )}
 
         {/* Recent Meals */}
         <div className="space-y-4">
