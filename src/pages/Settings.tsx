@@ -21,8 +21,6 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Camera, User, Target, Activity, Scale, AlertTriangle, ChevronRight, Edit, LogOut, Pencil, X, Moon, Sun, Share2, Star } from 'lucide-react';
 import { nutritionGoalsSchema, profileSchema } from '@/lib/validation';
 import { HealthMetrics } from '@/components/HealthMetrics';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { useTheme } from 'next-themes';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -622,25 +620,21 @@ export default function Settings() {
     return labels[gender] || gender;
   };
 
-  const { theme, setTheme, resolvedTheme } = useTheme();
 
   return (
     <div className="min-h-screen bg-muted/30 pb-24">
       <div className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between pb-2">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-              className="h-10 w-10 rounded-full"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-3xl font-bold">Settings</h1>
-          </div>
-          <ThemeToggle />
+        <div className="flex items-center gap-4 pb-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/')}
+            className="h-10 w-10 rounded-full"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-3xl font-bold">Settings</h1>
         </div>
 
         {/* Profile Card */}
