@@ -9,13 +9,16 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/system";
 import { AnalysisTheater } from "@/components/scan/AnalysisTheater";
 import { ScanReviewSheet } from "@/components/scan/ScanReviewSheet";
-import { classifyAnalysisError, BUSY_COPY } from "@/components/scan/analysisError";
+import { classifyAnalysisError, BUSY_COPY, TIMEOUT_COPY } from "@/components/scan/analysisError";
 import { uploadFoodImage } from "@/components/scan/uploadFoodImage";
 import { useAnalysisAbort, useNavigationGuard } from "@/components/scan/useAnalysisAbort";
 import { analyzePhoto, compressImage } from "@/lib/analyze";
 import type { DraftItem } from "@/lib/types";
 
-const ANALYSIS_TIMEOUT_MS = 30_000;
+// The deployed analyze-food function runs Gemini 2.5 Pro and routinely takes 25-40s
+// on multi-item plates; the v2 Flash function will bring this down, but until it is
+// deployed the client must wait it out.
+const ANALYSIS_TIMEOUT_MS = 75_000;
 
 type Phase = "camera" | "analyzing" | "review" | "error";
 type CamState = "starting" | "live" | "denied" | "unavailable";
@@ -141,6 +144,8 @@ export default function Scan() {
         setManualFallback(false);
         if (kind === "busy") {
           setErrorState({ headline: "The kitchen's busy", copy: BUSY_COPY });
+        } else if (kind === "timeout") {
+          setErrorState({ headline: "Still chewing on that one", copy: TIMEOUT_COPY });
         } else {
           setErrorState({
             headline: "Couldn't read that plate",

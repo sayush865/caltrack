@@ -404,21 +404,26 @@ function GoalWeightStep({ answers, patch, next }: StepProps) {
         ariaLabel={`Goal weight in ${unit}`}
       />
 
-      {issue && (
-        <div className="animate-fade-rise space-y-3 rounded-control bg-warning-soft px-4 py-3">
-          <p className="text-label text-warning">
-            Let's aim for {formatWeight(issue.suggestedKg, answers.units, 0)} first — you can set a
-            new goal when you get there.
-          </p>
-          <button
-            type="button"
-            onClick={() => setValue(String(displayWeight(issue.suggestedKg, answers.units)))}
-            className="flex h-11 items-center rounded-control bg-card px-4 text-label text-foreground shadow-card transition-transform duration-instant active:scale-[0.97]"
-          >
-            Use {formatWeight(issue.suggestedKg, answers.units, 0)}
-          </button>
-        </div>
-      )}
+      {issue &&
+        (() => {
+          // Ceil in display units so the value we advertise always clears the
+          // guardrail (rounding down could leave the goal still blocked).
+          const suggested = Math.ceil(displayWeight(issue.suggestedKg, answers.units));
+          return (
+            <div className="animate-fade-rise space-y-3 rounded-control bg-warning-soft px-4 py-3">
+              <p className="text-label text-warning">
+                Let's aim for {suggested} {unit} first — you can set a new goal when you get there.
+              </p>
+              <button
+                type="button"
+                onClick={() => setValue(String(suggested))}
+                className="flex h-11 items-center rounded-control bg-card px-4 text-label text-foreground shadow-card transition-transform duration-instant active:scale-[0.97]"
+              >
+                Use {suggested} {unit}
+              </button>
+            </div>
+          );
+        })()}
 
       {realistic && (
         <AffirmationBanner>

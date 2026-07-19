@@ -121,7 +121,7 @@ export function MealGroup({ mealType, rows, onRowClick, onRowDelete, onAdd, clas
       )}
 
       {rows.map((row) => (
-        <LogItemRow key={row.id} row={row} onClick={() => onRowClick(row)} onDelete={() => onRowDelete(row)} />
+        <LogItemRow key={row.id} row={row} showMealChip={false} onClick={() => onRowClick(row)} onDelete={() => onRowDelete(row)} />
       ))}
 
       <button

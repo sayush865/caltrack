@@ -35,7 +35,9 @@ function r1(n: number): number {
 
 /** Non-destructive rescale: display macros = immutable base × quantity. */
 function rescale(item: DraftItem, quantity: number): DraftItem {
-  const q = Math.max(0.25, r1(quantity));
+  // Quantity keeps 2-decimal precision — rounding it to 1dp would corrupt 0.25 steps
+  // (1.25 → 1.3). Macro *values* still display at 1dp.
+  const q = Math.max(0.25, Math.round(quantity * 100) / 100);
   const b = item.base;
   return {
     ...item,

@@ -8,6 +8,8 @@ export interface MacroBarProps {
   target: number;
   /** Hides the uppercase label — bar + value only. */
   compact?: boolean;
+  /** Render as a target line ("148g", full bar) — for plan reveals, not progress. */
+  targetOnly?: boolean;
   className?: string;
 }
 
@@ -23,14 +25,13 @@ const KIND_CLASSES: Record<
   water: { label: "Water", text: "text-water", fill: "bg-water", track: "bg-water-soft" },
 };
 
-export function MacroBar({ kind, value, target, compact = false, className }: MacroBarProps) {
+export function MacroBar({ kind, value, target, compact = false, targetOnly = false, className }: MacroBarProps) {
   const k = KIND_CLASSES[kind];
-  const pct = target > 0 ? Math.min((value / target) * 100, 100) : 0;
+  const pct = targetOnly ? 100 : target > 0 ? Math.min((value / target) * 100, 100) : 0;
   const unit = kind === "water" ? "ml" : "g";
   const valueText = (
     <span className="font-display text-[13px] font-medium tabular-nums text-foreground">
-      {Math.round(value)}/{Math.round(target)}
-      {unit}
+      {targetOnly ? `${Math.round(target)}${unit}` : `${Math.round(value)}/${Math.round(target)}${unit}`}
     </span>
   );
   const track = (

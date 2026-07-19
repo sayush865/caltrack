@@ -29,7 +29,14 @@ export default function Today() {
   const { data: profile } = useProfile();
   const { data: goals } = useGoals();
 
-  const name = profile?.username;
+  // Only greet by name when the username reads like one a human picked —
+  // auto-generated usernames come from email prefixes ("caltrack.claude.test2…")
+  // and make the greeting worse than no name at all.
+  const username = profile?.username;
+  const name =
+    username && username.length <= 14 && /^[a-zA-Z][a-zA-Z0-9_]*$/.test(username)
+      ? username
+      : null;
 
   return (
     <div className="min-h-screen bg-background">

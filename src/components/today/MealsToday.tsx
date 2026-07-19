@@ -53,6 +53,7 @@ export function MealsToday({ day, dayKey, className }: MealsTodayProps) {
                   <LogItemRow
                     key={row.id}
                     row={row}
+                    showMealChip={false}
                     onClick={mealId ? () => navigate(`/meal/${mealId}`) : undefined}
                     onDelete={() =>
                       deleteLog.mutate({ id: row.id, dayKey, name: row.food_name ?? undefined })

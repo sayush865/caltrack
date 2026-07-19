@@ -34,10 +34,10 @@ export function PlanReveal({
 
       <Surface className="mt-6 space-y-4 p-5">
         <p className="text-micro uppercase text-muted-foreground">Daily targets</p>
-        <MacroBar kind="protein" value={plan.protein} target={plan.protein} />
-        <MacroBar kind="carbs" value={plan.carbs} target={plan.carbs} />
-        <MacroBar kind="fat" value={plan.fat} target={plan.fat} />
-        <MacroBar kind="fiber" value={plan.fiber} target={plan.fiber} />
+        <MacroBar kind="protein" value={plan.protein} target={plan.protein} targetOnly />
+        <MacroBar kind="carbs" value={plan.carbs} target={plan.carbs} targetOnly />
+        <MacroBar kind="fat" value={plan.fat} target={plan.fat} targetOnly />
+        <MacroBar kind="fiber" value={plan.fiber} target={plan.fiber} targetOnly />
         {plan.glp1 && (
           <p className="border-t border-border pt-3 text-caption text-secondary-text">
             On a GLP-1, protein comes first: hit the coral bar every day — it protects muscle when

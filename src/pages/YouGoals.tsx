@@ -290,7 +290,13 @@ export default function YouGoals() {
                         <span className="mt-0.5 block text-caption text-muted-foreground">{opt.caption}</span>
                         <span className="mt-1 block text-caption tabular-nums text-secondary-text">
                           {projected
-                            ? `~${projected.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+                            ? `~${projected.toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                                // Paces can differ by years — an undated "~14 Feb" reads
+                                // sooner than "~3 May" of the previous year.
+                                year: projected.getFullYear() !== new Date().getFullYear() ? "2-digit" : undefined,
+                              })}`
                             : "—"}
                         </span>
                       </button>

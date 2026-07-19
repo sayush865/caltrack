@@ -9,6 +9,8 @@ export interface LogItemRowProps {
   onClick?: () => void;
   /** Renders a right-side ghost trash button (44px target). Swipe gestures are P1. */
   onDelete?: () => void;
+  /** Hide the meal-type chip when the row already sits under a meal-group header. */
+  showMealChip?: boolean;
   className?: string;
 }
 
@@ -25,7 +27,7 @@ const MACRO_DOTS = [
 ] as const;
 
 /** Food log list row: 56px thumb • name • time/meal chip • kcal + P/C/F dots • confidence pip. */
-export function LogItemRow({ row, onClick, onDelete, className }: LogItemRowProps) {
+export function LogItemRow({ row, onClick, onDelete, showMealChip = true, className }: LogItemRowProps) {
   const meta = parseLogMeta(row.notes);
 
   return (
@@ -66,12 +68,12 @@ export function LogItemRow({ row, onClick, onDelete, className }: LogItemRowProp
         <p className="line-clamp-1 text-body font-semibold text-foreground">
           {row.food_name ?? "Logged food"}
         </p>
-        <div className="mt-0.5 flex items-center gap-1.5">
-          <span className="text-caption text-muted-foreground tabular-nums">
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden">
+          <span className="shrink-0 text-caption text-muted-foreground tabular-nums">
             {formatTime(row.logged_at)}
           </span>
-          {row.meal_type && (
-            <span className="rounded-full bg-secondary px-1.5 py-0.5 text-micro uppercase text-secondary-text">
+          {showMealChip && row.meal_type && (
+            <span className="truncate rounded-full bg-secondary px-1.5 py-0.5 text-micro uppercase text-secondary-text">
               {row.meal_type}
             </span>
           )}

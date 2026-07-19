@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import WeightSheet from "@/components/WeightSheet";
 import { dayKey, isToday, parseDayKey, suggestedMealType } from "@/lib/dates";
 import { parseLogMeta, type DraftItem, type Favorite, type FoodLogRow } from "@/lib/types";
@@ -291,6 +291,7 @@ function LogSheetBody({ open, onOpenChange, dateKey }: LogSheetBodyProps) {
         >
           <SheetHeader className="text-left">
             <SheetTitle className="text-title text-foreground">Log something</SheetTitle>
+            <SheetDescription className="sr-only">Choose how to log a meal, exercise, water, or weight.</SheetDescription>
           </SheetHeader>
 
           <div className="pb-safe">
