@@ -1,128 +1,69 @@
-import { Home, FileText, Plus, Target, User, Camera, Database, MessageSquare, BarChart3, Trophy, Dumbbell } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { BookOpen, Home, Plus, TrendingUp, User, type LucideIcon } from "lucide-react";
+import { NavLink } from "react-router-dom";
+
+import { useLogSheet } from "@/components/LogSheet";
+
+interface TabDef {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  end?: boolean;
+}
+
+const LEFT_TABS: TabDef[] = [
+  { to: "/", icon: Home, label: "Today", end: true },
+  { to: "/log", icon: BookOpen, label: "Diary" },
+];
+
+const RIGHT_TABS: TabDef[] = [
+  { to: "/insights", icon: TrendingUp, label: "Insights" },
+  { to: "/you", icon: User, label: "You" },
+];
+
+function Tab({ to, icon: Icon, label, end }: TabDef) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className="flex h-12 w-16 flex-col items-center justify-center gap-0.5 transition-transform duration-instant active:scale-[0.97]"
+    >
+      {({ isActive }) => (
+        <>
+          <Icon className={`h-6 w-6 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+          <span className={`text-[11px] font-medium leading-none ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+            {label}
+          </span>
+          <span
+            aria-hidden
+            className={`h-1 w-1 rounded-full ${isActive ? "bg-primary" : "bg-transparent"}`}
+          />
+        </>
+      )}
+    </NavLink>
+  );
+}
 
 const BottomNav = () => {
-  const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-
-  const leftNavItems = [
-    { to: "/", icon: Home, label: "Home" },
-    { to: "/weekly-summary", icon: BarChart3, label: "Insights" },
-  ];
-
-  const rightNavItems = [
-    { to: "/achievements", icon: Trophy, label: "Awards" },
-    { to: "/settings", icon: User, label: "Profile" },
-  ];
-
-  const addOptions = [
-    {
-      icon: Camera,
-      label: "Scan Food",
-      description: "Take a photo to analyze nutrition",
-      onClick: () => {
-        setOpen(false);
-        navigate("/camera");
-      },
-    },
-    {
-      icon: MessageSquare,
-      label: "Type Food",
-      description: "Describe what you ate",
-      onClick: () => {
-        setOpen(false);
-        navigate("/text-food");
-      },
-    },
-    {
-      icon: Database,
-      label: "Food Database",
-      description: "Choose from our food database",
-      onClick: () => {
-        setOpen(false);
-        navigate("/food-database");
-      },
-    },
-    {
-      icon: Dumbbell,
-      label: "Log Exercise",
-      description: "Track your workouts and burn calories",
-      onClick: () => {
-        setOpen(false);
-        navigate("/exercise-database");
-      },
-    },
-  ];
+  const { openLogSheet } = useLogSheet();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 safe-area-inset-bottom">
-      <div className="flex items-center justify-around h-16 px-4 max-w-screen-xl mx-auto">
-        {leftNavItems.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all ${
-                isActive
-                  ? 'text-foreground bg-secondary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-              }`
-            }
-          >
-            <Icon className="w-5 h-5" />
-            <span className="text-[10px] font-medium">{label}</span>
-          </NavLink>
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/85 pb-safe backdrop-blur-lg">
+      <div className="mx-auto flex h-nav w-full max-w-md items-center justify-around px-2">
+        {LEFT_TABS.map((tab) => (
+          <Tab key={tab.to} {...tab} />
         ))}
-        
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <button className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all bg-foreground text-background -mt-8 p-4 rounded-full shadow-lg">
-              <Plus className="w-6 h-6" />
-            </button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="h-auto">
-            <SheetHeader>
-              <SheetTitle>Add Food</SheetTitle>
-            </SheetHeader>
-            <div className="grid gap-3 mt-6 mb-6">
-              {addOptions.map((option) => (
-                <Button
-                  key={option.label}
-                  variant="outline"
-                  className="h-auto p-4 justify-start"
-                  onClick={option.onClick}
-                >
-                  <option.icon className="w-5 h-5 mr-3" />
-                  <div className="text-left">
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {option.description}
-                    </div>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </SheetContent>
-        </Sheet>
-        
-        {rightNavItems.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all ${
-                isActive
-                  ? 'text-foreground bg-secondary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-              }`
-            }
-          >
-            <Icon className="w-5 h-5" />
-            <span className="text-[10px] font-medium">{label}</span>
-          </NavLink>
+
+        <button
+          type="button"
+          aria-label="Log something"
+          onClick={() => openLogSheet()}
+          className="flex h-14 w-14 -translate-y-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-raised transition-transform duration-instant active:scale-[0.92]"
+        >
+          <Plus className="h-[26px] w-[26px]" strokeWidth={2.5} />
+        </button>
+
+        {RIGHT_TABS.map((tab) => (
+          <Tab key={tab.to} {...tab} />
         ))}
       </div>
     </nav>

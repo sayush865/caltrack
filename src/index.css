@@ -2,72 +2,146 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Minimalist design system with monochrome palette */
+/* CalTrack AI design tokens — source of truth: docs/DESIGN_SYSTEM.md §2–§4 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    /* ── Surfaces ─────────────────────────────────── */
+    --background: 40 30% 98%; /* warm off-white canvas */
+    --card: 0 0% 100%; /* pure white cards — food photos pop */
+    --card-hover: 40 20% 97%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 0 0% 20%;
-    --chart-2: 0 0% 30%;
-    --chart-3: 0 0% 40%;
-    --chart-4: 0 0% 50%;
-    --chart-5: 0 0% 60%;
-    --radius: 0.5rem;
-    
-    /* Enhanced Gradients */
-    --gradient-dark: linear-gradient(135deg, hsl(0 0% 5%), hsl(0 0% 20%));
-    --gradient-primary: linear-gradient(135deg, hsl(0 0% 9%), hsl(0 0% 25%));
-    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
-    --gradient-mesh: radial-gradient(at 0% 0%, hsl(0 0% 97%) 0px, transparent 50%),
-                     radial-gradient(at 100% 0%, hsl(0 0% 96%) 0px, transparent 50%),
-                     radial-gradient(at 100% 100%, hsl(0 0% 97%) 0px, transparent 50%);
-    
-    /* Shadows */
-    --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.05);
-    --shadow-medium: 0 4px 16px -4px hsl(0 0% 0% / 0.1);
-    --shadow-strong: 0 8px 32px -8px hsl(0 0% 0% / 0.15);
-    --shadow-glow: 0 0 24px hsl(0 0% 0% / 0.08);
-    
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 3.9%;
-    --sidebar-primary: 0 0% 9%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 0 0% 96.1%;
-    --sidebar-accent-foreground: 0 0% 9%;
-    --sidebar-border: 0 0% 89.8%;
-    --sidebar-ring: 0 0% 3.9%;
-  }
-}
+    --sheet: 0 0% 100%;
+    --overlay: 24 10% 10% / 0.4; /* scrim behind sheets/dialogs */
 
-@layer base {
+    /* ── Text hierarchy (warm gray ramp) ──────────── */
+    --foreground: 24 10% 10%; /* primary text, hero numerals */
+    --text-secondary: 25 6% 38%; /* labels, body copy */
+    --muted-foreground: 25 5% 52%; /* captions, timestamps */
+    --text-disabled: 25 5% 68%;
+
+    /* ── Borders / lines ──────────────────────────── */
+    --border: 30 12% 90%;
+    --border-strong: 30 10% 82%;
+    --input: 30 12% 90%;
+    --ring: 152 55% 34%; /* focus ring = brand */
+
+    /* ── Brand ─────────────────────────────────────── */
+    --primary: 152 55% 30%; /* "Basil" deep green — CTAs, FAB, active nav */
+    --primary-foreground: 0 0% 100%;
+    --primary-soft: 152 45% 94%; /* tinted chips/backgrounds */
+    --accent: 152 55% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    /* ── Nutrient identity hues (layer 1) ─────────── */
+    --calories: 24 10% 10%; /* calories stay neutral ink — never a hue */
+    --calories-track: 30 12% 91%; /* empty ring track */
+    --protein: 12 78% 52%; /* coral */
+    --protein-soft: 12 80% 95%;
+    --carbs: 38 94% 46%; /* amber */
+    --carbs-soft: 40 92% 94%;
+    --fat: 258 68% 60%; /* violet */
+    --fat-soft: 258 70% 96%;
+    --fiber: 172 55% 34%; /* teal */
+    --fiber-soft: 172 45% 94%;
+    --water: 199 89% 44%; /* sky */
+    --water-soft: 199 85% 95%;
+
+    /* ── Semantic status (layer 2 — states only) ──── */
+    --success: 152 60% 34%;
+    --success-soft: 152 45% 93%;
+    --warning: 38 92% 42%; /* "near limit" — informational, never shaming */
+    --warning-soft: 40 92% 93%;
+    --destructive: 4 72% 50%; /* delete/danger ONLY. Never for over-calorie states */
+    --destructive-soft: 4 72% 95%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 199 89% 40%;
+    --info-soft: 199 85% 95%;
+
+    /* ── Special ──────────────────────────────────── */
+    --streak: 24 94% 50%; /* flame orange */
+    --streak-soft: 26 95% 94%;
+    --confidence-high: 152 60% 34%;
+    --confidence-med: 38 92% 42%;
+    --confidence-low: 25 5% 52%; /* low confidence is gray, not red — honesty, not alarm */
+
+    /* ── shadcn passthrough ───────────────────────── */
+    --secondary: 40 20% 95%;
+    --secondary-foreground: 24 10% 10%;
+    --muted: 40 20% 95%;
+    --card-foreground: 24 10% 10%;
+    --popover-foreground: 24 10% 10%;
+
+    /* ── Chart tokens (used by Recharts) ──────────── */
+    --chart-calories: var(--foreground);
+    --chart-goal-line: 25 5% 60%;
+    --chart-under: 152 45% 55%;
+    --chart-on-target: 152 60% 34%;
+    --chart-over: 38 92% 46%; /* over = amber, NOT red */
+    --chart-grid: 30 12% 92%;
+
+    /* ── Radius (three values only) ───────────────── */
+    --radius: 1rem; /* base 16px */
+    --radius-card: 20px;
+    --radius-control: 12px;
+
+    /* ── Shadows (two levels only) ─────────────────── */
+    --shadow-card: 0 1px 2px hsl(24 10% 10% / 0.04), 0 4px 16px hsl(24 10% 10% / 0.05);
+    --shadow-raised: 0 2px 4px hsl(24 10% 10% / 0.06), 0 12px 32px hsl(24 10% 10% / 0.1);
+
+    /* ── Motion ───────────────────────────────────── */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
   * {
     @apply border-border;
   }
 
   body {
     @apply bg-background text-foreground;
+    font-family:
+      "Inter",
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 }
 
-/* Confetti animation */
+/* ── Keyframes ──────────────────────────────────── */
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes flame-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+}
+
 @keyframes confetti-fall {
   0% {
     transform: translateY(0) rotate(0deg);
@@ -83,12 +157,66 @@
   animation: confetti-fall 2s ease-out forwards;
 }
 
-/* Scrollbar hide utility */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+@layer components {
+  /* Skeleton block base — pair with rounded-* sizing per component */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+    background-color: hsl(var(--muted));
+  }
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.6), transparent);
+    animation: shimmer 1.6s linear infinite;
+  }
 }
 
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .h-nav {
+    height: 64px;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Display sizes always render in Space Grotesk with tabular numerals */
+  .text-display-xl,
+  .text-display-lg,
+  .text-display-md {
+    font-family: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "tnum";
+  }
+
+  .tabular-nums {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Reduced motion: final states instantly, no expressive animation */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after,
+  .animate-shimmer,
+  .animate-fade-rise,
+  .animate-flame-pulse,
+  .animate-confetti-fall {
+    animation: none !important;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

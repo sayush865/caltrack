@@ -1,159 +1,172 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState, useCallback } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { Toaster } from "sonner";
+import { RotateCcw } from "lucide-react";
 
-import { supabase } from "@/integrations/supabase/client";
-import Index from "./pages/Index";
+import { AuthProvider, useSession } from "@/hooks/useSession";
+import { useProfile } from "@/hooks/useProfile";
+import BottomNav from "@/components/BottomNav";
+import { LogSheetProvider } from "@/components/LogSheet";
+import { ConfettiHost } from "@/components/system";
+
+import Welcome from "./pages/Welcome";
 import Auth from "./pages/Auth";
-import DailyLog from "./pages/DailyLog";
-import Camera from "./pages/Camera";
-import TextFood from "./pages/TextFood";
-import FoodDatabase from "./pages/FoodDatabase";
-import ExerciseDatabase from "./pages/ExerciseDatabase";
-import Settings from "./pages/Settings";
-import Goals from "./pages/Goals";
-import EditFoodLog from "./pages/EditFoodLog";
-import Onboarding from "./pages/Onboarding";
+import Today from "./pages/Today";
+import Diary from "./pages/Diary";
+import Insights from "./pages/Insights";
+import You from "./pages/You";
+import Scan from "./pages/Scan";
+import Describe from "./pages/Describe";
+import Foods from "./pages/Foods";
+import Exercise from "./pages/Exercise";
+import MealDetail from "./pages/MealDetail";
+import YouGoals from "./pages/YouGoals";
+import YouWeight from "./pages/YouWeight";
+import YouMilestones from "./pages/YouMilestones";
+import YouSettings from "./pages/YouSettings";
 import NotFound from "./pages/NotFound";
-import WeeklySummary from "./pages/WeeklySummary";
-import Achievements from "./pages/Achievements";
-import BottomNav from "./components/BottomNav";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      retry: 1,
+    },
+  },
+});
 
-function ProtectedRoute({
-  children,
-  requireOnboarding = true,
-}: {
-  children: React.ReactNode;
-  requireOnboarding?: boolean;
-}) {
-  const location = useLocation();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+/* ── Route-level error boundary ─────────────────────────────── */
 
-  const fetchOnboardingStatus = useCallback(async (userId: string) => {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("id", userId)
-      .single();
+interface ErrorBoundaryState {
+  error: Error | null;
+}
 
-    setOnboardingComplete(!!profile?.onboarding_completed);
-  }, []);
+class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { error: null };
 
-  useEffect(() => {
-    // Listener MUST be synchronous; defer any backend calls.
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const authed = !!session;
-      setIsAuthenticated(authed);
-
-      if (!session?.user) {
-        setOnboardingComplete(false);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setTimeout(() => {
-        fetchOnboardingStatus(session.user.id)
-          .catch(() => setOnboardingComplete(false))
-          .finally(() => setIsLoading(false));
-      }, 0);
-    });
-
-    const checkSession = async () => {
-      // Small timeout to allow localStorage to be fully ready after hot reload
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      setIsAuthenticated(!!session);
-
-      if (!session?.user) {
-        setOnboardingComplete(false);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      await fetchOnboardingStatus(session.user.id).catch(() => setOnboardingComplete(false));
-      setIsLoading(false);
-    };
-
-    checkSession();
-
-    return () => subscription.unsubscribe();
-  }, [fetchOnboardingStatus]);
-
-  // Re-check profile when navigating, so finishing onboarding immediately reflects on protected routes.
-  useEffect(() => {
-    const refresh = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchOnboardingStatus(session.user.id).catch(() => setOnboardingComplete(false));
-      }
-    };
-
-    refresh();
-  }, [location.pathname, fetchOnboardingStatus]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>
-    );
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { error };
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/auth" />;
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("Route error:", error, info.componentStack);
   }
 
-  if (requireOnboarding && !onboardingComplete) {
-    return <Navigate to="/onboarding" />;
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+          <div className="w-full max-w-md rounded-card border border-border bg-card p-6 text-center shadow-card">
+            <h1 className="text-heading text-foreground">Something went wrong</h1>
+            <p className="mt-2 text-body text-muted-foreground">
+              An unexpected error interrupted the app. Your logged data is safe.
+            </p>
+            <button
+              onClick={() => this.setState({ error: null })}
+              className="mt-5 inline-flex h-11 min-w-[44px] items-center justify-center gap-2 rounded-control bg-primary px-6 text-label text-primary-foreground transition-transform duration-instant active:scale-[0.92]"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Try again
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
   }
+}
 
+/* ── Auth gate (session + onboarding from cache, no refetching) ── */
+
+function ShellSkeleton() {
   return (
-    <>
-      {children}
-      <BottomNav />
-    </>
+    <div className="mx-auto min-h-screen w-full max-w-md space-y-3 bg-background px-4 pt-8">
+      <div className="shimmer h-8 w-40 rounded-control" />
+      <div className="shimmer h-64 w-full rounded-card" />
+      <div className="shimmer h-20 w-full rounded-card" />
+      <div className="shimmer h-20 w-full rounded-card" />
+    </div>
   );
 }
 
+function AuthGate({ children }: { children: ReactNode }) {
+  const { session, loading } = useSession();
+  const profileQuery = useProfile();
+
+  if (loading || (session && profileQuery.isLoading)) {
+    return <ShellSkeleton />;
+  }
+  if (!session) {
+    return <Navigate to="/welcome" replace />;
+  }
+  if (!profileQuery.data?.onboarding_completed) {
+    return <Navigate to="/welcome" replace />;
+  }
+  return <>{children}</>;
+}
+
+/** Tab destinations: BottomNav + FAB LogSheet. */
+function TabLayout() {
+  return (
+    <AuthGate>
+      <LogSheetProvider>
+        <Outlet />
+        <BottomNav />
+      </LogSheetProvider>
+    </AuthGate>
+  );
+}
+
+/** Stacked pages: auth-gated, no BottomNav. */
+function StackLayout() {
+  return (
+    <AuthGate>
+      <Outlet />
+    </AuthGate>
+  );
+}
+
+/* ── App ────────────────────────────────────────────────────── */
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
+    <AuthProvider>
+      <Toaster position="top-center" richColors={false} />
+      <ConfettiHost />
       <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-            <Route path="/onboarding" element={<ProtectedRoute requireOnboarding={false}><Onboarding /></ProtectedRoute>} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/daily-log" element={<ProtectedRoute><DailyLog /></ProtectedRoute>} />
-            <Route path="/camera" element={<ProtectedRoute><Camera /></ProtectedRoute>} />
-            <Route path="/text-food" element={<ProtectedRoute><TextFood /></ProtectedRoute>} />
-            <Route path="/food-database" element={<ProtectedRoute><FoodDatabase /></ProtectedRoute>} />
-            <Route path="/exercise-database" element={<ProtectedRoute><ExerciseDatabase /></ProtectedRoute>} />
-            <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/edit-food/:id" element={<ProtectedRoute><EditFoodLog /></ProtectedRoute>} />
-            <Route path="/weekly-summary" element={<ProtectedRoute><WeeklySummary /></ProtectedRoute>} />
-            <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            {/* Public */}
+            <Route path="/welcome" element={<Welcome />} />
+            <Route path="/auth" element={<Auth />} />
+
+            {/* Tabs (BottomNav) */}
+            <Route element={<TabLayout />}>
+              <Route path="/" element={<Today />} />
+              <Route path="/log" element={<Diary />} />
+              <Route path="/insights" element={<Insights />} />
+              <Route path="/you" element={<You />} />
+            </Route>
+
+            {/* Stacked (no BottomNav) */}
+            <Route element={<StackLayout />}>
+              <Route path="/scan" element={<Scan />} />
+              <Route path="/describe" element={<Describe />} />
+              <Route path="/foods" element={<Foods />} />
+              <Route path="/exercise" element={<Exercise />} />
+              <Route path="/meal/:mealId" element={<MealDetail />} />
+              <Route path="/you/goals" element={<YouGoals />} />
+              <Route path="/you/weight" element={<YouWeight />} />
+              <Route path="/you/milestones" element={<YouMilestones />} />
+              <Route path="/you/settings" element={<YouSettings />} />
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ErrorBoundary>
       </BrowserRouter>
-    </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

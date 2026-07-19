@@ -1,411 +1,334 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, AlertTriangle } from 'lucide-react';
-import caltrackLogo from "@/assets/caltrack-logo.png";
-import { authSignUpSchema, authSignInSchema } from '@/lib/validation';
+// /auth — returning-user sign in (email only; the old username-or-email RPC
+// lookup is gone), forgot-password flow, and the #type=recovery handler for
+// setting a new password from a reset link.
 
-// Rate limiting constants
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
-const STORAGE_KEY = 'login_attempts';
+import { useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { KeyRound, Loader2, MailCheck, ScanLine } from "lucide-react";
+import { toast } from "sonner";
 
-interface LoginAttempts {
-  timestamps: number[];
-  lockoutUntil: number | null;
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PrimaryButton } from "@/components/onboarding/ui";
+
+type Mode = "signin" | "forgot" | "sent" | "recovery";
+
+function friendlySignInError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("invalid login credentials"))
+    return "That email and password don't match. Double-check them, or reset your password below.";
+  if (m.includes("email not confirmed"))
+    return "Your email isn't verified yet — check your inbox for the confirmation link.";
+  if (m.includes("rate") || m.includes("too many"))
+    return "Too many attempts — take a short breather and try again in a minute.";
+  return "We couldn't sign you in. Please try again.";
 }
-
-const getLoginAttempts = (): LoginAttempts => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch {}
-  return { timestamps: [], lockoutUntil: null };
-};
-
-const saveLoginAttempts = (attempts: LoginAttempts) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(attempts));
-};
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [usernameError, setUsernameError] = useState('');
-  const [lastUsernameCheck, setLastUsernameCheck] = useState(0);
-  const [lockoutTime, setLockoutTime] = useState<number | null>(null);
-  const USERNAME_CHECK_DELAY = 2000;
+  const [mode, setMode] = useState<Mode>(() =>
+    typeof window !== "undefined" && window.location.hash.includes("type=recovery")
+      ? "recovery"
+      : "signin",
+  );
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Check lockout status on mount and update countdown
-  useEffect(() => {
-    const checkLockout = () => {
-      const attempts = getLoginAttempts();
-      if (attempts.lockoutUntil && attempts.lockoutUntil > Date.now()) {
-        setLockoutTime(attempts.lockoutUntil);
-      } else if (attempts.lockoutUntil) {
-        // Lockout expired, clear it
-        saveLoginAttempts({ timestamps: [], lockoutUntil: null });
-        setLockoutTime(null);
-      }
-    };
+  const emailValid = /.+@.+\..+/.test(email.trim());
 
-    checkLockout();
-    const interval = setInterval(checkLockout, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/');
-      }
-    };
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate('/');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const checkUsernameAvailability = async (usernameToCheck: string) => {
-    if (usernameToCheck.length < 3) {
-      setUsernameError('');
-      return;
-    }
-
-    const now = Date.now();
-    if (now - lastUsernameCheck < USERNAME_CHECK_DELAY) {
-      return;
-    }
-    setLastUsernameCheck(now);
-
-    // Use secure RPC function for case-insensitive check
-    const { data, error } = await supabase.rpc('check_username_exists', {
-      lookup_username: usernameToCheck
-    });
-
-    if (!error && data === true) {
-      setUsernameError('Username already taken. Please try a different one.');
-    } else {
-      setUsernameError('');
-    }
-  };
-
-  const recordFailedAttempt = () => {
-    const attempts = getLoginAttempts();
-    const now = Date.now();
-    
-    // Filter out old attempts
-    const recentAttempts = attempts.timestamps.filter(
-      t => now - t < LOCKOUT_DURATION
-    );
-    recentAttempts.push(now);
-
-    if (recentAttempts.length >= MAX_LOGIN_ATTEMPTS) {
-      const lockoutUntil = now + LOCKOUT_DURATION;
-      saveLoginAttempts({ timestamps: recentAttempts, lockoutUntil });
-      setLockoutTime(lockoutUntil);
-    } else {
-      saveLoginAttempts({ timestamps: recentAttempts, lockoutUntil: null });
-    }
-  };
-
-  const clearLoginAttempts = () => {
-    saveLoginAttempts({ timestamps: [], lockoutUntil: null });
-    setLockoutTime(null);
-  };
-
-  const isLockedOut = () => {
-    return lockoutTime !== null && lockoutTime > Date.now();
-  };
-
-  const getRemainingLockoutTime = () => {
-    if (!lockoutTime) return '';
-    const remaining = Math.max(0, lockoutTime - Date.now());
-    const minutes = Math.floor(remaining / 60000);
-    const seconds = Math.floor((remaining % 60000) / 1000);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
+  const signIn = async (e: FormEvent) => {
     e.preventDefault();
-    
-    if (usernameError) {
-      toast({
-        title: 'Invalid username',
-        description: usernameError,
-        variant: 'destructive',
-      });
+    if (busy || !emailValid || !password) return;
+    setBusy(true);
+    setError(null);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    setBusy(false);
+    if (signInError) {
+      setError(friendlySignInError(signInError.message));
       return;
     }
-    
-    setLoading(true);
-
-    try {
-      const validationResult = authSignUpSchema.safeParse({
-        username,
-        email,
-        password,
-      });
-
-      if (!validationResult.success) {
-        const firstError = validationResult.error.errors[0];
-        throw new Error(firstError.message);
-      }
-
-      const { error } = await supabase.auth.signUp({
-        email: validationResult.data.email,
-        password: validationResult.data.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            username: validationResult.data.username
-          }
-        }
-      });
-
-      if (error) {
-        let errorMessage = error.message;
-        if (error.message.includes('already registered')) {
-          errorMessage = 'This email is already registered. Please sign in instead.';
-        }
-        throw new Error(errorMessage);
-      }
-
-      toast({
-        title: 'Account created!',
-        description: 'Welcome to CalTrack AI. You can start tracking your nutrition.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Sign up failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+    navigate("/", { replace: true });
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const sendReset = async (e: FormEvent) => {
     e.preventDefault();
-
-    if (isLockedOut()) {
-      toast({
-        title: 'Too many attempts',
-        description: `Please wait ${getRemainingLockoutTime()} before trying again.`,
-        variant: 'destructive',
-      });
+    if (busy || !emailValid) return;
+    setBusy(true);
+    setError(null);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+    setBusy(false);
+    if (resetError) {
+      setError("We couldn't send the reset email. Check the address and try again.");
       return;
     }
-
-    setLoading(true);
-
-    try {
-      const validationResult = authSignInSchema.safeParse({
-        identifier,
-        password,
-      });
-
-      if (!validationResult.success) {
-        const firstError = validationResult.error.errors[0];
-        throw new Error(firstError.message);
-      }
-
-      let loginEmail = validationResult.data.identifier;
-
-      // Check if identifier is a username (no @ symbol) - use case-insensitive RPC
-      if (!validationResult.data.identifier.includes('@')) {
-        const { data: email, error } = await supabase.rpc('get_email_by_username', {
-          lookup_username: validationResult.data.identifier
-        });
-
-        if (error || !email) {
-          recordFailedAttempt();
-          throw new Error('Invalid username or password');
-        }
-
-        loginEmail = email;
-      }
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: validationResult.data.password,
-      });
-
-      if (error) {
-        recordFailedAttempt();
-        throw error;
-      }
-
-      // Clear attempts on successful login
-      clearLoginAttempts();
-
-      toast({
-        title: 'Welcome back!',
-        description: 'Successfully signed in.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Sign in failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+    setMode("sent");
   };
+
+  const setNewPasswordSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    if (newPassword.length < 6) {
+      setError("Passwords need at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Those passwords don't match.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    setBusy(false);
+    if (updateError) {
+      setError(
+        "We couldn't update your password — the reset link may have expired. Request a new one below.",
+      );
+      return;
+    }
+    // Clear the recovery hash so a refresh doesn't reopen this form.
+    window.history.replaceState(null, "", window.location.pathname);
+    toast.success("Password updated. Welcome back.");
+    navigate("/", { replace: true });
+  };
+
+  const errorBanner = error && (
+    <div className="rounded-control bg-destructive-soft px-4 py-3">
+      <p className="text-label text-destructive">{error}</p>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-lg border border-border bg-card">
-        <CardHeader className="text-center space-y-4 pb-8">
-          <img src={caltrackLogo} alt="CalTrack AI Logo" className="w-24 h-24 mx-auto" />
-          <div className="space-y-2">
-            <CardTitle className="text-4xl font-bold tracking-tight">CalTrack AI</CardTitle>
-            <CardDescription className="text-base">Smart Calorie & Nutrition Tracking</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {isLockedOut() && (
-            <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-destructive">Too many failed attempts</p>
-                <p className="text-sm text-muted-foreground">Try again in {getRemainingLockoutTime()}</p>
-              </div>
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pb-8">
+        <div className="flex flex-1 flex-col justify-center py-10">
+          <div className="mb-8 flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-primary-soft">
+              <ScanLine className="h-6 w-6 text-primary" strokeWidth={1.75} />
             </div>
-          )}
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-muted h-12">
-              <TabsTrigger value="signin" className="text-base">Sign In</TabsTrigger>
-              <TabsTrigger value="signup" className="text-base">Sign Up</TabsTrigger>
-            </TabsList>
-            <TabsContent value="signin" className="mt-6">
-              <form onSubmit={handleSignIn} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-identifier" className="text-base">Username or Email</Label>
+            <span className="font-display text-heading font-bold text-foreground">CalTrack</span>
+          </div>
+
+          {mode === "signin" && (
+            <div className="animate-fade-rise rounded-card border border-border bg-card p-5 shadow-card">
+              <h1 className="text-title text-foreground">Welcome back</h1>
+              <p className="mt-1 text-body text-secondary-text">Use the email you signed up with.</p>
+
+              <form onSubmit={signIn} className="mt-6 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="auth-email" className="text-label text-secondary-text">
+                    Email
+                  </Label>
                   <Input
-                    id="signin-identifier"
-                    type="text"
-                    placeholder="username or email@example.com"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    className="h-11 bg-background border-border"
-                    required
-                    disabled={isLockedOut()}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password" className="text-base">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="signin-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-11 bg-background border-border pr-10"
-                      required
-                      disabled={isLockedOut()}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                </div>
-                <Button type="submit" className="w-full h-11 text-base" disabled={loading || isLockedOut()}>
-                  {loading ? 'Signing in...' : 'Sign In'}
-                </Button>
-              </form>
-            </TabsContent>
-            <TabsContent value="signup" className="mt-6">
-              <form onSubmit={handleSignUp} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-username" className="text-base">Username</Label>
-                  <Input
-                    id="signup-username"
-                    type="text"
-                    placeholder="Choose a username"
-                    value={username}
-                    onChange={(e) => {
-                      const newUsername = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').substring(0, 20);
-                      setUsername(newUsername);
-                      setTimeout(() => checkUsernameAvailability(newUsername), 500);
-                    }}
-                    className={`h-11 bg-background border-border ${usernameError ? 'border-destructive' : ''}`}
-                    required
-                    minLength={3}
-                    maxLength={20}
-                  />
-                  {usernameError && (
-                    <p className="text-sm text-destructive">{usernameError}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email" className="text-base">Email Address</Label>
-                  <Input
-                    id="signup-email"
+                    id="auth-email"
                     type="email"
-                    placeholder="name@example.com"
+                    autoComplete="email"
+                    inputMode="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-11 bg-background border-border"
-                    required
+                    placeholder="you@example.com"
+                    className="h-12 rounded-control text-body"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password" className="text-base">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="signup-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Create a password (min 8 characters)"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-11 bg-background border-border pr-10"
-                      required
-                      minLength={8}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="auth-password" className="text-label text-secondary-text">
+                    Password
+                  </Label>
+                  <Input
+                    id="auth-password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Your password"
+                    className="h-12 rounded-control text-body"
+                  />
                 </div>
-                <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
-                  {loading ? 'Creating account...' : 'Create Account'}
-                </Button>
+
+                {errorBanner}
+
+                <PrimaryButton type="submit" disabled={busy || !emailValid || !password}>
+                  {busy ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Signing in…
+                    </>
+                  ) : (
+                    "Sign in"
+                  )}
+                </PrimaryButton>
               </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("forgot");
+                  setError(null);
+                }}
+                className="mt-4 flex h-11 w-full items-center justify-center rounded-control text-label font-semibold text-primary transition-transform duration-instant active:scale-[0.97]"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
+
+          {mode === "forgot" && (
+            <div className="animate-fade-rise rounded-card border border-border bg-card p-5 shadow-card">
+              <h1 className="text-title text-foreground">Reset your password</h1>
+              <p className="mt-1 text-body text-secondary-text">
+                We'll email you a link to set a new one.
+              </p>
+
+              <form onSubmit={sendReset} className="mt-6 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="forgot-email" className="text-label text-secondary-text">
+                    Email
+                  </Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="h-12 rounded-control text-body"
+                  />
+                </div>
+
+                {errorBanner}
+
+                <PrimaryButton type="submit" disabled={busy || !emailValid}>
+                  {busy ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sending…
+                    </>
+                  ) : (
+                    "Send reset link"
+                  )}
+                </PrimaryButton>
+              </form>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("signin");
+                  setError(null);
+                }}
+                className="mt-4 flex h-11 w-full items-center justify-center rounded-control text-label font-semibold text-primary transition-transform duration-instant active:scale-[0.97]"
+              >
+                Back to sign in
+              </button>
+            </div>
+          )}
+
+          {mode === "sent" && (
+            <div className="animate-fade-rise rounded-card border border-border bg-card p-5 text-center shadow-card">
+              <div className="mx-auto grid h-24 w-24 place-items-center rounded-full bg-primary-soft">
+                <MailCheck className="h-10 w-10 text-primary" strokeWidth={1.75} />
+              </div>
+              <h1 className="mt-4 text-heading text-foreground">Check your inbox</h1>
+              <p className="mt-1 text-body text-muted-foreground">
+                We sent a password reset link to {email.trim()}. It can take a minute to arrive —
+                check spam too.
+              </p>
+              <button
+                type="button"
+                onClick={() => setMode("signin")}
+                className="mt-5 flex h-11 w-full items-center justify-center rounded-control text-label font-semibold text-primary transition-transform duration-instant active:scale-[0.97]"
+              >
+                Back to sign in
+              </button>
+            </div>
+          )}
+
+          {mode === "recovery" && (
+            <div className="animate-fade-rise rounded-card border border-border bg-card p-5 shadow-card">
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-primary-soft">
+                <KeyRound className="h-6 w-6 text-primary" strokeWidth={1.75} />
+              </div>
+              <h1 className="mt-4 text-title text-foreground">Set a new password</h1>
+              <p className="mt-1 text-body text-secondary-text">
+                You're signed in from your reset link — pick a new password to finish.
+              </p>
+
+              <form onSubmit={setNewPasswordSubmit} className="mt-6 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-password" className="text-label text-secondary-text">
+                    New password
+                  </Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="h-12 rounded-control text-body"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirm-password" className="text-label text-secondary-text">
+                    Confirm password
+                  </Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Same one again"
+                    className="h-12 rounded-control text-body"
+                  />
+                </div>
+
+                {errorBanner}
+
+                <PrimaryButton type="submit" disabled={busy || !newPassword || !confirmPassword}>
+                  {busy ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Updating…
+                    </>
+                  ) : (
+                    "Update password"
+                  )}
+                </PrimaryButton>
+              </form>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("forgot");
+                  setError(null);
+                }}
+                className="mt-4 flex h-11 w-full items-center justify-center rounded-control text-label font-semibold text-primary transition-transform duration-instant active:scale-[0.97]"
+              >
+                Request a new link
+              </button>
+            </div>
+          )}
+
+          {(mode === "signin" || mode === "forgot") && (
+            <p className="mt-6 text-center text-label text-muted-foreground">
+              New here?{" "}
+              <Link to="/welcome" className="font-semibold text-primary">
+                Build your plan
+              </Link>
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
