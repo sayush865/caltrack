@@ -305,7 +305,24 @@ serve(async (req) => {
       }
     })();
 
-    if (!lovableApiKey) return json({ insights: fallback, snapshot, state, source: "rules" });
+    const MOTIVATION_LINES = [
+      "Logging is the whole trick. The numbers only work when they exist.",
+      "One honest day beats three perfect ones you didn't record.",
+      "Protein early makes the evening easier. Nothing mystical, just fullness.",
+      "Trends move slowly and that's fine — you're playing the long game.",
+      "Water is the cheapest win on this screen.",
+      "A slightly-over day is a rounding error across a week.",
+    ];
+    const motivation: OutInsight = {
+      category: "motivation",
+      headline: "",
+      message: MOTIVATION_LINES[(snapshot.hour + snapshot.mealsLogged + snapshot.daysLogged) % MOTIVATION_LINES.length],
+      action: { kind: "none", label: "" },
+    };
+    const fallbackWithSpark = [...fallback, motivation];
+
+    if (!lovableApiKey) return json({ insights: fallbackWithSpark, snapshot, state, source: "rules" });
+
 
     /* ── AI pass ──────────────────────────────────────────────── */
     const sparkAngles = [
