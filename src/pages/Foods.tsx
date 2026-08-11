@@ -4,11 +4,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { PencilLine, Search, SearchX, Utensils } from "lucide-react";
+import { Search, SearchX, Utensils } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { EmptyState, PageHeader, Shimmer, Surface } from "@/components/system";
-import { CustomFoodForm } from "@/components/foods/CustomFoodForm";
 import { FoodCard } from "@/components/foods/FoodCard";
 import { PortionSheet } from "@/components/foods/PortionSheet";
 import { useFoodSearch, useRecentFoods, type DbFood, type RecentFood } from "@/components/foods/hooks";
@@ -42,7 +41,7 @@ export default function Foods() {
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [portionFood, setPortionFood] = useState<DbFood | null>(null);
-  const [customOpen, setCustomOpen] = useState(false);
+  
 
   // 300ms debounce before hitting the server.
   useEffect(() => {
@@ -125,33 +124,16 @@ export default function Foods() {
                 action={{ label: "Retry", onClick: () => search.refetch() }}
               />
             ) : (search.data ?? []).length === 0 ? (
-              <>
-                <EmptyState
-                  icon={SearchX}
-                  headline="Can't find it?"
-                  copy={`No matches for "${debounced}". AI can estimate it from a description, or log it yourself.`}
-                  action={{
-                    label: "Describe it to AI",
-                    onClick: () => navigate(`/describe?date=${dateKey}`),
-                  }}
-                />
-                {customOpen ? (
-                  <CustomFoodForm
-                    dateKey={dateKey}
-                    initialName={debounced}
-                    onCancel={() => setCustomOpen(false)}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setCustomOpen(true)}
-                    className="mx-auto flex h-11 items-center justify-center gap-2 rounded-control border border-border bg-card px-5 text-label text-secondary-text transition-transform duration-instant active:scale-[0.92]"
-                  >
-                    <PencilLine className="h-4 w-4" />
-                    Create custom food
-                  </button>
-                )}
-              </>
+              <EmptyState
+                icon={SearchX}
+                headline="Can't find it?"
+                copy={`No matches for "${debounced}". AI can estimate it from a description.`}
+                action={{
+                  label: "Describe it to AI",
+                  onClick: () => navigate(`/describe?date=${dateKey}`),
+                }}
+              />
+
             ) : (
               <div className="space-y-2">
                 {(search.data ?? []).map((food) => (
@@ -247,20 +229,6 @@ export default function Foods() {
               )}
             </section>
 
-            <section aria-label="Custom food">
-              {customOpen ? (
-                <CustomFoodForm dateKey={dateKey} onCancel={() => setCustomOpen(false)} />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setCustomOpen(true)}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-control border border-border bg-card text-label text-secondary-text transition-transform duration-instant active:scale-[0.92]"
-                >
-                  <PencilLine className="h-4 w-4" />
-                  Create custom food
-                </button>
-              )}
-            </section>
           </div>
         )}
       </main>
