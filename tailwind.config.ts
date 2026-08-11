@@ -104,8 +104,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
-        display: ["Space Grotesk", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["DM Sans", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        display: ["Space Grotesk", "DM Sans", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       fontSize: {
         "display-xl": ["64px", { lineHeight: "68px", letterSpacing: "-0.02em", fontWeight: "700" }],
