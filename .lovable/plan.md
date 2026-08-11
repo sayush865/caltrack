@@ -53,4 +53,6 @@ Text/photo analysis gains a hydration field: each detected item can return `wate
 - `src/components/today/InsightCard.tsx`: headline + body + action chip, cross-fade on refresh.
 - `src/components/insights/*`: new `TodayBriefing.tsx` and `PatternsCard.tsx`; edits to `WeeklyCalorieChart`, `MacroAveragesCard`.
 - Logging: `src/hooks/useDay.ts` sort order, `src/components/diary/MealGroup.tsx` + `LogItemRow` time display, new `TimeField` in `src/components/system/`, wired into `ScanReviewSheet`, `PortionSheet`, `DurationSheet`, `LogSheet`.
-- No schema changes — `logged_at` already exists and is writable.
+- Hydration: `analyze-food` / `analyze-food-text` schemas gain `water_ml` (+ a `drink_only` flag), mapped through `src/lib/analyze.ts` into `DraftItem`, surfaced in `ScanReviewSheet`, committed via the existing water mutation in `src/hooks/useMutations.ts`.
+- No schema changes — `logged_at` already exists and is writable, and water logs already store `amount_ml`.
+
