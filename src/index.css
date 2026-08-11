@@ -227,7 +227,7 @@
   .text-display-xl,
   .text-display-lg,
   .text-display-md {
-    font-family: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-family: "Space Grotesk", "DM Sans", ui-sans-serif, system-ui, sans-serif;
     font-feature-settings: "tnum";
   }
 
