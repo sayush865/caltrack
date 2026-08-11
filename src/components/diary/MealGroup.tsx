@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { Plus, Star, X } from "lucide-react";
-import { LogItemRow } from "@/components/system";
+import { MealEntryCard } from "@/components/system";
 import { useFavorites } from "@/hooks/useFavorites";
+import { groupByMealEntry } from "@/lib/mealGroups";
 import { parseLogMeta, type DraftItem, type FoodLogRow, type MealType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
