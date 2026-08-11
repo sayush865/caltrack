@@ -2,7 +2,7 @@
 // supporting lines, each tagged by what it is (working / fix / pattern).
 
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Lightbulb, RefreshCw, Target, TrendingUp } from "lucide-react";
+import { ArrowRight, CheckCircle2, Lightbulb, RefreshCw, Sparkles, Target, TrendingUp } from "lucide-react";
 import { Shimmer, Surface } from "@/components/system";
 import { actionRoute } from "@/components/today/InsightCard";
 import { useInsight } from "@/hooks/useInsight";
@@ -15,7 +15,9 @@ const CATEGORY_META: Record<string, { label: string; icon: typeof Target }> = {
   improve: { label: "To fix", icon: Target },
   quick_win: { label: "Quick win", icon: Lightbulb },
   goal: { label: "Pattern", icon: TrendingUp },
+  motivation: { label: "Note", icon: Sparkles },
 };
+
 
 function metaFor(category: string) {
   return CATEGORY_META[category] ?? CATEGORY_META.goal;
