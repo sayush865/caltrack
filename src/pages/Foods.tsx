@@ -246,20 +246,6 @@ export default function Foods() {
               )}
             </section>
 
-            <section aria-label="Custom food">
-              {customOpen ? (
-                <CustomFoodForm dateKey={dateKey} onCancel={() => setCustomOpen(false)} />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setCustomOpen(true)}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-control border border-border bg-card text-label text-secondary-text transition-transform duration-instant active:scale-[0.92]"
-                >
-                  <PencilLine className="h-4 w-4" />
-                  Create custom food
-                </button>
-              )}
-            </section>
           </div>
         )}
       </main>
