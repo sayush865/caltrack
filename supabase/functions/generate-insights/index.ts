@@ -403,14 +403,14 @@ Rules:
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      if (response.status === 429) return json({ error: "Rate limit exceeded. Please try again later.", insights: fallback, snapshot, state, source: "rules" }, 200);
-      if (response.status === 402) return json({ error: "AI credits exhausted.", insights: fallback, snapshot, state, source: "rules" }, 200);
-      return json({ insights: fallback, snapshot, state, source: "rules" });
+      if (response.status === 429) return json({ error: "Rate limit exceeded. Please try again later.", insights: fallbackWithSpark, snapshot, state, source: "rules" }, 200);
+      if (response.status === 402) return json({ error: "AI credits exhausted.", insights: fallbackWithSpark, snapshot, state, source: "rules" }, 200);
+      return json({ insights: fallbackWithSpark, snapshot, state, source: "rules" });
     }
 
     const aiData = await response.json();
     const content = String(aiData.choices?.[0]?.message?.content ?? "");
-    let insights: OutInsight[] = fallback;
+    let insights: OutInsight[] = fallbackWithSpark;
     let source = "rules";
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
