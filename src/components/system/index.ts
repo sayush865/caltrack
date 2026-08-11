@@ -8,6 +8,7 @@ export { Spinner, type SpinnerProps } from "./Spinner";
 export { MacroBar, type MacroBarProps, type MacroBarKind } from "./MacroBar";
 export { StreakChip, type StreakChipProps } from "./StreakChip";
 export { LogItemRow, type LogItemRowProps } from "./LogItemRow";
+export { MealEntryCard, type MealEntryCardProps } from "./MealEntryCard";
 export { ConfettiBurst, ConfettiHost, fireConfetti } from "./ConfettiBurst";
 export { TimeField, type TimeFieldProps } from "./TimeField";
 export { PageHeader, type PageHeaderProps } from "./PageHeader";
