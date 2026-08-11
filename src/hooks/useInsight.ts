@@ -1,20 +1,35 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+// Daily AI insight ("One big thing" + briefing).
+//
+// Cached in localStorage per user + local day + a *day-state signature* derived from
+// what's actually logged: the insight regenerates when the day changes materially
+// (first log, new meal, crossing the goal, a new 3-hour block) and is served from
+// cache in between. Never throws to the UI.
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchDailyInsights } from "@/lib/analyze";
 import { dayKey } from "@/lib/dates";
-import type { Insight } from "@/lib/types";
+import type { Insight, InsightPayload, InsightSnapshot } from "@/lib/types";
+import { useDay } from "./useDay";
+import { useGoals } from "./useGoals";
 import { useSession } from "./useSession";
 
-function cacheKeyFor(uid: string, day: string): string {
-  return `ct-insight-${uid}-${day}`;
+interface CachedPayload {
+  insights: Insight[];
+  snapshot: InsightSnapshot | null;
+  state: string | null;
 }
 
-function readCache(key: string): Insight[] | null {
+function cacheKeyFor(uid: string, day: string, signature: string): string {
+  return `ct-insight-v2-${uid}-${day}-${signature}`;
+}
+
+function readCache(key: string): CachedPayload | null {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as unknown;
-    if (Array.isArray(parsed) && parsed.every((i) => i && typeof (i as Insight).message === "string")) {
-      return parsed as Insight[];
+    const parsed = JSON.parse(raw) as CachedPayload | null;
+    if (parsed && Array.isArray(parsed.insights) && parsed.insights.every((i) => typeof i?.message === "string")) {
+      return parsed;
     }
     return null;
   } catch {
@@ -22,25 +37,52 @@ function readCache(key: string): Insight[] | null {
   }
 }
 
-function writeCache(key: string, insights: Insight[]): void {
+function writeCache(key: string, payload: CachedPayload): void {
   try {
-    localStorage.setItem(key, JSON.stringify(insights));
+    // Keep storage tidy: drop older insight entries for this user.
+    const prefix = key.slice(0, key.lastIndexOf("-", key.lastIndexOf("-") - 1));
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k !== key && k.startsWith("ct-insight")) localStorage.removeItem(k);
+    }
+    void prefix;
+    localStorage.setItem(key, JSON.stringify(payload));
   } catch {
     // storage full/unavailable — non-fatal
   }
 }
 
-/**
- * Daily AI insights, cached in localStorage per user+local-day so generate-insights
- * runs at most once a day. refresh() bypasses the cache. Never throws to the UI:
- * offline/errors resolve to a null insight.
- */
-export function useInsight(): { insight: Insight[] | null; loading: boolean; refresh: () => void } {
+export interface UseInsightResult {
+  /** All insights: [0] is the primary "one big thing", the rest are the briefing. */
+  insight: Insight[] | null;
+  primary: Insight | null;
+  briefing: Insight[];
+  snapshot: InsightSnapshot | null;
+  state: string | null;
+  loading: boolean;
+  refresh: () => void;
+}
+
+export function useInsight(): UseInsightResult {
   const { session } = useSession();
   const uid = session?.user.id;
   const todayKey = dayKey(new Date());
+  const dayQuery = useDay(todayKey);
+  const goalsQuery = useGoals();
 
-  const [insight, setInsight] = useState<Insight[] | null>(null);
+  const goal = goalsQuery.data?.daily_calories ?? 0;
+  const net = Math.round((dayQuery.data?.totals.calories ?? 0) - (dayQuery.data?.exercise.calories ?? 0));
+  const mealCount = dayQuery.data?.all.length ?? 0;
+
+  /** Coarse fingerprint of the day: changes only on material moves. */
+  const signature = useMemo(() => {
+    const block = Math.floor(new Date().getHours() / 3); // new read every ~3h
+    const calBand = Math.floor(net / 300);
+    const over = goal > 0 && net > goal ? 1 : 0;
+    return `${block}.${calBand}.${mealCount}.${over}`;
+  }, [net, goal, mealCount]);
+
+  const [payload, setPayload] = useState<CachedPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const aliveRef = useRef(true);
 
@@ -54,16 +96,16 @@ export function useInsight(): { insight: Insight[] | null; loading: boolean; ref
   const load = useCallback(
     async (bypassCache: boolean) => {
       if (!uid) {
-        setInsight(null);
+        setPayload(null);
         setLoading(false);
         return;
       }
-      const key = cacheKeyFor(uid, todayKey);
+      const key = cacheKeyFor(uid, todayKey, signature);
 
       if (!bypassCache) {
         const cached = readCache(key);
         if (cached) {
-          setInsight(cached);
+          setPayload(cached);
           setLoading(false);
           return;
         }
@@ -71,26 +113,43 @@ export function useInsight(): { insight: Insight[] | null; loading: boolean; ref
 
       setLoading(true);
       try {
-        const fresh = await fetchDailyInsights();
-        writeCache(key, fresh);
-        if (aliveRef.current) setInsight(fresh);
+        const fresh: InsightPayload = await fetchDailyInsights();
+        const next: CachedPayload = {
+          insights: fresh.insights,
+          snapshot: fresh.snapshot,
+          state: fresh.state,
+        };
+        writeCache(key, next);
+        if (aliveRef.current) setPayload(next);
       } catch {
-        // Offline / edge-function failure: keep whatever we had, else null. Never throw.
-        if (aliveRef.current) setInsight((prev) => prev ?? readCache(key));
+        // Offline / function failure: keep what we had. Never throw.
+        if (aliveRef.current) setPayload((prev) => prev ?? readCache(key));
       } finally {
         if (aliveRef.current) setLoading(false);
       }
     },
-    [uid, todayKey],
+    [uid, todayKey, signature],
   );
 
   useEffect(() => {
+    // Wait for the day query so the signature is real before the first call.
+    if (dayQuery.isLoading) return;
     load(false);
-  }, [load]);
+  }, [load, dayQuery.isLoading]);
 
   const refresh = useCallback(() => {
     load(true);
   }, [load]);
 
-  return { insight, loading, refresh };
+  const insights = payload?.insights ?? null;
+
+  return {
+    insight: insights,
+    primary: insights?.[0] ?? null,
+    briefing: insights ? insights.slice(1) : [],
+    snapshot: payload?.snapshot ?? null,
+    state: payload?.state ?? null,
+    loading,
+    refresh,
+  };
 }
