@@ -305,14 +305,42 @@ serve(async (req) => {
       }
     })();
 
-    if (!lovableApiKey) return json({ insights: fallback, snapshot, state, source: "rules" });
+    const MOTIVATION_LINES = [
+      "Logging is the whole trick. The numbers only work when they exist.",
+      "One honest day beats three perfect ones you didn't record.",
+      "Protein early makes the evening easier. Nothing mystical, just fullness.",
+      "Trends move slowly and that's fine — you're playing the long game.",
+      "Water is the cheapest win on this screen.",
+      "A slightly-over day is a rounding error across a week.",
+    ];
+    const motivation: OutInsight = {
+      category: "motivation",
+      headline: "",
+      message: MOTIVATION_LINES[(snapshot.hour + snapshot.mealsLogged + snapshot.daysLogged) % MOTIVATION_LINES.length],
+      action: { kind: "none", label: "" },
+    };
+    const fallbackWithSpark = [...fallback, motivation];
+
+    if (!lovableApiKey) return json({ insights: fallbackWithSpark, snapshot, state, source: "rules" });
+
 
     /* ── AI pass ──────────────────────────────────────────────── */
+    const sparkAngles = [
+      "a small fun food-science fact tied to something they ate or their macros",
+      "a light, dry one-liner of encouragement about the habit of logging",
+      "a tiny reframe: what today's numbers would look like repeated for a week",
+      "a playful nudge about the next meal, no numbers required",
+      "a short note on why consistency beats perfect days",
+      "an interesting nutrition tidbit relevant to their goal type",
+    ];
+    const spark = sparkAngles[(snapshot.hour + snapshot.mealsLogged + snapshot.daysLogged) % sparkAngles.length];
+
     const systemPrompt = `You are CalTrack's nutrition coach. You get a precomputed snapshot of the user's day and rolling averages, plus a classified day state. You do NOT compute anything new — only interpret.
 
 Write:
 1. ONE primary insight for the classified state: a headline (max 48 chars, states the fact with the real number) and a message (max 140 chars, ONE concrete next step the user can act on in the next few hours).
 2. Two to four short briefing insights: what's working, what to fix, and one pattern from the rolling averages.
+3. Exactly one final insight with category "motivation": ${spark}. Max 120 chars, no numbers you weren't given, action.kind "none". This one may be warm or lightly witty — still no emoji and no hype.
 
 Rules:
 - Always reference real numbers from the snapshot. Never invent data or numbers.
@@ -320,7 +348,7 @@ Rules:
 - Plain, calm, adult tone. No emoji, no exclamation marks, no hype, no "amazing journey" language.
 - Never suggest anything medically risky, never mention fasting for whole days, never shame the user.
 - Set action.kind to the screen that helps most: exercise (log activity), describe (log a meal by text), scan (photo a meal), water, weight, or none. action.label is max 18 chars, empty when kind is none.
-- The first insight in the array is the primary one.`;
+- The first insight in the array is the primary one; the motivation one is last.`;
 
     const schema = {
       type: "object",
@@ -334,7 +362,8 @@ Rules:
             additionalProperties: false,
             required: ["category", "headline", "message", "action"],
             properties: {
-              category: { type: "string", enum: ["strength", "improve", "goal", "quick_win", "celebration"] },
+              category: { type: "string", enum: ["strength", "improve", "goal", "quick_win", "celebration", "motivation"] },
+
               headline: { type: "string" },
               message: { type: "string" },
               action: {
@@ -374,14 +403,14 @@ Rules:
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      if (response.status === 429) return json({ error: "Rate limit exceeded. Please try again later.", insights: fallback, snapshot, state, source: "rules" }, 200);
-      if (response.status === 402) return json({ error: "AI credits exhausted.", insights: fallback, snapshot, state, source: "rules" }, 200);
-      return json({ insights: fallback, snapshot, state, source: "rules" });
+      if (response.status === 429) return json({ error: "Rate limit exceeded. Please try again later.", insights: fallbackWithSpark, snapshot, state, source: "rules" }, 200);
+      if (response.status === 402) return json({ error: "AI credits exhausted.", insights: fallbackWithSpark, snapshot, state, source: "rules" }, 200);
+      return json({ insights: fallbackWithSpark, snapshot, state, source: "rules" });
     }
 
     const aiData = await response.json();
     const content = String(aiData.choices?.[0]?.message?.content ?? "");
-    let insights: OutInsight[] = fallback;
+    let insights: OutInsight[] = fallbackWithSpark;
     let source = "rules";
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();

@@ -33,6 +33,8 @@ export function HeroCard({ day, goals, dayKey, className }: HeroCardProps) {
   const ringValue = budget > 0 ? consumed / budget : 0;
   const onTarget = consumed > 0 && Math.abs(consumed - budget) <= budget * 0.05;
   const centerValue = useCountUp(Math.abs(left));
+  const centerLabel = centerValue.toLocaleString();
+
 
   const onScroll = (e: UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -72,9 +74,18 @@ export function HeroCard({ day, goals, dayKey, className }: HeroCardProps) {
                     <span className="mt-1 text-heading text-success">On target</span>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center">
-                    <span className="text-display-xl tabular-nums text-foreground">
-                      {centerValue.toLocaleString()}
+                  <div className="flex w-[132px] flex-col items-center">
+                    <span
+                      className={cn(
+                        "block w-full text-center font-display font-bold leading-[0.95] tracking-[-0.02em] tabular-nums text-foreground",
+                        centerLabel.length >= 6
+                          ? "text-[38px]"
+                          : centerLabel.length === 5
+                            ? "text-[46px]"
+                            : "text-[56px]",
+                      )}
+                    >
+                      {centerLabel}
                     </span>
                     <span
                       className={cn(
@@ -86,6 +97,7 @@ export function HeroCard({ day, goals, dayKey, className }: HeroCardProps) {
                     </span>
                   </div>
                 )}
+
               </ProgressRing>
             </div>
           </div>
