@@ -39,8 +39,8 @@ export function PatternsCard() {
   const goalsQuery = useGoals();
 
   const goal = goalsQuery.data?.daily_calories ?? 0;
-  const proteinGoal = goalsQuery.data?.protein_grams ?? 0;
-  const fiberGoal = goalsQuery.data?.fiber_grams ?? 0;
+  const proteinGoal = goalsQuery.data?.daily_protein ?? 0;
+  const fiberGoal = goalsQuery.data?.daily_fiber ?? 0;
 
   const patterns = useMemo<Pattern[]>(() => {
     const days = historyQuery.data?.days ?? [];
