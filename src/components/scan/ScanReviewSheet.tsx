@@ -441,7 +441,6 @@ export function ScanReviewSheet({
   };
 
   const busy = saving || logMeal.isPending;
-  const nowLabel = isToday(dateKey) ? formatTime(new Date().toISOString()) : "12:00 PM";
 
   return (
     <div className="space-y-3 pb-32">
@@ -573,7 +572,7 @@ export function ScanReviewSheet({
           >
             <CalendarDays className="h-4 w-4 shrink-0 text-secondary-text" />
             <span className="text-label font-medium text-foreground">{friendlyDay(dateKey)}</span>
-            <span className="ml-auto text-caption text-muted-foreground">around {nowLabel}</span>
+            <span className="ml-auto text-caption text-muted-foreground">{formatTime(loggedTime.toISOString())}</span>
           </button>
         </PopoverTrigger>
         <PopoverContent align="center" className="w-auto rounded-card border-border bg-popover p-0 shadow-raised">
@@ -590,6 +589,49 @@ export function ScanReviewSheet({
           />
         </PopoverContent>
       </Popover>
+
+      {/* Time of day — defaults to now (midday on past days) */}
+      <TimeField
+        value={loggedTime}
+        onChange={setLoggedTime}
+        max={isToday(dateKey) ? new Date() : undefined}
+        label="Logged at"
+      />
+
+      {/* Hydration detected in the analysis — counted toward water unless turned off */}
+      {waterMl > 0 && (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={logHydration}
+          onClick={() => setLogHydration((v) => !v)}
+          className="flex w-full items-center gap-3 rounded-card border border-border bg-card px-4 py-3 text-left transition-transform duration-instant active:scale-[0.97]"
+        >
+          <Droplets className="h-4 w-4 shrink-0 text-water" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-label font-medium text-foreground">
+              Add {waterMl} ml to water
+            </span>
+            <span className="block text-caption text-muted-foreground">
+              Detected hydration from these items
+            </span>
+          </span>
+          <span
+            className={cn(
+              "relative h-6 w-11 shrink-0 rounded-full border transition-colors duration-instant",
+              logHydration ? "border-primary bg-primary" : "border-border bg-muted",
+            )}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-4.5 w-4.5 rounded-full bg-card transition-transform duration-instant",
+                logHydration ? "translate-x-[22px]" : "translate-x-0.5",
+              )}
+              style={{ height: 18, width: 18 }}
+            />
+          </span>
+        </button>
+      )}
 
       {/* Sticky save */}
       <div className="fixed inset-x-0 bottom-0 z-30 bg-background/90 pb-safe backdrop-blur">
