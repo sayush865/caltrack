@@ -7,7 +7,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Mic, MicOff, Sparkles, UtensilsCrossed, X } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState, Surface } from "@/components/system";
-import { ReviewSheetSkeleton, ScanReviewSheet } from "@/components/scan/ScanReviewSheet";
+import { ScanReviewSheet } from "@/components/scan/ScanReviewSheet";
+import { AnalysisTheater } from "@/components/scan/AnalysisTheater";
+
 import { classifyAnalysisError, BUSY_COPY } from "@/components/scan/analysisError";
 import { useAnalysisAbort, useNavigationGuard } from "@/components/scan/useAnalysisAbort";
 import { analyzeText } from "@/lib/analyze";
@@ -220,22 +222,9 @@ export default function Describe() {
   /* ── render ───────────────────────────────────────────────── */
 
   if (phase === "loading") {
-    return (
-      <div className="min-h-screen bg-background">
-        {header("Describe it")}
-        <main className="mx-auto w-full max-w-md px-4 pt-2">
-          <ReviewSheetSkeleton />
-          <button
-            type="button"
-            onClick={cancelAnalysis}
-            className="mt-4 h-11 w-full rounded-control text-label font-medium text-secondary-text transition-transform duration-instant active:scale-[0.92]"
-          >
-            Cancel
-          </button>
-        </main>
-      </div>
-    );
+    return <AnalysisTheater kind="text" caption={submittedTextRef.current} onCancel={cancelAnalysis} />;
   }
+
 
   if (phase === "review" || manualFallback) {
     return (

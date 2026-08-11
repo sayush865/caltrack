@@ -4,13 +4,14 @@
 
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { KeyRound, Loader2, MailCheck, ScanLine } from "lucide-react";
+import { KeyRound, MailCheck, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PrimaryButton } from "@/components/onboarding/ui";
+import { Spinner } from "@/components/system";
 
 type Mode = "signin" | "forgot" | "sent" | "recovery";
 
@@ -159,7 +160,7 @@ export default function Auth() {
                 <PrimaryButton type="submit" disabled={busy || !emailValid || !password}>
                   {busy ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Spinner size={16} />
                       Signing in…
                     </>
                   ) : (
@@ -210,7 +211,7 @@ export default function Auth() {
                 <PrimaryButton type="submit" disabled={busy || !emailValid}>
                   {busy ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Spinner size={16} />
                       Sending…
                     </>
                   ) : (
@@ -297,7 +298,7 @@ export default function Auth() {
                 <PrimaryButton type="submit" disabled={busy || !newPassword || !confirmPassword}>
                   {busy ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Spinner size={16} />
                       Updating…
                     </>
                   ) : (
