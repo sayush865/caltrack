@@ -7,7 +7,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Mic, MicOff, Sparkles, UtensilsCrossed, X } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState, Surface } from "@/components/system";
-import { ReviewSheetSkeleton, ScanReviewSheet } from "@/components/scan/ScanReviewSheet";
+import { ScanReviewSheet } from "@/components/scan/ScanReviewSheet";
+import { AnalysisTheater } from "@/components/scan/AnalysisTheater";
+
 import { classifyAnalysisError, BUSY_COPY } from "@/components/scan/analysisError";
 import { useAnalysisAbort, useNavigationGuard } from "@/components/scan/useAnalysisAbort";
 import { analyzeText } from "@/lib/analyze";
