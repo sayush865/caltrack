@@ -33,6 +33,8 @@ export function HeroCard({ day, goals, dayKey, className }: HeroCardProps) {
   const ringValue = budget > 0 ? consumed / budget : 0;
   const onTarget = consumed > 0 && Math.abs(consumed - budget) <= budget * 0.05;
   const centerValue = useCountUp(Math.abs(left));
+  const centerLabel = centerValue.toLocaleString();
+
 
   const onScroll = (e: UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
