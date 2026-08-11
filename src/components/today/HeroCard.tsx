@@ -66,41 +66,57 @@ export function HeroCard({ day, goals, dayKey, className }: HeroCardProps) {
                 overClass="text-warning"
                 animate
               >
-                {onTarget ? (
-                  <div className="flex flex-col items-center">
-                    <span className="grid h-11 w-11 place-items-center rounded-full bg-success-soft">
-                      <Check className="h-6 w-6 text-success" strokeWidth={2.5} />
-                    </span>
-                    <span className="mt-1 text-heading text-success">On target</span>
-                  </div>
-                ) : (
-                  <div className="flex w-[132px] flex-col items-center">
-                    <span
-                      className={cn(
-                        "block w-full text-center font-display font-bold leading-[0.95] tracking-[-0.02em] tabular-nums text-foreground",
-                        centerLabel.length >= 6
-                          ? "text-[38px]"
-                          : centerLabel.length === 5
-                            ? "text-[46px]"
-                            : "text-[56px]",
-                      )}
-                    >
-                      {centerLabel}
-                    </span>
-                    <span
-                      className={cn(
-                        "mt-1 text-caption",
-                        over ? "text-warning" : "text-muted-foreground",
-                      )}
-                    >
-                      {over ? "kcal over" : "kcal left"}
-                    </span>
-                  </div>
-                )}
-
+                <div className="flex w-[132px] flex-col items-center">
+                  <span
+                    className={cn(
+                      "block w-full text-center font-display font-bold leading-[0.95] tracking-[-0.02em] tabular-nums text-foreground",
+                      centerLabel.length >= 6
+                        ? "text-[38px]"
+                        : centerLabel.length === 5
+                          ? "text-[46px]"
+                          : "text-[56px]",
+                    )}
+                  >
+                    {centerLabel}
+                  </span>
+                  <span
+                    className={cn(
+                      "mt-1 text-caption",
+                      over ? "text-warning" : "text-muted-foreground",
+                    )}
+                  >
+                    {over ? "kcal over" : "kcal left"}
+                  </span>
+                </div>
               </ProgressRing>
             </div>
           </div>
+
+          {onTarget && (
+            <div className="mt-3 flex justify-center">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-micro uppercase text-success">
+                <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                On target
+              </span>
+            </div>
+          )}
+
+          {/* Totals: eaten / budget / burned */}
+          <div className="mt-4 flex items-stretch justify-between gap-2 rounded-control border border-border px-3 py-2.5">
+            {[
+              { label: "Eaten", value: Math.round(consumed) },
+              { label: "Budget", value: Math.round(budget) },
+              { label: "Burned", value: Math.round(day.exercise.calories) },
+            ].map(({ label, value }) => (
+              <div key={label} className="min-w-0 flex-1 text-center">
+                <p className="text-micro uppercase text-muted-foreground">{label}</p>
+                <p className="font-display text-[17px] font-semibold tabular-nums text-foreground">
+                  {value.toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
+
 
           <div className="mt-5 space-y-3">
             <MacroBar
