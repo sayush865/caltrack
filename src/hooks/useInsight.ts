@@ -39,18 +39,17 @@ function readCache(key: string): CachedPayload | null {
 
 function writeCache(key: string, payload: CachedPayload): void {
   try {
-    // Keep storage tidy: drop older insight entries for this user.
-    const prefix = key.slice(0, key.lastIndexOf("-", key.lastIndexOf("-") - 1));
+    // Keep storage tidy: drop older insight entries.
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
       if (k && k !== key && k.startsWith("ct-insight")) localStorage.removeItem(k);
     }
-    void prefix;
     localStorage.setItem(key, JSON.stringify(payload));
   } catch {
     // storage full/unavailable — non-fatal
   }
 }
+
 
 export interface UseInsightResult {
   /** All insights: [0] is the primary "one big thing", the rest are the briefing. */
