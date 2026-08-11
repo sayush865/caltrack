@@ -153,6 +153,23 @@
   }
 }
 
+@keyframes skeleton-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+@keyframes spin-arc {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
 @keyframes fade-rise {
   from {
     opacity: 0;
