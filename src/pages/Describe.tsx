@@ -220,22 +220,9 @@ export default function Describe() {
   /* ── render ───────────────────────────────────────────────── */
 
   if (phase === "loading") {
-    return (
-      <div className="min-h-screen bg-background">
-        {header("Describe it")}
-        <main className="mx-auto w-full max-w-md px-4 pt-2">
-          <ReviewSheetSkeleton />
-          <button
-            type="button"
-            onClick={cancelAnalysis}
-            className="mt-4 h-11 w-full rounded-control text-label font-medium text-secondary-text transition-transform duration-instant active:scale-[0.92]"
-          >
-            Cancel
-          </button>
-        </main>
-      </div>
-    );
+    return <AnalysisTheater kind="text" caption={submittedTextRef.current} onCancel={cancelAnalysis} />;
   }
+
 
   if (phase === "review" || manualFallback) {
     return (
