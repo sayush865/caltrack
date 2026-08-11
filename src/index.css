@@ -276,7 +276,9 @@
 
 /* Reduced motion: final states instantly, no expressive animation */
 @media (prefers-reduced-motion: reduce) {
+  .shimmer,
   .shimmer::after,
+
   .animate-shimmer,
   .animate-fade-rise,
   .animate-flame-pulse,
