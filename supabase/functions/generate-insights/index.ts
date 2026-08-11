@@ -308,11 +308,22 @@ serve(async (req) => {
     if (!lovableApiKey) return json({ insights: fallback, snapshot, state, source: "rules" });
 
     /* ── AI pass ──────────────────────────────────────────────── */
+    const sparkAngles = [
+      "a small fun food-science fact tied to something they ate or their macros",
+      "a light, dry one-liner of encouragement about the habit of logging",
+      "a tiny reframe: what today's numbers would look like repeated for a week",
+      "a playful nudge about the next meal, no numbers required",
+      "a short note on why consistency beats perfect days",
+      "an interesting nutrition tidbit relevant to their goal type",
+    ];
+    const spark = sparkAngles[(snapshot.hour + snapshot.mealsLogged + snapshot.daysLogged) % sparkAngles.length];
+
     const systemPrompt = `You are CalTrack's nutrition coach. You get a precomputed snapshot of the user's day and rolling averages, plus a classified day state. You do NOT compute anything new — only interpret.
 
 Write:
 1. ONE primary insight for the classified state: a headline (max 48 chars, states the fact with the real number) and a message (max 140 chars, ONE concrete next step the user can act on in the next few hours).
 2. Two to four short briefing insights: what's working, what to fix, and one pattern from the rolling averages.
+3. Exactly one final insight with category "motivation": ${spark}. Max 120 chars, no numbers you weren't given, action.kind "none". This one may be warm or lightly witty — still no emoji and no hype.
 
 Rules:
 - Always reference real numbers from the snapshot. Never invent data or numbers.
@@ -320,7 +331,7 @@ Rules:
 - Plain, calm, adult tone. No emoji, no exclamation marks, no hype, no "amazing journey" language.
 - Never suggest anything medically risky, never mention fasting for whole days, never shame the user.
 - Set action.kind to the screen that helps most: exercise (log activity), describe (log a meal by text), scan (photo a meal), water, weight, or none. action.label is max 18 chars, empty when kind is none.
-- The first insight in the array is the primary one.`;
+- The first insight in the array is the primary one; the motivation one is last.`;
 
     const schema = {
       type: "object",
@@ -334,7 +345,8 @@ Rules:
             additionalProperties: false,
             required: ["category", "headline", "message", "action"],
             properties: {
-              category: { type: "string", enum: ["strength", "improve", "goal", "quick_win", "celebration"] },
+              category: { type: "string", enum: ["strength", "improve", "goal", "quick_win", "celebration", "motivation"] },
+
               headline: { type: "string" },
               message: { type: "string" },
               action: {
