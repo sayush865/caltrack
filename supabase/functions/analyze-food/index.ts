@@ -70,7 +70,7 @@ serve(async (req) => {
     }
 
     const aiStartTime = Date.now();
-    console.log('Starting AI analysis with google/gemini-2.5-pro...');
+    console.log('Starting AI analysis with google/gemini-3.1-pro-preview...');
 
     // Use tool calling for guaranteed structured output
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -80,7 +80,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'google/gemini-3.1-pro-preview',
         messages: [
           {
             role: 'system',
@@ -247,7 +247,7 @@ Guidelines:
       total_duration_ms: totalProcessingMs,
       items_detected: items.length,
       total_calories: totals.calories,
-      model: 'google/gemini-2.5-pro'
+      model: 'google/gemini-3.1-pro-preview'
     }));
 
     return new Response(
