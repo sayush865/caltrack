@@ -38,6 +38,13 @@ Refresh cadence changes from once-a-day to: regenerate when the day state change
 2. **Time selection while logging** — the review sheet (photo, describe, food library, exercise, water) gets a time field next to the meal-type pills: defaults to now (or noon on a past date), tap to adjust with a compact hour/minute stepper. Meal type auto-suggests from the chosen time and stays overridable.
 3. **Animation pass** — number count-ups on the hero when totals change, hairline progress transitions, staged sheet entry, chip press feedback, insight card cross-fade on refresh. All within the minimalist rule: no decorative glow, no bouncing, all respecting reduced-motion.
 
+## Drinks: hydration + calories from one description
+
+Right now a text description is treated purely as food, so "chia water" or "large iced latte" logs calories and no water — worth fixing.
+
+Text/photo analysis gains a hydration field: each detected item can return `water_ml` alongside its macros (water 100% of volume, tea/coffee ~100%, chia water counts the liquid volume and the chia calories, milk/juice partial, alcohol 0). The review sheet then shows a "+ 350 ml water" line you can toggle off, and confirming writes the food log **and** the water log in one action. Plain water descriptions ("500ml water", "two glasses of water") skip the food log entirely and just log hydration.
+
+
 ## Technical details
 
 - `supabase/functions/generate-insights/index.ts`: rewritten — deterministic snapshot builder + day-state classifier + strict `response_format` JSON schema; returns `{ headline, body, category, action?, state, snapshot }` plus a `briefing[]` array for the Insights tab. Falls back to a locally computed rule-based insight when the AI call fails, so the card is never empty.
@@ -46,4 +53,6 @@ Refresh cadence changes from once-a-day to: regenerate when the day state change
 - `src/components/today/InsightCard.tsx`: headline + body + action chip, cross-fade on refresh.
 - `src/components/insights/*`: new `TodayBriefing.tsx` and `PatternsCard.tsx`; edits to `WeeklyCalorieChart`, `MacroAveragesCard`.
 - Logging: `src/hooks/useDay.ts` sort order, `src/components/diary/MealGroup.tsx` + `LogItemRow` time display, new `TimeField` in `src/components/system/`, wired into `ScanReviewSheet`, `PortionSheet`, `DurationSheet`, `LogSheet`.
-- No schema changes — `logged_at` already exists and is writable.
+- Hydration: `analyze-food` / `analyze-food-text` schemas gain `water_ml` (+ a `drink_only` flag), mapped through `src/lib/analyze.ts` into `DraftItem`, surfaced in `ScanReviewSheet`, committed via the existing water mutation in `src/hooks/useMutations.ts`.
+- No schema changes — `logged_at` already exists and is writable, and water logs already store `amount_ml`.
+
