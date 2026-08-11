@@ -38,12 +38,6 @@ export function PlanReveal({
         <MacroBar kind="carbs" value={plan.carbs} target={plan.carbs} targetOnly />
         <MacroBar kind="fat" value={plan.fat} target={plan.fat} targetOnly />
         <MacroBar kind="fiber" value={plan.fiber} target={plan.fiber} targetOnly />
-        {plan.glp1 && (
-          <p className="border-t border-border pt-3 text-caption text-secondary-text">
-            On a GLP-1, protein comes first: hit the coral bar every day — it protects muscle when
-            your appetite is low. Calories matter less than usual.
-          </p>
-        )}
       </Surface>
 
       {plan.projection && goalWeightKg !== undefined && (
