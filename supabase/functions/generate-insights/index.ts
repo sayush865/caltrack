@@ -1,208 +1,425 @@
+// generate-insights — "One big thing" + daily briefing.
+//
+// Two stages:
+//  1. Deterministic snapshot + day-state classifier (pure code, always available).
+//  2. AI pass (strict JSON schema) that turns the snapshot into one prioritised
+//     headline + concrete next action, plus a short briefing list.
+// If the AI call fails, the rule-based fallback insights are returned instead, so
+// the card is NEVER empty.
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+type ActionKind = "exercise" | "describe" | "scan" | "water" | "weight" | "none";
+
+interface OutInsight {
+  category: string;
+  headline: string;
+  message: string;
+  action?: { kind: ActionKind; label: string };
+}
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+function r(n: number): number {
+  return Math.round(n);
+}
+
+/** Local-day key for a timestamp given the client's UTC offset (minutes, as from getTimezoneOffset). */
+function localKey(iso: string, offsetMin: number): string {
+  const t = new Date(iso).getTime() - offsetMin * 60_000;
+  return new Date(t).toISOString().slice(0, 10);
+}
+
+function localHour(iso: string, offsetMin: number): number {
+  const t = new Date(iso).getTime() - offsetMin * 60_000;
+  return new Date(t).getUTCHours();
+}
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "No authorization header" }, 401);
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-    
-    // Get user from JWT
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid user' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (userError || !user) return json({ error: "Invalid user" }, 401);
+
+    // Client sends its local day + tz offset so buckets match the app exactly.
+    let body: { dayKey?: string; tzOffsetMinutes?: number } = {};
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
     }
+    const offsetMin = Number.isFinite(body.tzOffsetMinutes) ? Number(body.tzOffsetMinutes) : 0;
+    const nowIso = new Date().toISOString();
+    const todayKey = body.dayKey && /^\d{4}-\d{2}-\d{2}$/.test(body.dayKey)
+      ? body.dayKey
+      : localKey(nowIso, offsetMin);
+    const hourNow = localHour(nowIso, offsetMin);
 
-    // Fetch user data in parallel
-    const fourteenDaysAgo = new Date();
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    const since = new Date(Date.now() - 15 * 86_400_000).toISOString();
 
-    const [profileRes, goalsRes, logsRes, waterRes, weightRes, streakRes] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', user.id).single(),
-      supabase.from('user_goals').select('*').eq('user_id', user.id).single(),
-      supabase.from('food_logs').select('*').eq('user_id', user.id).eq('status', 1).gte('logged_at', fourteenDaysAgo.toISOString()),
-      supabase.from('water_logs').select('*').eq('user_id', user.id).gte('logged_at', fourteenDaysAgo.toISOString()),
-      supabase.from('weight_logs').select('*').eq('user_id', user.id).order('logged_at', { ascending: false }).limit(10),
-      supabase.from('user_streaks').select('*').eq('user_id', user.id).single(),
+    const [profileRes, goalsRes, logsRes, waterRes, exerciseRes, weightRes, streakRes] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+      supabase.from("user_goals").select("*").eq("user_id", user.id).maybeSingle(),
+      supabase.from("food_logs").select("food_name, calories, protein, carbs, fat, fiber, meal_type, logged_at")
+        .eq("user_id", user.id).eq("status", 1).gte("logged_at", since),
+      supabase.from("water_logs").select("amount_ml, logged_at").eq("user_id", user.id).gte("logged_at", since),
+      supabase.from("exercise_logs").select("exercise_name, duration_minutes, calories_burned, logged_at")
+        .eq("user_id", user.id).eq("status", 1).gte("logged_at", since),
+      supabase.from("weight_logs").select("weight, logged_at").eq("user_id", user.id)
+        .order("logged_at", { ascending: false }).limit(20),
+      supabase.from("user_streaks").select("*").eq("user_id", user.id).maybeSingle(),
     ]);
 
-    const profile = profileRes.data;
-    const goals = goalsRes.data;
-    const foodLogs = logsRes.data || [];
-    const waterLogs = waterRes.data || [];
-    const weightLogs = weightRes.data || [];
-    const streak = streakRes.data;
+    const profile = profileRes.data as Record<string, unknown> | null;
+    const goals = (goalsRes.data ?? {}) as Record<string, number | string | null>;
+    const foodLogs = (logsRes.data ?? []) as Array<Record<string, unknown>>;
+    const waterLogs = (waterRes.data ?? []) as Array<Record<string, unknown>>;
+    const exerciseLogs = (exerciseRes.data ?? []) as Array<Record<string, unknown>>;
+    const weightLogs = (weightRes.data ?? []) as Array<Record<string, unknown>>;
+    const streak = streakRes.data as Record<string, number> | null;
 
-    // Calculate averages
-    const dayTotals: Record<string, { calories: number; protein: number; carbs: number; fat: number }> = {};
-    foodLogs.forEach((log: any) => {
-      const day = new Date(log.logged_at).toISOString().split('T')[0];
-      if (!dayTotals[day]) dayTotals[day] = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-      dayTotals[day].calories += Number(log.calories) || 0;
-      dayTotals[day].protein += Number(log.protein) || 0;
-      dayTotals[day].carbs += Number(log.carbs) || 0;
-      dayTotals[day].fat += Number(log.fat) || 0;
+    const goalCal = Number(goals.daily_calories ?? 0) || 2000;
+    const goalProtein = Number(goals.daily_protein ?? 0) || 150;
+    const goalFiber = Number(goals.daily_fiber ?? 0) || 30;
+    const goalWater = Number(goals.daily_water ?? 0) || 2000;
+    const goalType = String(goals.goal_type ?? "maintain");
+
+    /* ── bucket per local day ─────────────────────────────────── */
+    type Bucket = {
+      calories: number; protein: number; carbs: number; fat: number; fiber: number;
+      water: number; burned: number; exMinutes: number; times: number[];
+      items: string[];
+    };
+    const empty = (): Bucket => ({
+      calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, water: 0, burned: 0,
+      exMinutes: 0, times: [], items: [],
     });
+    const byDay = new Map<string, Bucket>();
+    const bucket = (key: string): Bucket => {
+      let b = byDay.get(key);
+      if (!b) { b = empty(); byDay.set(key, b); }
+      return b;
+    };
 
-    const days = Object.values(dayTotals);
-    const daysLogged = days.length;
-    const avgCalories = daysLogged > 0 ? Math.round(days.reduce((s, d) => s + d.calories, 0) / daysLogged) : 0;
-    const avgProtein = daysLogged > 0 ? Math.round(days.reduce((s, d) => s + d.protein, 0) / daysLogged) : 0;
-    const avgCarbs = daysLogged > 0 ? Math.round(days.reduce((s, d) => s + d.carbs, 0) / daysLogged) : 0;
+    for (const log of foodLogs) {
+      const iso = String(log.logged_at ?? "");
+      if (!iso) continue;
+      const b = bucket(localKey(iso, offsetMin));
+      b.calories += Number(log.calories ?? 0);
+      b.protein += Number(log.protein ?? 0);
+      b.carbs += Number(log.carbs ?? 0);
+      b.fat += Number(log.fat ?? 0);
+      b.fiber += Number(log.fiber ?? 0);
+      b.times.push(localHour(iso, offsetMin));
+      if (log.food_name) b.items.push(String(log.food_name));
+    }
+    for (const log of waterLogs) {
+      const iso = String(log.logged_at ?? "");
+      if (!iso) continue;
+      bucket(localKey(iso, offsetMin)).water += Number(log.amount_ml ?? 0);
+    }
+    for (const log of exerciseLogs) {
+      const iso = String(log.logged_at ?? "");
+      if (!iso) continue;
+      const b = bucket(localKey(iso, offsetMin));
+      b.burned += Number(log.calories_burned ?? 0);
+      b.exMinutes += Number(log.duration_minutes ?? 0);
+    }
 
-    // Water average
-    const waterByDay: Record<string, number> = {};
-    waterLogs.forEach((log: any) => {
-      const day = new Date(log.logged_at).toISOString().split('T')[0];
-      waterByDay[day] = (waterByDay[day] || 0) + (log.amount_ml || 0);
-    });
-    const waterDays = Object.values(waterByDay);
-    const avgWater = waterDays.length > 0 ? Math.round(waterDays.reduce((s, v) => s + v, 0) / waterDays.length) : 0;
+    const today = byDay.get(todayKey) ?? empty();
 
-    // Weight change
-    const latestWeight = weightLogs[0]?.weight;
-    const oldestWeight = weightLogs[weightLogs.length - 1]?.weight;
-    const weightChange = latestWeight && oldestWeight ? Number(latestWeight) - Number(oldestWeight) : null;
+    // Rolling windows exclude today (partial day would skew averages).
+    const pastKeys = [...byDay.keys()].filter((k) => k < todayKey).sort();
+    const last7 = pastKeys.slice(-7).map((k) => byDay.get(k)!);
+    const last14 = pastKeys.slice(-14).map((k) => byDay.get(k)!);
+    const loggedPast = last14.filter((b) => b.calories > 0);
+    const avg = (arr: Bucket[], pick: (b: Bucket) => number) =>
+      arr.length ? arr.reduce((s, b) => s + pick(b), 0) / arr.length : 0;
 
-    // Build context for AI
-    const currentHour = new Date().getHours();
-    const timeOfDay = currentHour < 12 ? 'morning' : currentHour < 17 ? 'afternoon' : 'evening';
-    const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    const avg7Cal = r(avg(last7.filter((b) => b.calories > 0), (b) => b.calories));
+    const avg14Cal = r(avg(loggedPast, (b) => b.calories));
+    const avg14Protein = r(avg(loggedPast, (b) => b.protein));
+    const avg14Fiber = r(avg(loggedPast, (b) => b.fiber));
+    const avg7Water = r(avg(last7.filter((b) => b.water > 0), (b) => b.water));
 
-    const userContext = `
-User Profile:
-- Age: ${profile?.age || 'unknown'}, Gender: ${profile?.gender || 'unknown'}, Activity: ${profile?.activity_level || 'moderate'}
-- Units: ${profile?.units_preference || 'imperial'}
+    // Weekly net drift vs goal across the last 7 logged days.
+    const weekNet = r(
+      last7.filter((b) => b.calories > 0).reduce((s, b) => s + (b.calories - b.burned - goalCal), 0),
+    );
 
-Goals:
-- Daily targets: ${goals?.daily_calories || 2000} cal, ${goals?.daily_protein || 150}g protein, ${goals?.daily_carbs || 250}g carbs, ${goals?.daily_fat || 65}g fat
-- Goal type: ${goals?.goal_type || 'maintain'}
-- Current weight: ${goals?.current_weight || 'unknown'}, Goal weight: ${goals?.goal_weight || 'unknown'}
-- Daily water goal: ${goals?.daily_water || 2000}ml
+    const netToday = r(today.calories - today.burned);
+    const remaining = r(goalCal - netToday);
+    // Typical share of the day's calories consumed by this hour (eating curve).
+    const curve = hourNow < 9 ? 0.12 : hourNow < 12 ? 0.28 : hourNow < 15 ? 0.55 : hourNow < 19 ? 0.75 : hourNow < 22 ? 0.95 : 1;
+    const projected = netToday > 0 ? r(netToday / curve) : 0;
 
-Last 14 Days Analysis:
-- Days logged: ${daysLogged}/14
-- Avg daily calories: ${avgCalories} (${goals?.daily_calories ? Math.round((avgCalories / goals.daily_calories - 1) * 100) : 0}% vs target)
-- Avg protein: ${avgProtein}g (${goals?.daily_protein ? Math.round((avgProtein / goals.daily_protein - 1) * 100) : 0}% vs target)
-- Avg carbs: ${avgCarbs}g
-- Avg water: ${avgWater}ml/day (goal: ${goals?.daily_water || 2000}ml)
-- Weight change: ${weightChange !== null ? `${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)}kg` : 'no data'}
+    const weights = weightLogs.map((w) => Number(w.weight)).filter((n) => Number.isFinite(n));
+    const latestWeight = weights[0] ?? null;
+    const weightChange = weights.length >= 2 ? Number((weights[0] - weights[weights.length - 1]).toFixed(1)) : null;
 
-Streak:
-- Current streak: ${streak?.current_streak || 0} days
-- Longest streak: ${streak?.longest_streak || 0} days
+    const mealsToday = foodLogs.filter((l) => localKey(String(l.logged_at ?? nowIso), offsetMin) === todayKey);
+    const lastMealHour = today.times.length ? Math.max(...today.times) : null;
+    const firstMealHour = today.times.length ? Math.min(...today.times) : null;
 
-Context:
-- Time of day: ${timeOfDay}
-- Day of week: ${dayOfWeek}
-`;
+    /* ── day state ────────────────────────────────────────────── */
+    let state = "on_track";
+    if (mealsToday.length === 0) state = hourNow >= 14 ? "late_start" : "no_logs_yet";
+    else if (netToday > goalCal * 1.05) state = "surplus";
+    else if (projected > goalCal * 1.1) state = "trending_over";
+    else if (hourNow >= 20 && netToday < goalCal * 0.7) state = "under_eating";
+    else if (hourNow >= 17 && today.protein < goalProtein * 0.6) state = "protein_short";
+    else if (hourNow >= 17 && goalFiber > 0 && today.fiber < goalFiber * 0.5) state = "fiber_short";
+    else if (hourNow >= 15 && goalWater > 0 && today.water < goalWater * 0.4) state = "low_water";
+    else if (netToday >= goalCal * 0.85 && netToday <= goalCal * 1.02 && today.protein >= goalProtein * 0.85)
+      state = "strong_day";
 
-    const systemPrompt = `You are CalTrack's AI nutrition coach. Generate 3-5 personalized, encouraging insights based on the user's actual data.
+    const overBy = Math.max(0, netToday - goalCal);
+    const projectedOverBy = Math.max(0, projected - goalCal);
+
+    const snapshot = {
+      state,
+      hour: hourNow,
+      goal: goalCal,
+      goalType,
+      eaten: r(today.calories),
+      burned: r(today.burned),
+      net: netToday,
+      remaining,
+      projected,
+      protein: r(today.protein),
+      goalProtein,
+      fiber: r(today.fiber),
+      goalFiber,
+      water: r(today.water),
+      goalWater,
+      mealsLogged: mealsToday.length,
+      firstMealHour,
+      lastMealHour,
+      avg7Cal,
+      avg14Cal,
+      avg14Protein,
+      avg14Fiber,
+      avg7Water,
+      weekNet,
+      daysLogged: loggedPast.length,
+      streak: streak?.current_streak ?? 0,
+      latestWeight,
+      weightChange,
+      exerciseMinutesToday: r(today.exMinutes),
+    };
+
+    /* ── deterministic fallback insights ──────────────────────── */
+    const walkMinutes = Math.max(15, Math.min(90, Math.round((overBy || projectedOverBy) / 5)));
+    const fallback: OutInsight[] = (() => {
+      switch (state) {
+        case "no_logs_yet":
+          return [{
+            category: "quick_win",
+            headline: "Nothing logged yet today",
+            message: `Your target is ${goalCal} kcal. Snap your next plate and the rest of the day plans itself.`,
+            action: { kind: "scan", label: "Log a meal" },
+          }];
+        case "late_start":
+          return [{
+            category: "improve",
+            headline: "The day is half gone, untracked",
+            message: `Log what you've had so far — even rough numbers keep your ${goalCal} kcal target meaningful.`,
+            action: { kind: "describe", label: "Describe a meal" },
+          }];
+        case "surplus":
+          return [{
+            category: "improve",
+            headline: `You're ${overBy} kcal over target`,
+            message: `A ${walkMinutes}-min brisk walk burns roughly ${walkMinutes * 5} kcal and brings today back in line.`,
+            action: { kind: "exercise", label: "Log a walk" },
+          }];
+        case "trending_over":
+          return [{
+            category: "improve",
+            headline: `On pace for ${projected} kcal`,
+            message: `That's ${projectedOverBy} over your ${goalCal} target. Keep dinner protein-forward and around ${Math.max(300, remaining)} kcal.`,
+            action: { kind: "none", label: "" },
+          }];
+        case "under_eating":
+          return [{
+            category: "improve",
+            headline: `${remaining} kcal still unspent`,
+            message: "Under-eating stalls progress as surely as over-eating. A solid protein snack closes the gap.",
+            action: { kind: "describe", label: "Log a snack" },
+          }];
+        case "protein_short":
+          return [{
+            category: "improve",
+            headline: `Protein at ${r(today.protein)}g of ${goalProtein}g`,
+            message: "Anchor your next meal on protein — curd, eggs, chicken or dal will cover most of what's left.",
+            action: { kind: "none", label: "" },
+          }];
+        case "fiber_short":
+          return [{
+            category: "improve",
+            headline: `Fiber at ${r(today.fiber)}g of ${goalFiber}g`,
+            message: "Add a fruit, salad or a spoon of chia to your next meal to close the gap.",
+            action: { kind: "none", label: "" },
+          }];
+        case "low_water":
+          return [{
+            category: "quick_win",
+            headline: `Only ${r(today.water)} ml of water so far`,
+            message: `Two glasses now puts you back on pace for ${goalWater} ml.`,
+            action: { kind: "water", label: "Add water" },
+          }];
+        case "strong_day":
+          return [{
+            category: "celebration",
+            headline: "Today is a textbook day",
+            message: `${netToday} kcal net against a ${goalCal} target with ${r(today.protein)}g protein. Repeat this and the trend does the rest.`,
+            action: { kind: "none", label: "" },
+          }];
+        default:
+          return [{
+            category: "goal",
+            headline: `${remaining} kcal left today`,
+            message: `You're at ${netToday} of ${goalCal}. Your 7-day average is ${avg7Cal || "—"} kcal.`,
+            action: { kind: "none", label: "" },
+          }];
+      }
+    })();
+
+    if (!lovableApiKey) return json({ insights: fallback, snapshot, state, source: "rules" });
+
+    /* ── AI pass ──────────────────────────────────────────────── */
+    const systemPrompt = `You are CalTrack's nutrition coach. You get a precomputed snapshot of the user's day and rolling averages, plus a classified day state. You do NOT compute anything new — only interpret.
+
+Write:
+1. ONE primary insight for the classified state: a headline (max 48 chars, states the fact with the real number) and a message (max 140 chars, ONE concrete next step the user can act on in the next few hours).
+2. Two to four short briefing insights: what's working, what to fix, and one pattern from the rolling averages.
 
 Rules:
-1. Be specific - reference actual numbers from their data
-2. Be actionable - give concrete next steps when suggesting improvements
-3. Be encouraging - celebrate wins, however small
-4. Be contextual - consider time of day and patterns
-5. Vary your suggestions - mix celebration, tips, and motivation
-6. Keep each insight under 100 characters
+- Always reference real numbers from the snapshot. Never invent data or numbers.
+- If state is surplus or trending_over, the primary insight MUST be a recovery suggestion: a specific activity (with an approximate burn) or a specific calorie ceiling for the next meal.
+- Plain, calm, adult tone. No emoji, no exclamation marks, no hype, no "amazing journey" language.
+- Never suggest anything medically risky, never mention fasting for whole days, never shame the user.
+- Set action.kind to the screen that helps most: exercise (log activity), describe (log a meal by text), scan (photo a meal), water, weight, or none. action.label is max 18 chars, empty when kind is none.
+- The first insight in the array is the primary one.`;
 
-Output ONLY a JSON array with this structure (no markdown, no code blocks):
-[
-  {
-    "category": "strength" | "improve" | "goal" | "quick_win" | "celebration",
-    "emoji": "appropriate emoji",
-    "message": "Your personalized insight here"
-  }
-]`;
+    const schema = {
+      type: "object",
+      additionalProperties: false,
+      required: ["insights"],
+      properties: {
+        insights: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["category", "headline", "message", "action"],
+            properties: {
+              category: { type: "string", enum: ["strength", "improve", "goal", "quick_win", "celebration"] },
+              headline: { type: "string" },
+              message: { type: "string" },
+              action: {
+                type: "object",
+                additionalProperties: false,
+                required: ["kind", "label"],
+                properties: {
+                  kind: { type: "string", enum: ["exercise", "describe", "scan", "water", "weight", "none"] },
+                  label: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${lovableApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'google/gemini-3.6-flash',
+        model: "google/gemini-3.6-flash",
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userContext },
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `Snapshot (JSON): ${JSON.stringify(snapshot)}\n\nProfile: age ${profile?.age ?? "unknown"}, gender ${profile?.gender ?? "unknown"}, activity ${profile?.activity_level ?? "moderate"}, units ${profile?.units_preference ?? "metric"}. Goal type: ${goalType}.\nRecent foods today: ${today.items.slice(0, 8).join(", ") || "none"}.`,
+          },
         ],
+        response_format: { type: "json_schema", json_schema: { name: "insights", strict: true, schema } },
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'AI credits exhausted.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      throw new Error('AI gateway error');
+      console.error("AI gateway error:", response.status, errorText);
+      if (response.status === 429) return json({ error: "Rate limit exceeded. Please try again later.", insights: fallback, snapshot, state, source: "rules" }, 200);
+      if (response.status === 402) return json({ error: "AI credits exhausted.", insights: fallback, snapshot, state, source: "rules" }, 200);
+      return json({ insights: fallback, snapshot, state, source: "rules" });
     }
 
     const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content || '[]';
-    
-    // Parse AI response
-    let insights;
+    const content = String(aiData.choices?.[0]?.message?.content ?? "");
+    let insights: OutInsight[] = fallback;
+    let source = "rules";
     try {
-      // Clean the response - remove markdown code blocks if present
-      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      insights = JSON.parse(cleanedContent);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', content);
-      insights = [
-        { category: 'goal', emoji: '👋', message: 'Keep tracking to unlock personalized insights!' }
-      ];
+      const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const parsed = JSON.parse(cleaned) as { insights?: OutInsight[] } | OutInsight[];
+      const arr = Array.isArray(parsed) ? parsed : parsed.insights;
+      if (Array.isArray(arr) && arr.length > 0) {
+        insights = arr
+          .filter((i) => i && typeof i.message === "string" && i.message.trim().length > 0)
+          .map((i) => ({
+            category: String(i.category ?? "goal"),
+            headline: String(i.headline ?? "").slice(0, 80),
+            message: String(i.message).slice(0, 220),
+            action: i.action && i.action.kind && i.action.kind !== "none"
+              ? { kind: i.action.kind, label: String(i.action.label ?? "Open").slice(0, 24) }
+              : undefined,
+          }));
+        source = "ai";
+      }
+    } catch (err) {
+      console.error("Failed to parse AI response:", content, err);
     }
 
-    return new Response(JSON.stringify({ insights }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    if (insights.length === 0) {
+      insights = fallback;
+      source = "rules";
+    }
 
+    return json({ insights, snapshot, state, source });
   } catch (error) {
-    console.error('Error in generate-insights:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error',
-      insights: [{ category: 'goal', emoji: '💪', message: 'Keep up the great work with your nutrition journey!' }]
-    }), {
-      status: 200, // Return 200 with fallback insights
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    console.error("Error in generate-insights:", error);
+    return json({
+      error: error instanceof Error ? error.message : "Unknown error",
+      insights: [{
+        category: "goal",
+        headline: "Insights are catching up",
+        message: "We couldn't build today's read just now. Pull to refresh in a moment.",
+      }],
+      source: "error",
     });
   }
 });
