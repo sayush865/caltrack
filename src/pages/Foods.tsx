@@ -41,7 +41,7 @@ export default function Foods() {
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [portionFood, setPortionFood] = useState<DbFood | null>(null);
-  const [customOpen, setCustomOpen] = useState(false);
+  
 
   // 300ms debounce before hitting the server.
   useEffect(() => {
