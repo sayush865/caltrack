@@ -155,9 +155,10 @@ Guidelines:
                       vitamin_a: { type: "number", description: "Vitamin A in mcg" },
                       vitamin_c: { type: "number", description: "Vitamin C in mg" },
                       calcium: { type: "number", description: "Calcium in mg" },
-                      iron: { type: "number", description: "Iron in mg" }
+                      iron: { type: "number", description: "Iron in mg" },
+                      water_ml: { type: "number", description: "Water content of this serving in ml (0 for solid food)" }
                     },
-                    required: ["name", "portion", "confidence", "calories", "protein", "carbs", "fat", "fiber", "sugar", "sodium", "vitamin_a", "vitamin_c", "calcium", "iron"]
+                    required: ["name", "portion", "confidence", "calories", "protein", "carbs", "fat", "fiber", "sugar", "sodium", "vitamin_a", "vitamin_c", "calcium", "iron", "water_ml"]
                   }
                 },
                 visual_description: { 
@@ -270,6 +271,7 @@ Guidelines:
           vitamin_c: Math.round(item.vitamin_c),
           calcium: Math.round(item.calcium),
           iron: Math.round(item.iron * 10) / 10,
+          water_ml: Math.max(0, Math.round(Number(item.water_ml) || 0)),
         })),
         // Aggregated totals for backward compatibility
         nutritionData: {

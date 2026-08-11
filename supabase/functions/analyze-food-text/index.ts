@@ -80,6 +80,8 @@ Guidelines:
 - Account for cooking methods (fried adds oil, grilled is leaner)
 - Include hidden calories (oils, sauces, dressings)
 - Be conservative with estimates
+- Hydration: also report water_ml, the water content of the described drinks in ml. Plain water, sparkling water, black tea/coffee and infusions ~100% of volume; chia water counts the full liquid volume (plus the chia calories); milk ~87%; juice ~85%; soup ~80%; soda ~89%; alcohol 0. Solid food only = 0.
+- Set drink_only to true when the description is nothing but drinks with no meaningful calories (e.g. "500ml water", "two glasses of water", "black coffee")
 
 Return ONLY valid JSON:
 {
@@ -97,7 +99,9 @@ Return ONLY valid JSON:
   "vitamin_a": number,
   "vitamin_c": number,
   "calcium": number,
-  "iron": number
+  "iron": number,
+  "water_ml": number,
+  "drink_only": boolean
 }
 
 Verify: calories ≈ (protein×4) + (carbs×4) + (fat×9)`
@@ -155,7 +159,9 @@ Verify: calories ≈ (protein×4) + (carbs×4) + (fat×9)`
           vitamin_a: nutritionData.vitamin_a,
           vitamin_c: nutritionData.vitamin_c,
           calcium: nutritionData.calcium,
-          iron: nutritionData.iron
+          iron: nutritionData.iron,
+          water_ml: Math.max(0, Math.round(Number(nutritionData.water_ml) || 0)),
+          drink_only: nutritionData.drink_only === true,
         },
         analysis: {
           visual_analysis: nutritionData.food_items_parsed,
