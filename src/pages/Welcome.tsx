@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 
 import { useSession } from "@/hooks/useSession";
@@ -28,6 +28,7 @@ import { PlanBuildAnimation } from "@/components/onboarding/PlanBuildAnimation";
 import { PlanReveal } from "@/components/onboarding/PlanReveal";
 import { CommitHold } from "@/components/onboarding/CommitHold";
 import { SignupStep } from "@/components/onboarding/SignupStep";
+import { Spinner } from "@/components/system";
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -137,7 +138,7 @@ export default function Welcome() {
   if (saving) {
     content = (
       <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Spinner size={28} className="text-foreground" />
         <p className="mt-4 text-body text-secondary-text">Locking in your plan…</p>
       </div>
     );
@@ -207,7 +208,7 @@ export default function Welcome() {
     content = authed ? (
       // The auto-finish effect handles this; brief spinner while it kicks in.
       <div className="flex flex-1 flex-col items-center justify-center py-10">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Spinner size={28} className="text-foreground" />
       </div>
     ) : (
       <SignupStep onAccountReady={finish} />
@@ -216,7 +217,7 @@ export default function Welcome() {
     // plan missing for build/reveal — the recovery effect will reroute to quiz.
     content = (
       <div className="flex flex-1 flex-col items-center justify-center py-10">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Spinner size={28} className="text-foreground" />
       </div>
     );
   }

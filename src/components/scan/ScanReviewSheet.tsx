@@ -9,7 +9,6 @@ import {
   CalendarDays,
   Coffee,
   Cookie,
-  Loader2,
   Minus,
   Moon,
   Plus,
@@ -26,6 +25,7 @@ import { useLogMeal } from "@/hooks/useMutations";
 import { dayKey, formatTime, friendlyDay, isToday, parseDayKey, suggestedMealType } from "@/lib/dates";
 import type { DraftItem, LogSource, MacroSet, MealType } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Spinner } from "@/components/system";
 
 /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -573,7 +573,7 @@ export function ScanReviewSheet({
           >
             {busy ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Spinner size={18} />
                 Saving
               </>
             ) : (

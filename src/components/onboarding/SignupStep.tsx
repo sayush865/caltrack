@@ -3,11 +3,12 @@
 
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, MailCheck } from "lucide-react";
+import { MailCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PrimaryButton } from "./ui";
+import { Spinner } from "@/components/system";
 
 function friendlySignupError(message: string): string {
   const m = message.toLowerCase();
@@ -127,7 +128,7 @@ export function SignupStep({
         <PrimaryButton type="submit" disabled={!valid || busy}>
           {busy ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner size={16} />
               Saving your plan…
             </>
           ) : (

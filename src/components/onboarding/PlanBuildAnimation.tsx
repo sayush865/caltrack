@@ -2,10 +2,11 @@
 // staggered fade, each showing the REAL computed value from lib/energy.ts.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { Check } from "lucide-react";
 import type { Units } from "@/lib/units";
 import { formatLongDate, formatPace, type Plan } from "./quiz";
 import { cn } from "@/lib/utils";
+import { Spinner } from "@/components/system";
 
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -70,7 +71,7 @@ export function PlanBuildAnimation({
                   <Check className="h-3.5 w-3.5 text-success" strokeWidth={3} />
                 </span>
               ) : (
-                <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-muted-foreground" />
+                <Spinner size={18} className="mt-0.5 shrink-0 text-muted-foreground" />
               )}
               <p className={cn("text-body", state === "done" ? "text-foreground" : "text-secondary-text")}>
                 {line}
