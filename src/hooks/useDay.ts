@@ -108,7 +108,7 @@ export function useDay(dayKey: string): UseQueryResult<DayData> {
           .eq("status", 1)
           .gte("logged_at", fromISO)
           .lt("logged_at", toISO)
-          .order("logged_at", { ascending: false }),
+          .order("logged_at", { ascending: true }),
         supabase
           .from("water_logs")
           .select("amount_ml")
@@ -122,7 +122,7 @@ export function useDay(dayKey: string): UseQueryResult<DayData> {
           .eq("status", 1)
           .gte("logged_at", fromISO)
           .lt("logged_at", toISO)
-          .order("logged_at", { ascending: false }),
+          .order("logged_at", { ascending: true }),
       ]);
 
       if (foodRes.error) throw foodRes.error;

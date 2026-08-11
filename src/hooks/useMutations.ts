@@ -105,7 +105,12 @@ export function useLogMeal(): UseMutationResult<FoodLogRow[], Error, LogMealVars
             status: 1,
           };
         });
-        qc.setQueryData<DayData>(key, buildDayData([...optimistic, ...previous.all], previous.water, previous.exercise));
+        // Diary is chronological (earliest first) — keep the optimistic rows in place.
+        const merged = [...previous.all, ...optimistic].sort(
+          (a, b) => new Date(a.logged_at).getTime() - new Date(b.logged_at).getTime(),
+        );
+        qc.setQueryData<DayData>(key, buildDayData(merged, previous.water, previous.exercise));
+
       }
       return { previous };
     },

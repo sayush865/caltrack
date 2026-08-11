@@ -1,3 +1,5 @@
+export { TodayBriefing } from "./TodayBriefing";
+export { PatternsCard } from "./PatternsCard";
 export { WeeklyCheckinCard } from "./WeeklyCheckinCard";
 export { WeeklyCalorieChart } from "./WeeklyCalorieChart";
 export { MacroAveragesCard } from "./MacroAveragesCard";

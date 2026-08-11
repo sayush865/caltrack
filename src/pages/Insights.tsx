@@ -6,10 +6,12 @@
 import { PageHeader } from "@/components/system";
 import {
   MacroAveragesCard,
+  PatternsCard,
   PlateauCard,
   StatsRow,
   usePlateau,
   WeeklyCalorieChart,
+  TodayBriefing,
   WeeklyCheckinCard,
   WeightTrendCard,
 } from "@/components/insights";
@@ -21,10 +23,12 @@ export default function Insights() {
     <div className="min-h-screen bg-background pb-28">
       <PageHeader title="Insights" />
       <main className="mx-auto max-w-md space-y-3 px-4 pt-1">
+        <TodayBriefing />
         <WeeklyCheckinCard />
         {plateau && <PlateauCard info={plateau} />}
         <WeeklyCalorieChart />
         <MacroAveragesCard />
+        <PatternsCard />
         <WeightTrendCard />
         <StatsRow />
       </main>

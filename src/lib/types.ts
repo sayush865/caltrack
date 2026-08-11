@@ -22,6 +22,8 @@ export interface DraftItem extends MacroSet {
   quantity: number; // multiplier applied to base macros (default 1)
   confidence?: number; // 0-100 from AI
   base: MacroSet; // immutable per-1x nutrition; display = base * quantity
+  /** Hydration contributed by this item at quantity 1 (drinks only). */
+  waterMl?: number;
 }
 
 /** Deployed analyze-food response (DO NOT change client expectations). */
@@ -133,11 +135,59 @@ export interface DayData {
   exercise: { rows: ExerciseRow[]; calories: number };
 }
 
-/** generate-insights item: {category, emoji, message} — render lucide icon from category, IGNORE emoji. */
+export type InsightActionKind = "exercise" | "describe" | "scan" | "water" | "weight";
+
+export interface InsightAction {
+  kind: InsightActionKind;
+  label: string;
+}
+
+/** generate-insights item. `headline` + `action` are v2 fields (optional for cached v1 payloads). */
 export interface Insight {
   category: string;
   emoji?: string;
+  headline?: string;
   message: string;
+  action?: InsightAction;
+}
+
+/** Deterministic day snapshot the insight was written from. */
+export interface InsightSnapshot {
+  state: string;
+  hour: number;
+  goal: number;
+  goalType: string;
+  eaten: number;
+  burned: number;
+  net: number;
+  remaining: number;
+  projected: number;
+  protein: number;
+  goalProtein: number;
+  fiber: number;
+  goalFiber: number;
+  water: number;
+  goalWater: number;
+  mealsLogged: number;
+  firstMealHour: number | null;
+  lastMealHour: number | null;
+  avg7Cal: number;
+  avg14Cal: number;
+  avg14Protein: number;
+  avg14Fiber: number;
+  avg7Water: number;
+  weekNet: number;
+  daysLogged: number;
+  streak: number;
+  latestWeight: number | null;
+  weightChange: number | null;
+  exerciseMinutesToday: number;
+}
+
+export interface InsightPayload {
+  insights: Insight[];
+  snapshot: InsightSnapshot | null;
+  state: string | null;
 }
 
 /** A saved favorite (meal_templates row, items snapshot decoded). */

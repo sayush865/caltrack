@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   Coffee,
+  Droplets,
   Cookie,
   Minus,
   Moon,
@@ -18,10 +19,10 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { Shimmer, Surface, useCountUp } from "@/components/system";
+import { Shimmer, Surface, TimeField, useCountUp } from "@/components/system";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useLogMeal } from "@/hooks/useMutations";
+import { useLogMeal, useLogWater } from "@/hooks/useMutations";
 import { dayKey, formatTime, friendlyDay, isToday, parseDayKey, suggestedMealType } from "@/lib/dates";
 import type { DraftItem, LogSource, MacroSet, MealType } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -353,6 +354,7 @@ export function ScanReviewSheet({
 }: ScanReviewSheetProps) {
   const navigate = useNavigate();
   const logMeal = useLogMeal();
+  const logWater = useLogWater();
 
   const [items, setItems] = useState<DraftItem[]>(initialItems);
   const [mealType, setMealType] = useState<MealType>(() => suggestedMealType());
@@ -361,6 +363,13 @@ export function ScanReviewSheet({
     return dayKey(new Date());
   });
   const [dateOpen, setDateOpen] = useState(false);
+  // Logging time: now for today, midday for a past day. Editable below the date.
+  const [loggedTime, setLoggedTime] = useState<Date>(() => {
+    const base = presetDayKey && !isToday(presetDayKey) ? parseDayKey(presetDayKey) : new Date();
+    if (presetDayKey && !isToday(presetDayKey)) base.setHours(12, 0, 0, 0);
+    return base;
+  });
+  const [logHydration, setLogHydration] = useState(true);
   const [hint, setHint] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -373,7 +382,24 @@ export function ScanReviewSheet({
     }
   }, [analysisId, initialItems]);
 
+  // The time control only carries hours/minutes — re-anchor it whenever the day changes.
+  useEffect(() => {
+    setLoggedTime((prev) => {
+      const day = parseDayKey(dateKey);
+      const next = new Date(day);
+      next.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
+      if (isToday(dateKey) && next.getTime() > Date.now()) return new Date();
+      return next;
+    });
+  }, [dateKey]);
+
   const totals = useMemo(() => sumTotals(items), [items]);
+
+  // Hydration detected by the analysis (chia water, coffee, soup…), scaled by quantity.
+  const waterMl = useMemo(
+    () => Math.round(items.reduce((sum, it) => sum + (it.waterMl ?? 0) * (it.quantity || 1), 0)),
+    [items],
+  );
   const totalKcal = useCountUp(Math.round(totals.calories));
 
   // Segmented macro bar by kcal share (P/C ×4, F ×9)
@@ -401,9 +427,12 @@ export function ScanReviewSheet({
       imageUrl = undefined; // meal still saves without its photo
     }
     logMeal.mutate(
-      { items, mealType, dayKey: dateKey, source, imageUrl },
+      { items, mealType, dayKey: dateKey, source, imageUrl, time: loggedTime },
       {
         onSuccess: () => {
+          if (logHydration && waterMl > 0) {
+            logWater.mutate({ dayKey: dateKey, deltaMl: waterMl });
+          }
           navigate(isToday(dateKey) ? "/" : `/log?date=${dateKey}`);
         },
         onSettled: () => setSaving(false),
@@ -412,7 +441,6 @@ export function ScanReviewSheet({
   };
 
   const busy = saving || logMeal.isPending;
-  const nowLabel = isToday(dateKey) ? formatTime(new Date().toISOString()) : "12:00 PM";
 
   return (
     <div className="space-y-3 pb-32">
@@ -544,7 +572,7 @@ export function ScanReviewSheet({
           >
             <CalendarDays className="h-4 w-4 shrink-0 text-secondary-text" />
             <span className="text-label font-medium text-foreground">{friendlyDay(dateKey)}</span>
-            <span className="ml-auto text-caption text-muted-foreground">around {nowLabel}</span>
+            <span className="ml-auto text-caption text-muted-foreground">{formatTime(loggedTime.toISOString())}</span>
           </button>
         </PopoverTrigger>
         <PopoverContent align="center" className="w-auto rounded-card border-border bg-popover p-0 shadow-raised">
@@ -561,6 +589,49 @@ export function ScanReviewSheet({
           />
         </PopoverContent>
       </Popover>
+
+      {/* Time of day — defaults to now (midday on past days) */}
+      <TimeField
+        value={loggedTime}
+        onChange={setLoggedTime}
+        max={isToday(dateKey) ? new Date() : undefined}
+        label="Logged at"
+      />
+
+      {/* Hydration detected in the analysis — counted toward water unless turned off */}
+      {waterMl > 0 && (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={logHydration}
+          onClick={() => setLogHydration((v) => !v)}
+          className="flex w-full items-center gap-3 rounded-card border border-border bg-card px-4 py-3 text-left transition-transform duration-instant active:scale-[0.97]"
+        >
+          <Droplets className="h-4 w-4 shrink-0 text-water" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-label font-medium text-foreground">
+              Add {waterMl} ml to water
+            </span>
+            <span className="block text-caption text-muted-foreground">
+              Detected hydration from these items
+            </span>
+          </span>
+          <span
+            className={cn(
+              "relative h-6 w-11 shrink-0 rounded-full border transition-colors duration-instant",
+              logHydration ? "border-primary bg-primary" : "border-border bg-muted",
+            )}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-4.5 w-4.5 rounded-full bg-card transition-transform duration-instant",
+                logHydration ? "translate-x-[22px]" : "translate-x-0.5",
+              )}
+              style={{ height: 18, width: 18 }}
+            />
+          </span>
+        </button>
+      )}
 
       {/* Sticky save */}
       <div className="fixed inset-x-0 bottom-0 z-30 bg-background/90 pb-safe backdrop-blur">

@@ -3,7 +3,16 @@
 // generate-insights ({insights: [{category, emoji, message}]}).
 
 import { supabase } from "@/integrations/supabase/client";
-import type { AnalyzeFoodResponse, AnalyzeTextResponse, DraftItem, Insight, MacroSet } from "./types";
+import { dayKey } from "./dates";
+import type {
+  AnalyzeFoodResponse,
+  AnalyzeTextResponse,
+  DraftItem,
+  Insight,
+  InsightPayload,
+  InsightSnapshot,
+  MacroSet,
+} from "./types";
 
 function num(value: unknown): number {
   const n = Number(value);
@@ -27,6 +36,7 @@ function makeDraftItem(
   base: MacroSet,
   portion: string,
   confidence?: number,
+  waterMl?: number,
 ): DraftItem {
   return {
     id: crypto.randomUUID(),
@@ -36,6 +46,7 @@ function makeDraftItem(
     confidence,
     base,
     ...base, // display macros at quantity 1 = base
+    waterMl: waterMl && waterMl > 0 ? Math.round(waterMl) : undefined,
   };
 }
 
@@ -61,6 +72,7 @@ export async function analyzePhoto(imageBase64: string, signal?: AbortSignal): P
         toMacroSet(item as Record<string, unknown>),
         String(item.portion ?? "1 serving"),
         item.confidence !== undefined ? num(item.confidence) : undefined,
+        num((item as Record<string, unknown>).water_ml),
       ),
     );
   }
@@ -68,7 +80,7 @@ export async function analyzePhoto(imageBase64: string, signal?: AbortSignal): P
   // Defensive fallback: older responses may only carry the aggregate blob.
   if (response?.nutritionData) {
     const blob = response.nutritionData as Record<string, unknown>;
-    return [makeDraftItem(String(blob.food_name ?? "Food item"), toMacroSet(blob), "1 serving")];
+    return [makeDraftItem(String(blob.food_name ?? "Food item"), toMacroSet(blob), "1 serving", undefined, num(blob.water_ml))];
   }
 
   throw new Error("Invalid response from analysis");
@@ -88,23 +100,37 @@ export async function analyzeText(text: string, signal?: AbortSignal): Promise<D
   if (!response?.nutritionData) throw new Error("Invalid response from analysis");
 
   const blob = response.nutritionData as Record<string, unknown>;
-  return [makeDraftItem(String(blob.food_name ?? "Food item"), toMacroSet(blob), "1 serving")];
+  return [
+    makeDraftItem(
+      String(blob.food_name ?? "Food item"),
+      toMacroSet(blob),
+      "1 serving",
+      undefined,
+      num(blob.water_ml),
+    ),
+  ];
 }
 
-/** generate-insights passthrough. Returns [] shape only via throw — callers cache/handle. */
-export async function fetchDailyInsights(): Promise<Insight[]> {
+/** generate-insights: returns the insight list plus the deterministic day snapshot. */
+export async function fetchDailyInsights(): Promise<InsightPayload> {
   const { data: sessionData } = await supabase.auth.getSession();
   const session = sessionData.session;
   if (!session) throw new Error("Not authenticated");
 
   const { data, error } = await supabase.functions.invoke("generate-insights", {
     headers: { Authorization: `Bearer ${session.access_token}` },
+    body: { dayKey: dayKey(new Date()), tzOffsetMinutes: new Date().getTimezoneOffset() },
   });
   if (error) throw error;
 
-  const insights = (data as { insights?: Insight[] } | null)?.insights;
+  const payload = data as { insights?: Insight[]; snapshot?: InsightSnapshot; state?: string } | null;
+  const insights = payload?.insights;
   if (!Array.isArray(insights)) throw new Error("Invalid insights response");
-  return insights.filter((i) => i && typeof i.message === "string");
+  return {
+    insights: insights.filter((i) => i && typeof i.message === "string"),
+    snapshot: payload?.snapshot ?? null,
+    state: payload?.state ?? null,
+  };
 }
 
 /** Canvas resize to <=maxDim, WebP dataURL (quality 0.85) with JPEG fallback. */
