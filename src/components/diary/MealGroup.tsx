@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { Plus, Star, X } from "lucide-react";
-import { LogItemRow } from "@/components/system";
+import { MealEntryCard } from "@/components/system";
 import { useFavorites } from "@/hooks/useFavorites";
+import { groupByMealEntry } from "@/lib/mealGroups";
 import { parseLogMeta, type DraftItem, type FoodLogRow, type MealType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -120,8 +121,13 @@ export function MealGroup({ mealType, rows, onRowClick, onRowDelete, onAdd, clas
         </div>
       )}
 
-      {rows.map((row) => (
-        <LogItemRow key={row.id} row={row} showMealChip={false} onClick={() => onRowClick(row)} onDelete={() => onRowDelete(row)} />
+      {groupByMealEntry(rows).map((group) => (
+        <MealEntryCard
+          key={group.key}
+          rows={group.rows}
+          onOpen={() => onRowClick(group.rows[0])}
+          onDeleteItem={(row) => onRowDelete(row)}
+        />
       ))}
 
       <button
