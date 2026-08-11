@@ -4,11 +4,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { PencilLine, Search, SearchX, Utensils } from "lucide-react";
+import { Search, SearchX, Utensils } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { EmptyState, PageHeader, Shimmer, Surface } from "@/components/system";
-import { CustomFoodForm } from "@/components/foods/CustomFoodForm";
 import { FoodCard } from "@/components/foods/FoodCard";
 import { PortionSheet } from "@/components/foods/PortionSheet";
 import { useFoodSearch, useRecentFoods, type DbFood, type RecentFood } from "@/components/foods/hooks";
