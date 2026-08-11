@@ -18,7 +18,7 @@ export type Goal = "lose" | "maintain" | "gain";
 export type Activity = EnergyInput["activityLevel"];
 export type ExerciseDays = "0-1" | "2-3" | "4-5" | "6+";
 export type FoodStyle = "vegetarian" | "eggetarian" | "non_vegetarian" | "vegan";
-export type FoodContext = "home_cooked" | "eat_out" | "glp1" | "none";
+export type FoodContext = "home_cooked" | "eat_out" | "none";
 export type Obstacle = "chore" | "eating_out" | "late_night" | "motivation" | "new";
 
 export interface QuizAnswers {
@@ -107,7 +107,6 @@ export function firstIncompleteStep(a: QuizAnswers): number {
 /* ── Draft persistence (localStorage, saved at every step) ────── */
 
 const DRAFT_KEY = "ct-quiz-draft";
-export const GLP1_KEY = "ct-glp1";
 
 export interface QuizDraft {
   v: 1;
@@ -149,14 +148,6 @@ export function clearDraft(): void {
   }
 }
 
-export function saveGlp1Flag(on: boolean): void {
-  try {
-    localStorage.setItem(GLP1_KEY, on ? "1" : "0");
-  } catch {
-    /* ignore */
-  }
-}
-
 /* ── Plan computation ─────────────────────────────────────────── */
 
 export interface Plan {
@@ -170,7 +161,6 @@ export interface Plan {
   goal: Goal;
   pace: Pace;
   paceKg: number;
-  glp1: boolean;
   projection: Date | null;
   name: string;
 }
@@ -196,7 +186,6 @@ export function computePlan(a: QuizAnswers): Plan | null {
   const pace: Pace = a.goal === "maintain" ? "steady" : (a.pace ?? "steady");
   const calories = dailyTarget(t, a.goal, pace, a.sex);
   const macros = macroTargets(calories, a.weightKg, a.goal);
-  const glp1 = (a.foodContext ?? []).includes("glp1");
   const projection =
     a.goal !== "maintain" && a.goalWeightKg !== undefined
       ? projectionDate(a.weightKg, a.goalWeightKg, pace)
@@ -209,7 +198,6 @@ export function computePlan(a: QuizAnswers): Plan | null {
     goal: a.goal,
     pace,
     paceKg: paceKgPerWeek(pace),
-    glp1,
     projection,
     name: planName(a.goal, pace),
   };

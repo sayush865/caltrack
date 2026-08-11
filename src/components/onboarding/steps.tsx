@@ -19,7 +19,6 @@ import {
   checkGoalWeight,
   formatLongDate,
   paceUnavailable,
-  saveGlp1Flag,
   type Activity,
   type ExerciseDays,
   type FoodContext,
@@ -504,12 +503,11 @@ function PaceStep({ answers, patch, next }: StepProps) {
   );
 }
 
-/* ── Step 12 — Food style + context (GLP-1 flag) ──────────────── */
+/* ── Step 12 — Food style + context ───────────────────────────── */
 
 const FOOD_CONTEXT_OPTIONS: Array<{ value: FoodContext; label: string }> = [
   { value: "home_cooked", label: "I mostly eat home-cooked Indian food" },
   { value: "eat_out", label: "I eat out / order in a lot" },
-  { value: "glp1", label: "I'm taking a GLP-1 medication (Ozempic, Wegovy, Mounjaro)" },
   { value: "none", label: "None of these" },
 ];
 
@@ -561,10 +559,7 @@ function FoodStep({ answers, patch, next }: StepProps) {
 
       <PrimaryButton
         disabled={!style}
-        onClick={() => {
-          saveGlp1Flag(ctx.includes("glp1"));
-          next();
-        }}
+onClick={next}
       >
         Continue
       </PrimaryButton>

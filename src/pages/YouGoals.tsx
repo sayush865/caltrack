@@ -1,13 +1,12 @@
 // /you/goals — THE single goal editor (Flow 6). The old Goals/Settings split is dead.
-// Recompute-from-profile, pace, maintenance-first-class, manual overrides, GLP-1 mode.
+// Recompute-from-profile, pace, maintenance-first-class, manual overrides.
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, RefreshCw, Sparkles } from "lucide-react";
+import { Check, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader, Shimmer, Surface } from "@/components/system";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { useProfile } from "@/hooks/useProfile";
 import { useGoals } from "@/hooks/useGoals";
 import { useWeights } from "@/hooks/useWeights";
@@ -15,7 +14,7 @@ import { useUpdateGoals } from "@/hooks/useMutations";
 import { dailyTarget, macroTargets, projectionDate, tdee, type EnergyInput, type Pace } from "@/lib/energy";
 import { displayWeight, toKg, weightUnit, type Units } from "@/lib/units";
 import { nutritionGoalsSchema } from "@/lib/validation";
-import { getPace, GOAL_TYPE_LABELS, isGlp1, PACE_LABELS, setGlp1, setPace } from "@/components/you/prefs";
+import { getPace, GOAL_TYPE_LABELS, PACE_LABELS, setPace } from "@/components/you/prefs";
 import type { Goals } from "@/lib/types";
 
 type GoalType = Goals["goal_type"];
@@ -77,7 +76,6 @@ export default function YouGoals() {
   const unit = weightUnit(units);
 
   const [pace, setPaceState] = useState<Pace>(getPace);
-  const [glp1, setGlp1State] = useState<boolean>(isGlp1);
   const [goalWeightInput, setGoalWeightInput] = useState("");
   const [form, setForm] = useState<Record<OverrideField, string>>({
     daily_calories: "",
@@ -202,12 +200,6 @@ export default function YouGoals() {
     }
     setErrors({});
     updateGoals.mutate(parsed.data, { onSuccess: () => toast.success("Targets updated.") });
-  };
-
-  const toggleGlp1 = (on: boolean) => {
-    setGlp1(on);
-    setGlp1State(on);
-    toast(on ? "GLP-1 mode on — protein comes first." : "GLP-1 mode off.");
   };
 
   const loading = profileQuery.isLoading || goalsQuery.isLoading || weightsQuery.isLoading;
@@ -415,19 +407,6 @@ export default function YouGoals() {
               </button>
             </Surface>
 
-            {/* ── GLP-1 mode ────────────────────────────── */}
-            <Surface className="flex items-center gap-3 p-5">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-control bg-protein-soft">
-                <Sparkles className="h-5 w-5 text-protein" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-body font-medium text-foreground">GLP-1 mode</p>
-                <p className="text-caption text-muted-foreground">
-                  On a GLP-1 medication? Protein becomes the hero target — small appetite, protein first.
-                </p>
-              </div>
-              <Switch checked={glp1} onCheckedChange={toggleGlp1} aria-label="GLP-1 mode" />
-            </Surface>
           </>
         )}
       </main>
