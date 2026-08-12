@@ -105,6 +105,18 @@ serve(async (req) => {
     const weightLogs = (weightRes.data ?? []) as Array<Record<string, unknown>>;
     const streak = streakRes.data as Record<string, number> | null;
 
+    /** Protein foods that fit the user's diet — used by the rule-based fallback copy. */
+    const proteinFoods = (() => {
+      switch (String(profile?.diet_type ?? "")) {
+        case "vegan": return "dal, tofu, soy chunks or roasted chana";
+        case "jain": return "dal, curd, paneer or peanuts";
+        case "vegetarian": return "curd, paneer, dal or roasted chana";
+        case "eggetarian": return "eggs, curd, paneer or dal";
+        case "pescatarian": return "fish, curd, eggs or dal";
+        default: return "curd, eggs, chicken or dal";
+      }
+    })();
+
     const goalCal = Number(goals.daily_calories ?? 0) || 2000;
     const goalProtein = Number(goals.daily_protein ?? 0) || 150;
     const goalFiber = Number(goals.daily_fiber ?? 0) || 30;
@@ -441,7 +453,7 @@ serve(async (req) => {
           return [{
             category: "improve",
             headline: `Protein at ${r(today.protein)}g of ${goalProtein}g`,
-            message: "Anchor your next meal on protein — curd, eggs, chicken or dal will cover most of what's left.",
+            message: `Anchor your next meal on protein — ${proteinFoods} will cover most of what's left.`,
             action: { kind: "none", label: "" },
           }];
         case "fiber_short":
@@ -556,12 +568,12 @@ serve(async (req) => {
     const spark = sparkAngles[(snapshot.hour + snapshot.mealsLogged + snapshot.daysLogged) % sparkAngles.length];
 
     /* ── personalisation from profile preferences ─────────────── */
-    const arr = (v: unknown): string[] =>
+    const strArr = (v: unknown): string[] =>
       Array.isArray(v) ? v.map((x) => String(x)).filter((x) => x.trim().length > 0).slice(0, 12) : [];
     const dietType = typeof profile?.diet_type === "string" ? String(profile.diet_type) : null;
-    const cuisines = arr(profile?.cuisines);
-    const allergies = arr(profile?.allergies);
-    const dislikes = arr(profile?.dislikes);
+    const cuisines = strArr(profile?.cuisines);
+    const allergies = strArr(profile?.allergies);
+    const dislikes = strArr(profile?.dislikes);
     const mealsPerDay = Number(profile?.meals_per_day ?? 0) || null;
     const cookingStyle = typeof profile?.cooking_style === "string" ? String(profile.cooking_style) : null;
     const foodNotes = typeof profile?.food_notes === "string" ? String(profile.food_notes).slice(0, 400) : null;
