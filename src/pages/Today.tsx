@@ -4,7 +4,7 @@
 import { RotateCcw } from "lucide-react";
 import { StreakChip, Surface } from "@/components/system";
 import { HeroCard } from "@/components/today/HeroCard";
-import { InsightCard } from "@/components/today/InsightCard";
+
 import { MealsToday } from "@/components/today/MealsToday";
 import { QuickLogRow } from "@/components/today/QuickLogRow";
 import { TodaySkeleton } from "@/components/today/TodaySkeleton";
