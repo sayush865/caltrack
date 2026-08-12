@@ -373,40 +373,49 @@ function LogSheetBody({ open, onOpenChange, dateKey }: LogSheetBodyProps) {
               </div>
             )}
 
-            {/* Action rows */}
-            <div className="mt-3 flex flex-col">
-              <ActionRow icon={Camera} label="Scan a meal" caption="Snap your plate — 3 seconds" onClick={() => go("/scan")} />
-              <ActionRow icon={MessageSquareText} label="Describe it" caption="Type or dictate what you ate" onClick={() => go("/describe")} />
-              {yesterdayMealRows.length > 0 && (
+            {/* Grouped actions */}
+            <div className="mt-4 space-y-4">
+              <ActionGroup title="Food">
+                <ActionRow icon={Camera} label="Scan a meal" caption="Snap your plate — 3 seconds" onClick={() => go("/scan")} />
+                <ActionRow icon={MessageSquareText} label="Describe it" caption="Type or dictate what you ate" onClick={() => go("/describe")} />
+                {yesterdayMealRows.length > 0 && (
+                  <ActionRow
+                    icon={CopyPlus}
+                    label={`Copy yesterday's ${mealType}`}
+                    caption={`${yesterdayMealCalories} kcal · one tap`}
+                    onClick={copyYesterday}
+                  />
+                )}
+              </ActionGroup>
+
+              <ActionGroup title="Exercise">
                 <ActionRow
-                  icon={CopyPlus}
-                  label={`Copy yesterday's ${mealType}`}
-                  caption={`${yesterdayMealCalories} kcal · one tap`}
-                  onClick={copyYesterday}
+                  icon={Sparkles}
+                  label="Describe a workout"
+                  caption="AI estimates minutes and calories"
+                  onClick={() => go(`/exercise?date=${dateKey}&describe=1`)}
                 />
-              )}
-              <ActionRow
-                icon={Dumbbell}
-                label="Log exercise"
-                caption="Browse activities or add minutes"
-                onClick={() => go(`/exercise?date=${dateKey}`)}
-              />
-              <ActionRow
-                icon={Sparkles}
-                label="Describe a workout"
-                caption="AI estimates minutes and calories"
-                onClick={() => go(`/exercise?date=${dateKey}&describe=1`)}
-              />
-              <ActionRow
-                icon={Scale}
-                label="Log weight"
-                caption="Keeps your trend and goals honest"
-                onClick={() => {
-                  close();
-                  setWeightOpen(true);
-                }}
-              />
+                <ActionRow
+                  icon={Dumbbell}
+                  label="Pick an activity"
+                  caption="Browse activities or add minutes"
+                  onClick={() => go(`/exercise?date=${dateKey}`)}
+                />
+              </ActionGroup>
+
+              <ActionGroup title="Body">
+                <ActionRow
+                  icon={Scale}
+                  label="Log weight"
+                  caption="Keeps your trend and goals honest"
+                  onClick={() => {
+                    close();
+                    setWeightOpen(true);
+                  }}
+                />
+              </ActionGroup>
             </div>
+
           </div>
         </SheetContent>
       </Sheet>
