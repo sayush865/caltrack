@@ -299,7 +299,7 @@ export default function MealDetail() {
   const notFound = !dayQuery.isLoading && !dayQuery.isError && rows.length === 0 && !initialized;
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-nav">
       <PageHeader
         title="Edit meal"
         back

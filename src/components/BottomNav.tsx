@@ -49,7 +49,7 @@ const BottomNav = () => {
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/85 pb-safe backdrop-blur-lg [transform:translateZ(0)] [will-change:transform] [backface-visibility:hidden] supports-[height:100dvh]:bottom-0"
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0px)" }}
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="mx-auto flex h-nav w-full max-w-md items-center justify-around px-2">
 

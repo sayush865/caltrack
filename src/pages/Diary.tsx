@@ -63,7 +63,7 @@ export default function Diary() {
   const dayLabel = dayLabelRaw === "Today" || dayLabelRaw === "Yesterday" ? dayLabelRaw.toLowerCase() : dayLabelRaw;
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-nav">
       <DayHeader dateKey={dateKey} onChange={setDate} />
 
       <main className="mx-auto max-w-md space-y-4 px-4 pt-2">
