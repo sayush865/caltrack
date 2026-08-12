@@ -193,10 +193,22 @@ export interface InsightSnapshot {
   exerciseMinutesToday: number;
 }
 
+/** One aggregate-level finding across the rolling 28-day window. */
+export interface InsightTrend {
+  tag: "win" | "risk" | "pattern" | "experiment" | string;
+  title: string;
+  message: string;
+  metric: string;
+}
+
 export interface InsightPayload {
   insights: Insight[];
   snapshot: InsightSnapshot | null;
   state: string | null;
+  /** Week-over-week findings from the aggregate pass. */
+  trends: InsightTrend[];
+  /** One-sentence read on where the last week landed. */
+  verdict: string | null;
 }
 
 /** A saved favorite (meal_templates row, items snapshot decoded). */

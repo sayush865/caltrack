@@ -127,13 +127,23 @@ export async function fetchDailyInsights(): Promise<InsightPayload> {
   });
   if (error) throw error;
 
-  const payload = data as { insights?: Insight[]; snapshot?: InsightSnapshot; state?: string } | null;
+  const payload = data as {
+    insights?: Insight[];
+    snapshot?: InsightSnapshot;
+    state?: string;
+    trends?: InsightTrend[];
+    verdict?: string;
+  } | null;
   const insights = payload?.insights;
   if (!Array.isArray(insights)) throw new Error("Invalid insights response");
   return {
     insights: insights.filter((i) => i && typeof i.message === "string"),
     snapshot: payload?.snapshot ?? null,
     state: payload?.state ?? null,
+    trends: Array.isArray(payload?.trends)
+      ? payload!.trends.filter((t) => t && typeof t.message === "string")
+      : [],
+    verdict: payload?.verdict ?? null,
   };
 }
 
