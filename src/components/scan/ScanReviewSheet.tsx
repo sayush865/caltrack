@@ -19,7 +19,8 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { Shimmer, Surface, TimeField, useCountUp } from "@/components/system";
+import { NameAutocomplete, Shimmer, Surface, TimeField, useCountUp } from "@/components/system";
+import { useFoodSuggestions } from "@/hooks/useNameSuggestions";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLogMeal, useLogWater } from "@/hooks/useMutations";
@@ -249,6 +250,8 @@ function AddItemRow({
     f: "",
   });
 
+  const foodSuggestions = useFoodSuggestions();
+
   const set = (key: keyof AddItemFormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
@@ -304,12 +307,24 @@ function AddItemRow({
         </button>
       </div>
       <div className="mt-2 space-y-2">
-        <input
-          type="text"
-          placeholder="Name (e.g. Plain curd)"
+        <NameAutocomplete
           value={form.name}
-          onChange={set("name")}
-          className="h-11 w-full rounded-control border border-input bg-card px-3 text-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          onChange={(name) => setForm((prev) => ({ ...prev, name }))}
+          suggestions={foodSuggestions}
+          onPick={(s) =>
+            setForm((prev) => ({
+              ...prev,
+              name: s.name,
+              // Only prefill numbers the user hasn't typed yet.
+              kcal: prev.kcal || String(s.calories),
+              p: prev.p || String(s.protein),
+              c: prev.c || String(s.carbs),
+              f: prev.f || String(s.fat),
+            }))
+          }
+          renderMeta={(s) => `${s.calories} kcal`}
+          placeholder="Name (e.g. Plain curd)"
+          ariaLabel="Item name"
         />
         <div className="grid grid-cols-4 gap-2">
           <div>

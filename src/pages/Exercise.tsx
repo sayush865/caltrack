@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { EmptyState, PageHeader, Shimmer, Surface } from "@/components/system";
+import { EmptyState, NameAutocomplete, PageHeader, Shimmer, Surface } from "@/components/system";
+import { useExerciseSuggestions } from "@/hooks/useNameSuggestions";
 import { DurationSheet, type SheetExercise } from "@/components/foods/DurationSheet";
 import { EXERCISE_SEED, exerciseCalories, intensityLabel } from "@/components/foods/exerciseSeed";
 import { useExerciseDatabase } from "@/components/foods/hooks";
@@ -68,6 +69,7 @@ function ManualEntryCard({
   const logExercise = useLogExercise();
   const navigate = useNavigate();
   const [name, setName] = useState(initialName ?? "");
+  const exerciseSuggestions = useExerciseSuggestions();
   const [minutes, setMinutes] = useState("30");
   const [calories, setCalories] = useState("");
 
@@ -96,11 +98,17 @@ function ManualEntryCard({
         <p className="shrink-0 text-caption text-muted-foreground">{friendlyDay(dateKey)}</p>
       </div>
       <div className="mt-3 space-y-2.5">
-        <Input
+        <NameAutocomplete
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={setName}
+          suggestions={exerciseSuggestions}
+          onPick={(s) => {
+            if (!minutes && s.minutes > 0) setMinutes(String(s.minutes));
+            if (!calories && s.calories > 0) setCalories(String(s.calories));
+          }}
+          renderMeta={(s) => (s.minutes > 0 ? `${s.minutes} min · ${s.calories} kcal` : null)}
           placeholder="Activity — e.g. Evening walk"
-          className="h-11 rounded-control text-body"
+          ariaLabel="Activity name"
         />
         <div className="flex gap-2">
           <Input
