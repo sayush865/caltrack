@@ -55,6 +55,12 @@ function rescale(item: DraftItem, quantity: number): DraftItem {
     vitaminC: b.vitaminC !== undefined ? r1(b.vitaminC * q) : undefined,
     calcium: b.calcium !== undefined ? r1(b.calcium * q) : undefined,
     iron: b.iron !== undefined ? r1(b.iron * q) : undefined,
+    vitaminB12: b.vitaminB12 !== undefined ? Math.round(b.vitaminB12 * q * 100) / 100 : undefined,
+    folate: b.folate !== undefined ? r1(b.folate * q) : undefined,
+    vitaminD: b.vitaminD !== undefined ? r1(b.vitaminD * q) : undefined,
+    zinc: b.zinc !== undefined ? r1(b.zinc * q) : undefined,
+    magnesium: b.magnesium !== undefined ? r1(b.magnesium * q) : undefined,
+    potassium: b.potassium !== undefined ? r1(b.potassium * q) : undefined,
   };
 }
 
@@ -72,11 +78,18 @@ function sumTotals(items: DraftItem[]): MacroSet {
       vitaminC: (acc.vitaminC ?? 0) + (it.vitaminC ?? 0),
       calcium: (acc.calcium ?? 0) + (it.calcium ?? 0),
       iron: (acc.iron ?? 0) + (it.iron ?? 0),
+      vitaminB12: (acc.vitaminB12 ?? 0) + (it.vitaminB12 ?? 0),
+      folate: (acc.folate ?? 0) + (it.folate ?? 0),
+      vitaminD: (acc.vitaminD ?? 0) + (it.vitaminD ?? 0),
+      zinc: (acc.zinc ?? 0) + (it.zinc ?? 0),
+      magnesium: (acc.magnesium ?? 0) + (it.magnesium ?? 0),
+      potassium: (acc.potassium ?? 0) + (it.potassium ?? 0),
     }),
     {
       calories: 0, protein: 0, carbs: 0, fat: 0,
       fiber: 0, sugar: 0, sodium: 0,
       vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0,
+      vitaminB12: 0, folate: 0, vitaminD: 0, zinc: 0, magnesium: 0, potassium: 0,
     },
   );
 }
@@ -181,6 +194,12 @@ function ItemRow({ item, index, onChange, onRemove }: ItemRowProps) {
           { label: "Vit C", value: item.vitaminC, unit: "mg" },
           { label: "Ca", value: item.calcium, unit: "mg" },
           { label: "Fe", value: item.iron, unit: "mg" },
+          { label: "B12", value: item.vitaminB12, unit: "\u00b5g" },
+          { label: "Folate", value: item.folate, unit: "\u00b5g" },
+          { label: "Vit D", value: item.vitaminD, unit: "\u00b5g" },
+          { label: "Zn", value: item.zinc, unit: "mg" },
+          { label: "Mg", value: item.magnesium, unit: "mg" },
+          { label: "K", value: item.potassium, unit: "mg" },
         ]}
       />
 
@@ -622,6 +641,12 @@ export function ScanReviewSheet({
             { label: "Vit C", value: totals.vitaminC, unit: "mg" },
             { label: "Calcium", value: totals.calcium, unit: "mg" },
             { label: "Iron", value: totals.iron, unit: "mg" },
+            { label: "B12", value: totals.vitaminB12, unit: "\u00b5g" },
+            { label: "Folate", value: totals.folate, unit: "\u00b5g" },
+            { label: "Vit D", value: totals.vitaminD, unit: "\u00b5g" },
+            { label: "Zinc", value: totals.zinc, unit: "mg" },
+            { label: "Magnesium", value: totals.magnesium, unit: "mg" },
+            { label: "Potassium", value: totals.potassium, unit: "mg" },
           ]}
         />
       </Surface>

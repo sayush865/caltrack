@@ -20,6 +20,12 @@ type DbFoodLog = {
   vitamin_c: number | null;
   calcium: number | null;
   iron: number | null;
+  vitamin_b12: number | null;
+  folate: number | null;
+  vitamin_d: number | null;
+  zinc: number | null;
+  magnesium: number | null;
+  potassium: number | null;
   meal_type: string | null;
   notes: string | null;
   logged_at: string | null;
@@ -44,6 +50,12 @@ export function mapFoodRow(row: DbFoodLog): FoodLogRow {
     vitamin_c: row.vitamin_c == null ? null : Number(row.vitamin_c),
     calcium: row.calcium == null ? null : Number(row.calcium),
     iron: row.iron == null ? null : Number(row.iron),
+    vitamin_b12: row.vitamin_b12 == null ? null : Number(row.vitamin_b12),
+    folate: row.folate == null ? null : Number(row.folate),
+    vitamin_d: row.vitamin_d == null ? null : Number(row.vitamin_d),
+    zinc: row.zinc == null ? null : Number(row.zinc),
+    magnesium: row.magnesium == null ? null : Number(row.magnesium),
+    potassium: row.potassium == null ? null : Number(row.potassium),
     meal_type: row.meal_type,
     notes: row.notes,
     logged_at: row.logged_at ?? row.created_at ?? new Date().toISOString(),
@@ -67,6 +79,7 @@ export function sumTotals(rows: FoodLogRow[]): MacroSet {
   const totals = {
     calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0,
     vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0,
+    vitaminB12: 0, folate: 0, vitaminD: 0, zinc: 0, magnesium: 0, potassium: 0,
   };
   for (const row of rows) {
     totals.calories += row.calories ?? 0;
@@ -80,6 +93,12 @@ export function sumTotals(rows: FoodLogRow[]): MacroSet {
     totals.vitaminC += row.vitamin_c ?? 0;
     totals.calcium += row.calcium ?? 0;
     totals.iron += row.iron ?? 0;
+    totals.vitaminB12 += row.vitamin_b12 ?? 0;
+    totals.folate += row.folate ?? 0;
+    totals.vitaminD += row.vitamin_d ?? 0;
+    totals.zinc += row.zinc ?? 0;
+    totals.magnesium += row.magnesium ?? 0;
+    totals.potassium += row.potassium ?? 0;
   }
   return {
     calories: Math.round(totals.calories),
@@ -93,6 +112,12 @@ export function sumTotals(rows: FoodLogRow[]): MacroSet {
     vitaminC: Math.round(totals.vitaminC * 10) / 10,
     calcium: Math.round(totals.calcium),
     iron: Math.round(totals.iron * 10) / 10,
+    vitaminB12: Math.round(totals.vitaminB12 * 100) / 100,
+    folate: Math.round(totals.folate),
+    vitaminD: Math.round(totals.vitaminD * 10) / 10,
+    zinc: Math.round(totals.zinc * 10) / 10,
+    magnesium: Math.round(totals.magnesium),
+    potassium: Math.round(totals.potassium),
   };
 }
 

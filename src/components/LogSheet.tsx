@@ -92,6 +92,12 @@ function rowToDraftItem(row: FoodLogRow): DraftItem {
     vitaminC: row.vitamin_c != null ? row.vitamin_c / quantity : undefined,
     calcium: row.calcium != null ? row.calcium / quantity : undefined,
     iron: row.iron != null ? row.iron / quantity : undefined,
+    vitaminB12: row.vitamin_b12 != null ? row.vitamin_b12 / quantity : undefined,
+    folate: row.folate != null ? row.folate / quantity : undefined,
+    vitaminD: row.vitamin_d != null ? row.vitamin_d / quantity : undefined,
+    zinc: row.zinc != null ? row.zinc / quantity : undefined,
+    magnesium: row.magnesium != null ? row.magnesium / quantity : undefined,
+    potassium: row.potassium != null ? row.potassium / quantity : undefined,
   };
   return {
     id: newId(),

@@ -28,7 +28,7 @@ function round1(n: number): number {
 }
 
 function itemTotals(items: DraftItem[]): MacroSet {
-  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0 };
+  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0, vitaminB12: 0, folate: 0, vitaminD: 0, zinc: 0, magnesium: 0, potassium: 0 };
   for (const item of items) {
     const q = item.quantity || 1;
     totals.calories += (item.base.calories ?? 0) * q;
@@ -42,6 +42,12 @@ function itemTotals(items: DraftItem[]): MacroSet {
     totals.vitaminC += (item.base.vitaminC ?? 0) * q;
     totals.calcium += (item.base.calcium ?? 0) * q;
     totals.iron += (item.base.iron ?? 0) * q;
+    totals.vitaminB12 += (item.base.vitaminB12 ?? 0) * q;
+    totals.folate += (item.base.folate ?? 0) * q;
+    totals.vitaminD += (item.base.vitaminD ?? 0) * q;
+    totals.zinc += (item.base.zinc ?? 0) * q;
+    totals.magnesium += (item.base.magnesium ?? 0) * q;
+    totals.potassium += (item.base.potassium ?? 0) * q;
   }
   return {
     calories: Math.round(totals.calories),
@@ -55,6 +61,12 @@ function itemTotals(items: DraftItem[]): MacroSet {
     vitaminC: round1(totals.vitaminC),
     calcium: round1(totals.calcium),
     iron: round1(totals.iron),
+    vitaminB12: round1(totals.vitaminB12),
+    folate: round1(totals.folate),
+    vitaminD: round1(totals.vitaminD),
+    zinc: round1(totals.zinc),
+    magnesium: round1(totals.magnesium),
+    potassium: round1(totals.potassium),
   };
 }
 
@@ -76,6 +88,12 @@ function snapshotToDraftItems(snapshot: Snapshot): DraftItem[] {
     vitaminC: round1((item.base.vitaminC ?? 0) * (item.quantity || 1)),
     calcium: round1((item.base.calcium ?? 0) * (item.quantity || 1)),
     iron: round1((item.base.iron ?? 0) * (item.quantity || 1)),
+    vitaminB12: round1((item.base.vitaminB12 ?? 0) * (item.quantity || 1)),
+    folate: round1((item.base.folate ?? 0) * (item.quantity || 1)),
+    vitaminD: round1((item.base.vitaminD ?? 0) * (item.quantity || 1)),
+    zinc: round1((item.base.zinc ?? 0) * (item.quantity || 1)),
+    magnesium: round1((item.base.magnesium ?? 0) * (item.quantity || 1)),
+    potassium: round1((item.base.potassium ?? 0) * (item.quantity || 1)),
   }));
 }
 
@@ -114,6 +132,12 @@ type TemplateRow = {
   vitamin_c: number | null;
   calcium: number | null;
   iron: number | null;
+  vitamin_b12: number | null;
+  folate: number | null;
+  vitamin_d: number | null;
+  zinc: number | null;
+  magnesium: number | null;
+  potassium: number | null;
 };
 
 function rowToFavorite(row: TemplateRow): Favorite {
@@ -130,6 +154,12 @@ function rowToFavorite(row: TemplateRow): Favorite {
     vitaminC: Number(row.vitamin_c ?? 0),
     calcium: Number(row.calcium ?? 0),
     iron: Number(row.iron ?? 0),
+    vitaminB12: Number(row.vitamin_b12 ?? 0),
+    folate: Number(row.folate ?? 0),
+    vitaminD: Number(row.vitamin_d ?? 0),
+    zinc: Number(row.zinc ?? 0),
+    magnesium: Number(row.magnesium ?? 0),
+    potassium: Number(row.potassium ?? 0),
   };
 
   const items: DraftItem[] = snapshot
@@ -178,7 +208,7 @@ export function useFavorites(): UseFavoritesResult {
     queryFn: async (): Promise<Favorite[]> => {
       const { data, error } = await supabase
         .from("meal_templates")
-        .select("id, name, food_name, image_url, meal_type, use_count, calories, protein, carbs, fat, fiber, sugar, sodium, vitamin_a, vitamin_c, calcium, iron")
+        .select("id, name, food_name, image_url, meal_type, use_count, calories, protein, carbs, fat, fiber, sugar, sodium, vitamin_a, vitamin_c, calcium, iron, vitamin_b12, folate, vitamin_d, zinc, magnesium, potassium")
         .eq("user_id", uid!)
         .order("use_count", { ascending: false });
       if (error) throw error;
@@ -216,6 +246,12 @@ export function useFavorites(): UseFavoritesResult {
         vitamin_c: totals.vitaminC ?? 0,
         calcium: totals.calcium ?? 0,
         iron: totals.iron ?? 0,
+        vitamin_b12: totals.vitaminB12 ?? 0,
+        folate: totals.folate ?? 0,
+        vitamin_d: totals.vitaminD ?? 0,
+        zinc: totals.zinc ?? 0,
+        magnesium: totals.magnesium ?? 0,
+        potassium: totals.potassium ?? 0,
         image_url: vars.imageUrl ?? null,
       });
       if (error) throw error;
