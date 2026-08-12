@@ -165,10 +165,10 @@ function ActionRow({ icon: Icon, label, caption, onClick }: ActionRowProps) {
     <button
       type="button"
       onClick={onClick}
-      className="flex h-14 w-full items-center gap-3 rounded-control px-2 text-left transition-transform duration-instant active:scale-[0.97]"
+      className="flex h-14 w-full items-center gap-3 px-3 text-left transition-colors duration-instant active:bg-card-hover"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-primary-soft text-primary">
-        <Icon className="h-5 w-5" />
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-primary-soft text-primary">
+        <Icon className="h-[18px] w-[18px]" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-body font-medium text-foreground">{label}</span>
@@ -178,6 +178,19 @@ function ActionRow({ icon: Icon, label, caption, onClick }: ActionRowProps) {
     </button>
   );
 }
+
+/** Titled group of action rows — one hairline card, dividers between rows. */
+function ActionGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <p className="mb-1.5 text-micro uppercase tracking-wide text-muted-foreground">{title}</p>
+      <div className="overflow-hidden rounded-card border border-border bg-background divide-y divide-border">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 
 function MealChip({ meal, onSelect }: { meal: QuickMeal; onSelect: (meal: QuickMeal) => void }) {
   return (
@@ -291,8 +304,9 @@ function LogSheetBody({ open, onOpenChange, dateKey }: LogSheetBodyProps) {
       <Sheet open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
         <SheetContent
           side="bottom"
-          className="rounded-t-[24px] border-t border-border bg-card px-4 pb-2 pt-5 shadow-raised"
+          className="max-h-[88vh] overflow-y-auto rounded-t-[24px] border-t border-border bg-card px-4 pb-2 pt-5 shadow-raised"
         >
+
           <SheetHeader className="text-left">
             <SheetTitle className="text-title text-foreground">Log something</SheetTitle>
             <SheetDescription className="sr-only">Choose how to log a meal, exercise, water, or weight.</SheetDescription>
@@ -360,40 +374,49 @@ function LogSheetBody({ open, onOpenChange, dateKey }: LogSheetBodyProps) {
               </div>
             )}
 
-            {/* Action rows */}
-            <div className="mt-3 flex flex-col">
-              <ActionRow icon={Camera} label="Scan a meal" caption="Snap your plate — 3 seconds" onClick={() => go("/scan")} />
-              <ActionRow icon={MessageSquareText} label="Describe it" caption="Type or dictate what you ate" onClick={() => go("/describe")} />
-              {yesterdayMealRows.length > 0 && (
+            {/* Grouped actions */}
+            <div className="mt-4 space-y-4">
+              <ActionGroup title="Food">
+                <ActionRow icon={Camera} label="Scan a meal" caption="Snap your plate — 3 seconds" onClick={() => go("/scan")} />
+                <ActionRow icon={MessageSquareText} label="Describe it" caption="Type or dictate what you ate" onClick={() => go("/describe")} />
+                {yesterdayMealRows.length > 0 && (
+                  <ActionRow
+                    icon={CopyPlus}
+                    label={`Copy yesterday's ${mealType}`}
+                    caption={`${yesterdayMealCalories} kcal · one tap`}
+                    onClick={copyYesterday}
+                  />
+                )}
+              </ActionGroup>
+
+              <ActionGroup title="Exercise">
                 <ActionRow
-                  icon={CopyPlus}
-                  label={`Copy yesterday's ${mealType}`}
-                  caption={`${yesterdayMealCalories} kcal · one tap`}
-                  onClick={copyYesterday}
+                  icon={Sparkles}
+                  label="Describe a workout"
+                  caption="AI estimates minutes and calories"
+                  onClick={() => go(`/exercise?date=${dateKey}&describe=1`)}
                 />
-              )}
-              <ActionRow
-                icon={Dumbbell}
-                label="Log exercise"
-                caption="Browse activities or add minutes"
-                onClick={() => go(`/exercise?date=${dateKey}`)}
-              />
-              <ActionRow
-                icon={Sparkles}
-                label="Describe a workout"
-                caption="AI estimates minutes and calories"
-                onClick={() => go(`/exercise?date=${dateKey}&describe=1`)}
-              />
-              <ActionRow
-                icon={Scale}
-                label="Log weight"
-                caption="Keeps your trend and goals honest"
-                onClick={() => {
-                  close();
-                  setWeightOpen(true);
-                }}
-              />
+                <ActionRow
+                  icon={Dumbbell}
+                  label="Pick an activity"
+                  caption="Browse activities or add minutes"
+                  onClick={() => go(`/exercise?date=${dateKey}`)}
+                />
+              </ActionGroup>
+
+              <ActionGroup title="Body">
+                <ActionRow
+                  icon={Scale}
+                  label="Log weight"
+                  caption="Keeps your trend and goals honest"
+                  onClick={() => {
+                    close();
+                    setWeightOpen(true);
+                  }}
+                />
+              </ActionGroup>
             </div>
+
           </div>
         </SheetContent>
       </Sheet>
