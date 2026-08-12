@@ -24,6 +24,13 @@ interface OutInsight {
   action?: { kind: ActionKind; label: string };
 }
 
+interface OutTrend {
+  tag: string;
+  title: string;
+  message: string;
+  metric: string;
+}
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -484,7 +491,57 @@ serve(async (req) => {
     };
     const fallbackWithSpark = [...fallback, motivation];
 
-    if (!lovableApiKey) return json({ insights: fallbackWithSpark, snapshot, state, source: "rules" });
+    /* ── deterministic aggregate trends (always available) ────── */
+    const trendFallback = (() => {
+      const out: OutTrend[] = [];
+      const tw = aggregate.thisWeek;
+      const pw = aggregate.prevWeek;
+      if (tw.cal !== null && pw.cal !== null) {
+        const d = tw.cal - pw.cal;
+        out.push({
+          tag: Math.abs(d) < 75 ? "pattern" : d > 0 ? "risk" : "win",
+          title: Math.abs(d) < 75 ? "Intake is steady week over week" : `${d > 0 ? "Up" : "Down"} ${Math.abs(d)} kcal a day`,
+          message: `Last 7 days averaged ${tw.cal} kcal against ${pw.cal} the week before, on a ${goalCal} target.`,
+          metric: `${tw.cal} vs ${pw.cal} kcal`,
+        });
+      }
+      if (aggregate.hitRates.protein !== null) {
+        out.push({
+          tag: aggregate.hitRates.protein >= 70 ? "win" : "risk",
+          title: `Protein hit on ${aggregate.hitRates.protein}% of days`,
+          message: `You averaged ${tw.protein ?? avg14Protein}g against a ${goalProtein}g target across ${aggregate.daysLogged} logged days.`,
+          metric: `${aggregate.hitRates.protein}% of days`,
+        });
+      }
+      if (aggregate.mealSplit) {
+        out.push({
+          tag: "pattern",
+          title: `Dinner carries ${aggregate.mealSplit.dinnerPct}% of your day`,
+          message: `Split runs breakfast ${aggregate.mealSplit.breakfastPct}%, lunch ${aggregate.mealSplit.lunchPct}%, snacks ${aggregate.mealSplit.snackPct}%, dinner ${aggregate.mealSplit.dinnerPct}%.`,
+          metric: `${aggregate.mealSplit.dinnerPct}% at dinner`,
+        });
+      }
+      if (aggregate.loggingRate !== null) {
+        out.push({
+          tag: aggregate.loggingRate >= 70 ? "win" : "risk",
+          title: `Logged ${aggregate.daysLogged} of the last ${aggregate.windowDays} days`,
+          message: "Gaps in the record are the main reason averages drift. Consistency beats precision here.",
+          metric: `${aggregate.loggingRate}% coverage`,
+        });
+      }
+      return out.slice(0, 4);
+    })();
+
+    const verdictFallback = aggregate.thisWeek.cal !== null
+      ? `${aggregate.thisWeek.daysLogged} days logged this week at ${aggregate.thisWeek.cal} kcal a day against a ${goalCal} target.`
+      : "Not enough logged days yet to read a trend. A few more days and the patterns show up.";
+
+    if (!lovableApiKey) {
+      return json({
+        insights: fallbackWithSpark, snapshot, state, aggregate,
+        trends: trendFallback, verdict: verdictFallback, source: "rules",
+      });
+    }
 
 
     /* ── AI pass ──────────────────────────────────────────────── */
