@@ -18,7 +18,6 @@ import Insights from "./pages/Insights";
 import You from "./pages/You";
 import Scan from "./pages/Scan";
 import Describe from "./pages/Describe";
-import Foods from "./pages/Foods";
 import Exercise from "./pages/Exercise";
 import MealDetail from "./pages/MealDetail";
 import YouGoals from "./pages/YouGoals";
@@ -153,7 +152,6 @@ const App = () => (
             <Route element={<StackLayout />}>
               <Route path="/scan" element={<Scan />} />
               <Route path="/describe" element={<Describe />} />
-              <Route path="/foods" element={<Foods />} />
               <Route path="/exercise" element={<Exercise />} />
               <Route path="/meal/:mealId" element={<MealDetail />} />
               <Route path="/you/goals" element={<YouGoals />} />
