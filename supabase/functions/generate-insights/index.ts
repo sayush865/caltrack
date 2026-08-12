@@ -75,12 +75,12 @@ serve(async (req) => {
       : localKey(nowIso, offsetMin);
     const hourNow = localHour(nowIso, offsetMin);
 
-    const since = new Date(Date.now() - 15 * 86_400_000).toISOString();
+    const since = new Date(Date.now() - 29 * 86_400_000).toISOString();
 
     const [profileRes, goalsRes, logsRes, waterRes, exerciseRes, weightRes, streakRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
       supabase.from("user_goals").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("food_logs").select("food_name, calories, protein, carbs, fat, fiber, meal_type, logged_at")
+      supabase.from("food_logs").select("food_name, calories, protein, carbs, fat, fiber, vitamin_a, vitamin_c, calcium, iron, meal_type, logged_at")
         .eq("user_id", user.id).eq("status", 1).gte("logged_at", since),
       supabase.from("water_logs").select("amount_ml, logged_at").eq("user_id", user.id).gte("logged_at", since),
       supabase.from("exercise_logs").select("exercise_name, duration_minutes, calories_burned, logged_at")
@@ -107,12 +107,16 @@ serve(async (req) => {
     /* ── bucket per local day ─────────────────────────────────── */
     type Bucket = {
       calories: number; protein: number; carbs: number; fat: number; fiber: number;
+      vitaminA: number; vitaminC: number; calcium: number; iron: number;
       water: number; burned: number; exMinutes: number; times: number[];
       items: string[];
+      byMeal: Record<string, number>;
     };
     const empty = (): Bucket => ({
-      calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, water: 0, burned: 0,
-      exMinutes: 0, times: [], items: [],
+      calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0,
+      vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0,
+      water: 0, burned: 0, exMinutes: 0, times: [], items: [],
+      byMeal: { breakfast: 0, lunch: 0, snack: 0, dinner: 0 },
     });
     const byDay = new Map<string, Bucket>();
     const bucket = (key: string): Bucket => {
@@ -130,6 +134,12 @@ serve(async (req) => {
       b.carbs += Number(log.carbs ?? 0);
       b.fat += Number(log.fat ?? 0);
       b.fiber += Number(log.fiber ?? 0);
+      b.vitaminA += Number(log.vitamin_a ?? 0);
+      b.vitaminC += Number(log.vitamin_c ?? 0);
+      b.calcium += Number(log.calcium ?? 0);
+      b.iron += Number(log.iron ?? 0);
+      const mt = String(log.meal_type ?? "snack").toLowerCase();
+      if (mt in b.byMeal) b.byMeal[mt] += Number(log.calories ?? 0);
       b.times.push(localHour(iso, offsetMin));
       if (log.food_name) b.items.push(String(log.food_name));
     }
