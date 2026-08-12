@@ -80,7 +80,7 @@ Guidelines:
 - Account for cooking methods (fried adds oil, grilled is leaner)
 - Include hidden calories (oils, sauces, dressings)
 - Be conservative with estimates
-- Micronutrients: always estimate vitamin_a (mcg RAE), vitamin_c (mg), calcium (mg) and iron (mg) from standard food-composition data (IFCT/ICMR values for Indian dishes; USDA otherwise). Use 0 only when the food genuinely has none.
+- Micronutrients: always estimate vitamin_a (mcg RAE), vitamin_c (mg), calcium (mg), iron (mg), vitamin_b12 (mcg), folate (mcg DFE), vitamin_d (mcg), zinc (mg), magnesium (mg) and potassium (mg) from standard food-composition data (IFCT/ICMR values for Indian dishes; USDA otherwise). Use 0 only when the food genuinely has none.
 - Hydration: also report water_ml, the water content of the described drinks in ml. Plain water, sparkling water, black tea/coffee and infusions ~100% of volume; chia water counts the full liquid volume (plus the chia calories); milk ~87%; juice ~85%; soup ~80%; soda ~89%; alcohol 0. Solid food only = 0.
 - Set drink_only to true when the description is nothing but drinks with no meaningful calories (e.g. "500ml water", "two glasses of water", "black coffee")
 
@@ -101,6 +101,12 @@ Return ONLY valid JSON:
   "vitamin_c": number,
   "calcium": number,
   "iron": number,
+  "vitamin_b12": number,
+  "folate": number,
+  "vitamin_d": number,
+  "zinc": number,
+  "magnesium": number,
+  "potassium": number,
   "water_ml": number,
   "drink_only": boolean
 }
@@ -161,6 +167,12 @@ Verify: calories ≈ (protein×4) + (carbs×4) + (fat×9)`
           vitamin_c: nutritionData.vitamin_c,
           calcium: nutritionData.calcium,
           iron: nutritionData.iron,
+          vitamin_b12: Number(nutritionData.vitamin_b12) || 0,
+          folate: Number(nutritionData.folate) || 0,
+          vitamin_d: Number(nutritionData.vitamin_d) || 0,
+          zinc: Number(nutritionData.zinc) || 0,
+          magnesium: Number(nutritionData.magnesium) || 0,
+          potassium: Number(nutritionData.potassium) || 0,
           water_ml: Math.max(0, Math.round(Number(nutritionData.water_ml) || 0)),
           drink_only: nutritionData.drink_only === true,
         },

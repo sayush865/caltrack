@@ -30,6 +30,12 @@ export interface FoodLogRowUpdate {
   vitamin_c: number;
   calcium: number;
   iron: number;
+  vitamin_b12: number;
+  folate: number;
+  vitamin_d: number;
+  zinc: number;
+  magnesium: number;
+  potassium: number;
   meal_type: MealType;
   logged_at: string;
   notes: string;
@@ -107,6 +113,12 @@ export function useAddMealItem(): UseMutationResult<FoodLogRow, Error, AddMealIt
           vitamin_c: round1(vars.base.vitaminC ?? 0),
           calcium: round1(vars.base.calcium ?? 0),
           iron: round1(vars.base.iron ?? 0),
+          vitamin_b12: round1(vars.base.vitaminB12 ?? 0),
+          folate: round1(vars.base.folate ?? 0),
+          vitamin_d: round1(vars.base.vitaminD ?? 0),
+          zinc: round1(vars.base.zinc ?? 0),
+          magnesium: round1(vars.base.magnesium ?? 0),
+          potassium: round1(vars.base.potassium ?? 0),
           meal_type: vars.mealType,
           logged_at: vars.loggedAt,
           notes: JSON.stringify(meta),

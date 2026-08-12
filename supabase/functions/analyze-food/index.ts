@@ -97,7 +97,7 @@ Guidelines:
 - Account for oils, sauces, and hidden calories
 - Detect ALL distinct food items (main dish, sides, drinks, condiments)
 - Use USDA nutrition data as reference
-- Micronutrients: always estimate vitamin_a (mcg RAE), vitamin_c (mg), calcium (mg) and iron (mg) per item from standard food-composition data (IFCT/ICMR values for Indian dishes; USDA otherwise). Use 0 only when the food genuinely has none.
+- Micronutrients: always estimate vitamin_a (mcg RAE), vitamin_c (mg), calcium (mg), iron (mg), vitamin_b12 (mcg), folate (mcg DFE), vitamin_d (mcg), zinc (mg), magnesium (mg) and potassium (mg) per item from standard food-composition data (IFCT/ICMR values for Indian dishes; USDA otherwise). Use 0 only when the food genuinely has none.
 - Hydration: for any drink, also report water_ml — the water content of that serving. Plain water, sparkling water, black tea/coffee and infusions ~100% of volume; chia water counts the full liquid volume (plus the chia calories); milk ~87%; juice ~85%; soup ~80%; soda ~89%; alcoholic drinks 0. Solid food is 0.
 - Verify: calories ≈ (protein×4) + (carbs×4) + (fat×9)`
 
@@ -157,9 +157,15 @@ Guidelines:
                       vitamin_c: { type: "number", description: "Vitamin C in mg" },
                       calcium: { type: "number", description: "Calcium in mg" },
                       iron: { type: "number", description: "Iron in mg" },
+                      vitamin_b12: { type: "number", description: "Vitamin B12 in mcg" },
+                      folate: { type: "number", description: "Folate in mcg DFE" },
+                      vitamin_d: { type: "number", description: "Vitamin D in mcg" },
+                      zinc: { type: "number", description: "Zinc in mg" },
+                      magnesium: { type: "number", description: "Magnesium in mg" },
+                      potassium: { type: "number", description: "Potassium in mg" },
                       water_ml: { type: "number", description: "Water content of this serving in ml (0 for solid food)" }
                     },
-                    required: ["name", "portion", "confidence", "calories", "protein", "carbs", "fat", "fiber", "sugar", "sodium", "vitamin_a", "vitamin_c", "calcium", "iron", "water_ml"]
+                    required: ["name", "portion", "confidence", "calories", "protein", "carbs", "fat", "fiber", "sugar", "sodium", "vitamin_a", "vitamin_c", "calcium", "iron", "vitamin_b12", "folate", "vitamin_d", "zinc", "magnesium", "potassium", "water_ml"]
                   }
                 },
                 visual_description: { 
@@ -231,9 +237,16 @@ Guidelines:
       vitamin_c: acc.vitamin_c + (item.vitamin_c || 0),
       calcium: acc.calcium + (item.calcium || 0),
       iron: acc.iron + (item.iron || 0),
+      vitamin_b12: acc.vitamin_b12 + (item.vitamin_b12 || 0),
+      folate: acc.folate + (item.folate || 0),
+      vitamin_d: acc.vitamin_d + (item.vitamin_d || 0),
+      zinc: acc.zinc + (item.zinc || 0),
+      magnesium: acc.magnesium + (item.magnesium || 0),
+      potassium: acc.potassium + (item.potassium || 0),
     }), {
       calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0,
-      sodium: 0, vitamin_a: 0, vitamin_c: 0, calcium: 0, iron: 0
+      sodium: 0, vitamin_a: 0, vitamin_c: 0, calcium: 0, iron: 0,
+      vitamin_b12: 0, folate: 0, vitamin_d: 0, zinc: 0, magnesium: 0, potassium: 0
     });
 
     // Generate combined food name
@@ -272,6 +285,12 @@ Guidelines:
           vitamin_c: Math.round(item.vitamin_c),
           calcium: Math.round(item.calcium),
           iron: Math.round(item.iron * 10) / 10,
+          vitamin_b12: Math.round((item.vitamin_b12 || 0) * 100) / 100,
+          folate: Math.round(item.folate || 0),
+          vitamin_d: Math.round((item.vitamin_d || 0) * 10) / 10,
+          zinc: Math.round((item.zinc || 0) * 10) / 10,
+          magnesium: Math.round(item.magnesium || 0),
+          potassium: Math.round(item.potassium || 0),
           water_ml: Math.max(0, Math.round(Number(item.water_ml) || 0)),
         })),
         // Aggregated totals for backward compatibility
@@ -287,7 +306,13 @@ Guidelines:
           vitamin_a: Math.round(totals.vitamin_a),
           vitamin_c: Math.round(totals.vitamin_c),
           calcium: Math.round(totals.calcium),
-          iron: Math.round(totals.iron * 10) / 10
+          iron: Math.round(totals.iron * 10) / 10,
+          vitamin_b12: Math.round(totals.vitamin_b12 * 100) / 100,
+          folate: Math.round(totals.folate),
+          vitamin_d: Math.round(totals.vitamin_d * 10) / 10,
+          zinc: Math.round(totals.zinc * 10) / 10,
+          magnesium: Math.round(totals.magnesium),
+          potassium: Math.round(totals.potassium)
         },
         analysis: {
           visual_analysis: visual_description,

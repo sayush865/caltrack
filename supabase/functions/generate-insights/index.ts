@@ -87,7 +87,7 @@ serve(async (req) => {
     const [profileRes, goalsRes, logsRes, waterRes, exerciseRes, weightRes, streakRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
       supabase.from("user_goals").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("food_logs").select("food_name, calories, protein, carbs, fat, fiber, vitamin_a, vitamin_c, calcium, iron, meal_type, logged_at")
+      supabase.from("food_logs").select("food_name, calories, protein, carbs, fat, fiber, vitamin_a, vitamin_c, calcium, iron, vitamin_b12, folate, vitamin_d, zinc, magnesium, potassium, meal_type, logged_at")
         .eq("user_id", user.id).eq("status", 1).gte("logged_at", since),
       supabase.from("water_logs").select("amount_ml, logged_at").eq("user_id", user.id).gte("logged_at", since),
       supabase.from("exercise_logs").select("exercise_name, duration_minutes, calories_burned, logged_at")
@@ -127,6 +127,7 @@ serve(async (req) => {
     type Bucket = {
       calories: number; protein: number; carbs: number; fat: number; fiber: number;
       vitaminA: number; vitaminC: number; calcium: number; iron: number;
+      vitaminB12: number; folate: number; vitaminD: number; zinc: number; magnesium: number; potassium: number;
       water: number; burned: number; exMinutes: number; times: number[];
       items: string[];
       byMeal: Record<string, number>;
@@ -134,6 +135,7 @@ serve(async (req) => {
     const empty = (): Bucket => ({
       calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0,
       vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0,
+      vitaminB12: 0, folate: 0, vitaminD: 0, zinc: 0, magnesium: 0, potassium: 0,
       water: 0, burned: 0, exMinutes: 0, times: [], items: [],
       byMeal: { breakfast: 0, lunch: 0, snack: 0, dinner: 0 },
     });
@@ -157,6 +159,12 @@ serve(async (req) => {
       b.vitaminC += Number(log.vitamin_c ?? 0);
       b.calcium += Number(log.calcium ?? 0);
       b.iron += Number(log.iron ?? 0);
+      b.vitaminB12 += Number(log.vitamin_b12 ?? 0);
+      b.folate += Number(log.folate ?? 0);
+      b.vitaminD += Number(log.vitamin_d ?? 0);
+      b.zinc += Number(log.zinc ?? 0);
+      b.magnesium += Number(log.magnesium ?? 0);
+      b.potassium += Number(log.potassium ?? 0);
       const mt = String(log.meal_type ?? "snack").toLowerCase();
       if (mt in b.byMeal) b.byMeal[mt] += Number(log.calories ?? 0);
       b.times.push(localHour(iso, offsetMin));
@@ -329,13 +337,19 @@ serve(async (req) => {
       .map(([name, count]) => ({ name, count }));
 
     // Micronutrient adequacy vs ICMR-NIN 2020 adult references (India-first).
-    const MICRO_RDA = { vitaminA: 900, vitaminC: 80, calcium: 1000, iron: 19 };
+    const MICRO_RDA = { vitaminA: 900, vitaminC: 80, calcium: 1000, iron: 19, vitaminB12: 2.2, folate: 300, vitaminD: 15, zinc: 17, magnesium: 440, potassium: 3500 };
     const micros = allLogged.length
       ? {
           vitaminAPct: Math.round((avg(allLogged, (b) => b.vitaminA) / MICRO_RDA.vitaminA) * 100),
           vitaminCPct: Math.round((avg(allLogged, (b) => b.vitaminC) / MICRO_RDA.vitaminC) * 100),
           calciumPct: Math.round((avg(allLogged, (b) => b.calcium) / MICRO_RDA.calcium) * 100),
           ironPct: Math.round((avg(allLogged, (b) => b.iron) / MICRO_RDA.iron) * 100),
+          vitaminB12Pct: Math.round((avg(allLogged, (b) => b.vitaminB12) / MICRO_RDA.vitaminB12) * 100),
+          folatePct: Math.round((avg(allLogged, (b) => b.folate) / MICRO_RDA.folate) * 100),
+          vitaminDPct: Math.round((avg(allLogged, (b) => b.vitaminD) / MICRO_RDA.vitaminD) * 100),
+          zincPct: Math.round((avg(allLogged, (b) => b.zinc) / MICRO_RDA.zinc) * 100),
+          magnesiumPct: Math.round((avg(allLogged, (b) => b.magnesium) / MICRO_RDA.magnesium) * 100),
+          potassiumPct: Math.round((avg(allLogged, (b) => b.potassium) / MICRO_RDA.potassium) * 100),
         }
       : null;
 

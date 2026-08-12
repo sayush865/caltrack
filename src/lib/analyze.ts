@@ -33,6 +33,12 @@ function toMacroSet(blob: Record<string, unknown>): MacroSet {
     vitaminC: num(blob.vitamin_c),
     calcium: num(blob.calcium),
     iron: num(blob.iron),
+    vitaminB12: num(blob.vitamin_b12),
+    folate: num(blob.folate),
+    vitaminD: num(blob.vitamin_d),
+    zinc: num(blob.zinc),
+    magnesium: num(blob.magnesium),
+    potassium: num(blob.potassium),
   };
 }
 
