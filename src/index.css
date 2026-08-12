@@ -154,7 +154,11 @@
     -webkit-tap-highlight-color: transparent;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Keeps the fixed bottom bar from shifting during rubber-band scroll */
+    overscroll-behavior-y: none;
+    overflow-x: hidden;
   }
+
 }
 
 
