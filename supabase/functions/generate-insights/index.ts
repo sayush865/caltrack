@@ -555,6 +555,35 @@ serve(async (req) => {
     ];
     const spark = sparkAngles[(snapshot.hour + snapshot.mealsLogged + snapshot.daysLogged) % sparkAngles.length];
 
+    /* ── personalisation from profile preferences ─────────────── */
+    const arr = (v: unknown): string[] =>
+      Array.isArray(v) ? v.map((x) => String(x)).filter((x) => x.trim().length > 0).slice(0, 12) : [];
+    const dietType = typeof profile?.diet_type === "string" ? String(profile.diet_type) : null;
+    const cuisines = arr(profile?.cuisines);
+    const allergies = arr(profile?.allergies);
+    const dislikes = arr(profile?.dislikes);
+    const mealsPerDay = Number(profile?.meals_per_day ?? 0) || null;
+    const cookingStyle = typeof profile?.cooking_style === "string" ? String(profile.cooking_style) : null;
+    const foodNotes = typeof profile?.food_notes === "string" ? String(profile.food_notes).slice(0, 400) : null;
+
+    const DIET_RULES: Record<string, string> = {
+      vegetarian: "Vegetarian: no meat, no fish, no eggs. Dairy, dal, paneer, curd, soy and nuts are fine.",
+      eggetarian: "Eggetarian: no meat or fish, eggs and dairy are fine.",
+      vegan: "Vegan: no meat, fish, eggs, dairy or honey. Use dal, soy, tofu, nuts, seeds.",
+      jain: "Jain: no meat, eggs, or root vegetables (onion, garlic, potato, ginger).",
+      pescatarian: "Pescatarian: fish and seafood are fine, other meat is not.",
+      omnivore: "Non-vegetarian: all foods are acceptable.",
+    };
+    const prefsBlock = [
+      dietType ? `Diet: ${DIET_RULES[dietType] ?? dietType}` : "Diet: not specified — keep food suggestions broad and Indian-household friendly.",
+      cuisines.length ? `Cuisines they actually eat: ${cuisines.join(", ")}.` : null,
+      allergies.length ? `MUST NEVER suggest (allergy/intolerance): ${allergies.join(", ")}.` : null,
+      dislikes.length ? `Dislikes, avoid suggesting: ${dislikes.join(", ")}.` : null,
+      mealsPerDay ? `Eats about ${mealsPerDay} meals a day.` : null,
+      cookingStyle ? `Food source: ${cookingStyle.replace(/_/g, " ")}.` : null,
+      foodNotes ? `Their own note: "${foodNotes}"` : null,
+    ].filter(Boolean).join("\n");
+
     const systemPrompt = `You are CalTrack's nutrition coach. You get a precomputed snapshot of the user's day and rolling averages, plus a classified day state. You do NOT compute anything new — only interpret.
 
 Write:
@@ -569,6 +598,12 @@ Rules:
 - Never suggest anything medically risky, never mention fasting for whole days, never shame the user.
 - Set action.kind to the screen that helps most: exercise (log activity), describe (log a meal by text), scan (photo a meal), water, weight, or none. action.label is max 18 chars, empty when kind is none.
 - The first insight in the array is the primary one; the motivation one is last.
+
+PERSONALISATION (non-negotiable). Every food you name must fit this profile:
+${prefsBlock}
+- Name foods from their cuisines and diet, in local terms (dal, curd, paneer, poha, idli, chana), never a generic "grilled chicken salad" unless it fits them.
+- Never name a food on their allergy or dislike list, not even as an example.
+- Respect their meal count and food source: if they mostly eat outside, suggest realistic swaps at a canteen or tiffin, not recipes.
 
 Then, separately, read the AGGREGATE object (rolling 28 days, week over week) and write:
 4. "verdict": one sentence (max 130 chars) that says where the last week actually landed versus the goal, with one number.
@@ -637,7 +672,7 @@ Then, separately, read the AGGREGATE object (rolling 28 days, week over week) an
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Snapshot (JSON): ${JSON.stringify(snapshot)}\n\nAggregate (JSON): ${JSON.stringify(aggregate)}\n\nProfile: age ${profile?.age ?? "unknown"}, gender ${profile?.gender ?? "unknown"}, activity ${profile?.activity_level ?? "moderate"}, units ${profile?.units_preference ?? "metric"}. Goal type: ${goalType}.\nRecent foods today: ${today.items.slice(0, 8).join(", ") || "none"}.`,
+            content: `Snapshot (JSON): ${JSON.stringify(snapshot)}\n\nAggregate (JSON): ${JSON.stringify(aggregate)}\n\nProfile: age ${profile?.age ?? "unknown"}, gender ${profile?.gender ?? "unknown"}, activity ${profile?.activity_level ?? "moderate"}, units ${profile?.units_preference ?? "metric"}. Goal type: ${goalType}.\n\nFood preferences:\n${prefsBlock}\n\nRecent foods today: ${today.items.slice(0, 8).join(", ") || "none"}.`,
           },
         ],
         response_format: { type: "json_schema", json_schema: { name: "insights", strict: true, schema } },
