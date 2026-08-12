@@ -135,6 +135,19 @@
     @apply border-border;
   }
 
+  /* Never the OS blue focus ring — use ink/paper tokens instead */
+  * {
+    outline-color: hsl(var(--ring));
+  }
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+
   body {
     @apply bg-background text-foreground;
     font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
