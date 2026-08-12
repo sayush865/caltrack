@@ -265,6 +265,11 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  /* Clears the fixed bottom bar (64px) + raised FAB + notch inset */
+  .pb-nav {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
   .h-nav {
     height: 64px;
   }

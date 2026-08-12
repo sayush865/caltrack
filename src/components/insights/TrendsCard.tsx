@@ -3,7 +3,7 @@
 // Data comes from the same generate-insights call (aggregate pass), so no extra
 // request and no extra cache.
 
-import { AlertTriangle, CheckCircle2, FlaskConical, RefreshCw, TrendingUp } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FlaskConical, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { Shimmer, Surface } from "@/components/system";
 import { useInsight } from "@/hooks/useInsight";
 import type { InsightTrend } from "@/lib/types";
@@ -40,7 +40,7 @@ function Trend({ item, first }: { item: InsightTrend; first: boolean }) {
 }
 
 export function TrendsCard() {
-  const { trends, verdict, loading, refresh } = useInsight();
+  const { trends, verdict, loading, hasData, refresh } = useInsight();
 
   return (
     <Surface className="p-4">
@@ -48,7 +48,7 @@ export function TrendsCard() {
         <h2 className="text-micro uppercase text-muted-foreground">The bigger picture · last 4 weeks</h2>
         <button
           type="button"
-          aria-label="Refresh trends"
+          aria-label={hasData ? "Refresh trends" : "Generate trends"}
           disabled={loading}
           onClick={refresh}
           className="-my-2.5 -mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted-foreground transition-transform duration-instant hover:text-foreground active:scale-[0.92] disabled:opacity-60"
@@ -72,9 +72,23 @@ export function TrendsCard() {
           ))}
         </div>
       ) : (
-        <p className="mt-1 text-body text-muted-foreground">
-          A few more logged days and the week-over-week read appears here.
-        </p>
+        <div className="mt-1">
+          <p className="text-body text-muted-foreground">
+            {hasData
+              ? "A few more logged days and the week-over-week read appears here."
+              : "Run the analysis to see your 4-week pattern."}
+          </p>
+          {!hasData && (
+            <button
+              type="button"
+              onClick={refresh}
+              className="mt-3 inline-flex h-11 items-center gap-2 rounded-control bg-primary px-4 text-label text-primary-foreground transition-transform duration-instant active:scale-[0.92]"
+            >
+              <Sparkles className="h-4 w-4" />
+              Analyze 4 weeks
+            </button>
+          )}
+        </div>
       )}
     </Surface>
   );

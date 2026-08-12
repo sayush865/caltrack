@@ -42,7 +42,7 @@ export default function Today() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-md space-y-4 px-4 pb-32 pt-6">
+      <div className="mx-auto w-full max-w-md space-y-4 px-4 pb-nav pt-6">
         {/* Greeting + streak (no PageHeader — custom top) */}
         <header className="flex items-center justify-between gap-3">
           <div className="min-w-0">

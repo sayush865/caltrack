@@ -21,7 +21,7 @@ export default function Insights() {
   const plateau = usePlateau();
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-nav">
       <PageHeader title="Insights" />
       <main className="mx-auto max-w-md space-y-3 px-4 pt-1">
         <TodayBriefing />
