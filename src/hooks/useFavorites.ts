@@ -28,7 +28,7 @@ function round1(n: number): number {
 }
 
 function itemTotals(items: DraftItem[]): MacroSet {
-  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 };
+  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0 };
   for (const item of items) {
     const q = item.quantity || 1;
     totals.calories += (item.base.calories ?? 0) * q;
@@ -38,6 +38,10 @@ function itemTotals(items: DraftItem[]): MacroSet {
     totals.fiber += (item.base.fiber ?? 0) * q;
     totals.sugar += (item.base.sugar ?? 0) * q;
     totals.sodium += (item.base.sodium ?? 0) * q;
+    totals.vitaminA += (item.base.vitaminA ?? 0) * q;
+    totals.vitaminC += (item.base.vitaminC ?? 0) * q;
+    totals.calcium += (item.base.calcium ?? 0) * q;
+    totals.iron += (item.base.iron ?? 0) * q;
   }
   return {
     calories: Math.round(totals.calories),
@@ -47,6 +51,10 @@ function itemTotals(items: DraftItem[]): MacroSet {
     fiber: round1(totals.fiber),
     sugar: round1(totals.sugar),
     sodium: round1(totals.sodium),
+    vitaminA: round1(totals.vitaminA),
+    vitaminC: round1(totals.vitaminC),
+    calcium: round1(totals.calcium),
+    iron: round1(totals.iron),
   };
 }
 
@@ -62,6 +70,12 @@ function snapshotToDraftItems(snapshot: Snapshot): DraftItem[] {
     carbs: round1((item.base.carbs ?? 0) * (item.quantity || 1)),
     fat: round1((item.base.fat ?? 0) * (item.quantity || 1)),
     fiber: round1((item.base.fiber ?? 0) * (item.quantity || 1)),
+    sugar: round1((item.base.sugar ?? 0) * (item.quantity || 1)),
+    sodium: round1((item.base.sodium ?? 0) * (item.quantity || 1)),
+    vitaminA: round1((item.base.vitaminA ?? 0) * (item.quantity || 1)),
+    vitaminC: round1((item.base.vitaminC ?? 0) * (item.quantity || 1)),
+    calcium: round1((item.base.calcium ?? 0) * (item.quantity || 1)),
+    iron: round1((item.base.iron ?? 0) * (item.quantity || 1)),
   }));
 }
 
@@ -96,6 +110,10 @@ type TemplateRow = {
   fiber: number | null;
   sugar: number | null;
   sodium: number | null;
+  vitamin_a: number | null;
+  vitamin_c: number | null;
+  calcium: number | null;
+  iron: number | null;
 };
 
 function rowToFavorite(row: TemplateRow): Favorite {
@@ -108,6 +126,10 @@ function rowToFavorite(row: TemplateRow): Favorite {
     fiber: Number(row.fiber ?? 0),
     sugar: Number(row.sugar ?? 0),
     sodium: Number(row.sodium ?? 0),
+    vitaminA: Number(row.vitamin_a ?? 0),
+    vitaminC: Number(row.vitamin_c ?? 0),
+    calcium: Number(row.calcium ?? 0),
+    iron: Number(row.iron ?? 0),
   };
 
   const items: DraftItem[] = snapshot
@@ -156,7 +178,7 @@ export function useFavorites(): UseFavoritesResult {
     queryFn: async (): Promise<Favorite[]> => {
       const { data, error } = await supabase
         .from("meal_templates")
-        .select("id, name, food_name, image_url, meal_type, use_count, calories, protein, carbs, fat, fiber, sugar, sodium")
+        .select("id, name, food_name, image_url, meal_type, use_count, calories, protein, carbs, fat, fiber, sugar, sodium, vitamin_a, vitamin_c, calcium, iron")
         .eq("user_id", uid!)
         .order("use_count", { ascending: false });
       if (error) throw error;
@@ -190,6 +212,10 @@ export function useFavorites(): UseFavoritesResult {
         fiber: totals.fiber ?? 0,
         sugar: totals.sugar ?? 0,
         sodium: totals.sodium ?? 0,
+        vitamin_a: totals.vitaminA ?? 0,
+        vitamin_c: totals.vitaminC ?? 0,
+        calcium: totals.calcium ?? 0,
+        iron: totals.iron ?? 0,
         image_url: vars.imageUrl ?? null,
       });
       if (error) throw error;

@@ -26,6 +26,10 @@ export interface FoodLogRowUpdate {
   fiber: number;
   sugar: number;
   sodium: number;
+  vitamin_a: number;
+  vitamin_c: number;
+  calcium: number;
+  iron: number;
   meal_type: MealType;
   logged_at: string;
   notes: string;
@@ -99,6 +103,10 @@ export function useAddMealItem(): UseMutationResult<FoodLogRow, Error, AddMealIt
           fiber: round1(vars.base.fiber ?? 0),
           sugar: round1(vars.base.sugar ?? 0),
           sodium: round1(vars.base.sodium ?? 0),
+          vitamin_a: round1(vars.base.vitaminA ?? 0),
+          vitamin_c: round1(vars.base.vitaminC ?? 0),
+          calcium: round1(vars.base.calcium ?? 0),
+          iron: round1(vars.base.iron ?? 0),
           meal_type: vars.mealType,
           logged_at: vars.loggedAt,
           notes: JSON.stringify(meta),
