@@ -67,6 +67,19 @@ export function formatTime(iso: string): string {
   return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+/** "Just now" | "12 min ago" | "3 h ago" | "Aug 11, 1:45 PM" */
+export function relativeTime(ms: number): string {
+  const diff = Date.now() - ms;
+  if (!Number.isFinite(diff) || diff < 0) return "just now";
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} h ago`;
+  const d = new Date(ms);
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
 /** "Today" | "Yesterday" | "Tue, Jul 15" */
 export function friendlyDay(key: string): string {
   const today = localDayStart();
@@ -76,3 +89,4 @@ export function friendlyDay(key: string): string {
   if (diffDays === 1) return "Yesterday";
   return target.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
+

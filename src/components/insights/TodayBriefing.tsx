@@ -6,6 +6,7 @@ import { ArrowRight, CheckCircle2, Lightbulb, RefreshCw, Sparkles, Target, Trend
 import { Shimmer, Surface } from "@/components/system";
 import { actionRoute } from "@/components/today/InsightCard";
 import { useInsight } from "@/hooks/useInsight";
+import { relativeTime } from "@/lib/dates";
 import type { Insight } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -54,12 +55,17 @@ function Row({ item, primary }: { item: Insight; primary?: boolean }) {
 }
 
 export function TodayBriefing() {
-  const { primary, briefing, snapshot, loading, hasData, refresh } = useInsight();
+  const { primary, briefing, snapshot, loading, hasData, generatedAt, refresh } = useInsight();
 
   return (
     <Surface className="p-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-micro uppercase text-muted-foreground">Today's briefing</h2>
+        <div className="min-w-0">
+          <h2 className="text-micro uppercase text-muted-foreground">Today's briefing</h2>
+          {generatedAt && !loading && (
+            <p className="mt-0.5 text-micro text-muted-foreground">Updated {relativeTime(generatedAt)}</p>
+          )}
+        </div>
         <button
           type="button"
           aria-label={hasData ? "Refresh briefing" : "Generate briefing"}

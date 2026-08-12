@@ -19,6 +19,8 @@ interface CachedPayload {
   state: string | null;
   trends: InsightTrend[];
   verdict: string | null;
+  /** Epoch ms when this payload was generated. */
+  generatedAt?: number;
 }
 
 function cacheKeyFor(uid: string, day: string, signature: string): string {
@@ -67,6 +69,8 @@ export interface UseInsightResult {
   loading: boolean;
   /** True once a payload exists (from cache or a generate run). */
   hasData: boolean;
+  /** Epoch ms of the last successful generation, if known. */
+  generatedAt: number | null;
   refresh: () => void;
 }
 
@@ -127,6 +131,7 @@ export function useInsight(): UseInsightResult {
           state: fresh.state,
           trends: fresh.trends,
           verdict: fresh.verdict,
+          generatedAt: Date.now(),
         };
         writeCache(key, next);
         if (aliveRef.current) setPayload(next);
@@ -163,6 +168,7 @@ export function useInsight(): UseInsightResult {
     verdict: payload?.verdict ?? null,
     loading,
     hasData: payload != null,
+    generatedAt: payload?.generatedAt ?? null,
     refresh,
   };
 }
