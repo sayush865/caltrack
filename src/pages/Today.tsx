@@ -6,6 +6,8 @@ import { StreakChip, Surface } from "@/components/system";
 import { HeroCard } from "@/components/today/HeroCard";
 
 import { MealsToday } from "@/components/today/MealsToday";
+import { MoveWaterRow } from "@/components/today/MoveWaterRow";
+
 import { QuickLogRow } from "@/components/today/QuickLogRow";
 import { TodaySkeleton } from "@/components/today/TodaySkeleton";
 import { WeekStrip } from "@/components/today/WeekStrip";
