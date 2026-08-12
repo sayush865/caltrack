@@ -80,7 +80,7 @@ export default function Today() {
           </>
         ) : null}
 
-        <InsightCard />
+
 
         <QuickLogRow />
       </div>
