@@ -12,6 +12,7 @@ import {
   HeartPulse,
   PencilLine,
   Search,
+  Sparkles,
   SearchX,
   StretchHorizontal,
   Trophy,
