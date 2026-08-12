@@ -97,6 +97,7 @@ Guidelines:
 - Account for oils, sauces, and hidden calories
 - Detect ALL distinct food items (main dish, sides, drinks, condiments)
 - Use USDA nutrition data as reference
+- Micronutrients: always estimate vitamin_a (mcg RAE), vitamin_c (mg), calcium (mg) and iron (mg) per item from standard food-composition data (IFCT/ICMR values for Indian dishes; USDA otherwise). Use 0 only when the food genuinely has none.
 - Hydration: for any drink, also report water_ml — the water content of that serving. Plain water, sparkling water, black tea/coffee and infusions ~100% of volume; chia water counts the full liquid volume (plus the chia calories); milk ~87%; juice ~85%; soup ~80%; soda ~89%; alcoholic drinks 0. Solid food is 0.
 - Verify: calories ≈ (protein×4) + (carbs×4) + (fat×9)`
 
