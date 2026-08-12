@@ -6,6 +6,8 @@ import { StreakChip, Surface } from "@/components/system";
 import { HeroCard } from "@/components/today/HeroCard";
 
 import { MealsToday } from "@/components/today/MealsToday";
+import { MoveWaterRow } from "@/components/today/MoveWaterRow";
+
 import { QuickLogRow } from "@/components/today/QuickLogRow";
 import { TodaySkeleton } from "@/components/today/TodaySkeleton";
 import { WeekStrip } from "@/components/today/WeekStrip";
@@ -40,7 +42,7 @@ export default function Today() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-md space-y-4 px-4 pb-[96px] pt-6">
+      <div className="mx-auto w-full max-w-md space-y-4 px-4 pb-32 pt-6">
         {/* Greeting + streak (no PageHeader — custom top) */}
         <header className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -76,14 +78,14 @@ export default function Today() {
         ) : dayQuery.data ? (
           <>
             <HeroCard day={dayQuery.data} goals={goals ?? null} dayKey={todayKey} />
+            <MoveWaterRow day={dayQuery.data} goals={goals ?? null} dayKey={todayKey} />
             <MealsToday day={dayQuery.data} dayKey={todayKey} />
           </>
         ) : null}
-
-
 
         <QuickLogRow />
       </div>
     </div>
   );
 }
+

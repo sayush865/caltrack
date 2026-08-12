@@ -121,7 +121,7 @@ export default function You() {
   const loading = profileQuery.isLoading || goalsQuery.isLoading;
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-32">
       <PageHeader title="You" />
 
       <main className="mx-auto max-w-md space-y-3 px-4">

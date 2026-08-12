@@ -12,6 +12,7 @@ import {
   HeartPulse,
   PencilLine,
   Search,
+  Sparkles,
   SearchX,
   StretchHorizontal,
   Trophy,
@@ -23,6 +24,7 @@ import { EmptyState, PageHeader, Shimmer, Surface } from "@/components/system";
 import { DurationSheet, type SheetExercise } from "@/components/foods/DurationSheet";
 import { EXERCISE_SEED, exerciseCalories, intensityLabel } from "@/components/foods/exerciseSeed";
 import { useExerciseDatabase } from "@/components/foods/hooks";
+import { DescribeExerciseCard } from "@/components/exercise/DescribeExerciseCard";
 import { useGoals } from "@/hooks/useGoals";
 import { useLogExercise } from "@/hooks/useMutations";
 import { dayKey, friendlyDay, isToday } from "@/lib/dates";
@@ -195,6 +197,7 @@ export default function Exercise() {
   const [category, setCategory] = useState("All");
   const [selected, setSelected] = useState<SheetExercise | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
+  const [describeOpen, setDescribeOpen] = useState(params.get("describe") === "1");
 
   const db = useExerciseDatabase();
   const goals = useGoals();
@@ -263,6 +266,22 @@ export default function Exercise() {
             Logging to {friendlyDay(dateKey)}
           </p>
         )}
+
+        {/* AI describe — the fastest path for anything not in the list */}
+        <div className="mt-3">
+          {describeOpen ? (
+            <DescribeExerciseCard dateKey={dateKey} weightKg={weightKg} onDone={() => setDescribeOpen(false)} />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setDescribeOpen(true)}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-control bg-primary-soft text-label font-medium text-primary transition-transform duration-instant active:scale-[0.92]"
+            >
+              <Sparkles className="h-4 w-4" />
+              Describe your workout — AI estimates it
+            </button>
+          )}
+        </div>
 
         {/* Manual entry — always one tap away */}
         <div className="mt-3">

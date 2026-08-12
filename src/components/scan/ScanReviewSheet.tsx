@@ -50,6 +50,10 @@ function rescale(item: DraftItem, quantity: number): DraftItem {
     fiber: b.fiber !== undefined ? r1(b.fiber * q) : undefined,
     sugar: b.sugar !== undefined ? r1(b.sugar * q) : undefined,
     sodium: b.sodium !== undefined ? r1(b.sodium * q) : undefined,
+    vitaminA: b.vitaminA !== undefined ? r1(b.vitaminA * q) : undefined,
+    vitaminC: b.vitaminC !== undefined ? r1(b.vitaminC * q) : undefined,
+    calcium: b.calcium !== undefined ? r1(b.calcium * q) : undefined,
+    iron: b.iron !== undefined ? r1(b.iron * q) : undefined,
   };
 }
 
@@ -60,8 +64,19 @@ function sumTotals(items: DraftItem[]): MacroSet {
       protein: acc.protein + (it.protein ?? 0),
       carbs: acc.carbs + (it.carbs ?? 0),
       fat: acc.fat + (it.fat ?? 0),
+      fiber: (acc.fiber ?? 0) + (it.fiber ?? 0),
+      sugar: (acc.sugar ?? 0) + (it.sugar ?? 0),
+      sodium: (acc.sodium ?? 0) + (it.sodium ?? 0),
+      vitaminA: (acc.vitaminA ?? 0) + (it.vitaminA ?? 0),
+      vitaminC: (acc.vitaminC ?? 0) + (it.vitaminC ?? 0),
+      calcium: (acc.calcium ?? 0) + (it.calcium ?? 0),
+      iron: (acc.iron ?? 0) + (it.iron ?? 0),
     }),
-    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+    {
+      calories: 0, protein: 0, carbs: 0, fat: 0,
+      fiber: 0, sugar: 0, sodium: 0,
+      vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0,
+    },
   );
 }
 
@@ -86,6 +101,29 @@ function ConfidenceBadge({ confidence }: { confidence?: number }) {
     <span className={cn("rounded-full px-2 py-0.5 text-micro uppercase", tier.text, tier.bg)}>
       {tier.label}
     </span>
+  );
+}
+
+/* ── micronutrient line (shared by rows + total) ─────────────── */
+
+interface MicroValue {
+  label: string;
+  value?: number;
+  unit: string;
+}
+
+function MicroLine({ values, className }: { values: MicroValue[]; className?: string }) {
+  const shown = values.filter((v) => v.value !== undefined && v.value !== null && v.value > 0);
+  if (shown.length === 0) return null;
+  return (
+    <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 tabular-nums", className)}>
+      {shown.map((v) => (
+        <span key={v.label} className="text-micro text-muted-foreground">
+          {v.label} {Math.round((v.value ?? 0) * 10) / 10}
+          {v.unit}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -133,6 +171,17 @@ function ItemRow({ item, index, onChange, onRemove }: ItemRowProps) {
           </div>
         </div>
       </div>
+
+      <MicroLine
+        className="mt-2"
+        values={[
+          { label: "Fiber", value: item.fiber, unit: "g" },
+          { label: "Vit A", value: item.vitaminA, unit: "\u00b5g" },
+          { label: "Vit C", value: item.vitaminC, unit: "mg" },
+          { label: "Ca", value: item.calcium, unit: "mg" },
+          { label: "Fe", value: item.iron, unit: "mg" },
+        ]}
+      />
 
       <div className="mt-3 flex items-center justify-between">
         {/* quantity stepper — 0.25 steps, min 0.25, rescales from base */}
@@ -479,11 +528,13 @@ export function ScanReviewSheet({
       )}
 
       {/* Low-confidence hint / honest re-analyze */}
-      {lowConfidence && onReanalyze && !reanalyzing && (
+      {onReanalyze && !reanalyzing && (
         <Surface className="animate-fade-rise p-4">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-            <p className="text-label font-medium text-foreground">Give these a quick check</p>
+            <p className="text-label font-medium text-foreground">
+              {lowConfidence ? "Give these a quick check" : "Not quite right?"}
+            </p>
           </div>
           {hintEnabled ? (
             <>
@@ -496,18 +547,19 @@ export function ScanReviewSheet({
               />
               <button
                 type="button"
-                disabled={hint.trim().length === 0}
                 onClick={() => onReanalyze(hint.trim())}
-                className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-label font-medium text-primary-foreground transition-transform duration-instant active:scale-[0.92] disabled:opacity-40"
+                className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-label font-medium text-primary-foreground transition-transform duration-instant active:scale-[0.92]"
               >
                 <RefreshCw className="h-4 w-4" />
-                Re-analyze with hint
+                {hint.trim().length > 0 ? "Re-analyze with hint" : "Regenerate analysis"}
               </button>
             </>
           ) : (
             <>
               <p className="mt-1 text-caption text-muted-foreground">
-                We weren't fully sure about this plate. Adjust the rows above, or read the photo again.
+                {lowConfidence
+                  ? "We weren't fully sure about this plate. Adjust the rows above, or read the photo again."
+                  : "Edit the rows above, or run the analysis again for a fresh read."}
               </p>
               <button
                 type="button"
@@ -545,6 +597,18 @@ export function ScanReviewSheet({
           <span className="text-caption text-carbs">C {Math.round(totals.carbs)}g</span>
           <span className="text-caption text-fat">F {Math.round(totals.fat)}g</span>
         </div>
+        <MicroLine
+          className="mt-2 border-t border-border pt-2"
+          values={[
+            { label: "Fiber", value: totals.fiber, unit: "g" },
+            { label: "Sugar", value: totals.sugar, unit: "g" },
+            { label: "Sodium", value: totals.sodium, unit: "mg" },
+            { label: "Vit A", value: totals.vitaminA, unit: "\u00b5g" },
+            { label: "Vit C", value: totals.vitaminC, unit: "mg" },
+            { label: "Calcium", value: totals.calcium, unit: "mg" },
+            { label: "Iron", value: totals.iron, unit: "mg" },
+          ]}
+        />
       </Surface>
 
       {/* Meal type pills — auto-applied from time of day, editable */}
