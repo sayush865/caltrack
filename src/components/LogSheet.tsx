@@ -165,10 +165,10 @@ function ActionRow({ icon: Icon, label, caption, onClick }: ActionRowProps) {
     <button
       type="button"
       onClick={onClick}
-      className="flex h-14 w-full items-center gap-3 rounded-control px-2 text-left transition-transform duration-instant active:scale-[0.97]"
+      className="flex h-14 w-full items-center gap-3 px-3 text-left transition-colors duration-instant active:bg-card-hover"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-primary-soft text-primary">
-        <Icon className="h-5 w-5" />
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-primary-soft text-primary">
+        <Icon className="h-[18px] w-[18px]" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-body font-medium text-foreground">{label}</span>
@@ -178,6 +178,19 @@ function ActionRow({ icon: Icon, label, caption, onClick }: ActionRowProps) {
     </button>
   );
 }
+
+/** Titled group of action rows — one hairline card, dividers between rows. */
+function ActionGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <p className="mb-1.5 text-micro uppercase tracking-wide text-muted-foreground">{title}</p>
+      <div className="overflow-hidden rounded-card border border-border bg-background divide-y divide-border">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 
 function MealChip({ meal, onSelect }: { meal: QuickMeal; onSelect: (meal: QuickMeal) => void }) {
   return (
