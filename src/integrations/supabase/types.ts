@@ -306,12 +306,19 @@ export type Database = {
         Row: {
           activity_level: string | null
           age: number | null
+          allergies: string[] | null
+          cooking_style: string | null
           created_at: string | null
+          cuisines: string[] | null
+          diet_type: string | null
+          dislikes: string[] | null
           email: string | null
+          food_notes: string | null
           gender: string | null
           has_seen_tutorial: boolean | null
           height: number | null
           id: string
+          meals_per_day: number | null
           onboarding_completed: boolean | null
           profile_picture_url: string | null
           units_preference: string | null
@@ -320,12 +327,19 @@ export type Database = {
         Insert: {
           activity_level?: string | null
           age?: number | null
+          allergies?: string[] | null
+          cooking_style?: string | null
           created_at?: string | null
+          cuisines?: string[] | null
+          diet_type?: string | null
+          dislikes?: string[] | null
           email?: string | null
+          food_notes?: string | null
           gender?: string | null
           has_seen_tutorial?: boolean | null
           height?: number | null
           id: string
+          meals_per_day?: number | null
           onboarding_completed?: boolean | null
           profile_picture_url?: string | null
           units_preference?: string | null
@@ -334,12 +348,19 @@ export type Database = {
         Update: {
           activity_level?: string | null
           age?: number | null
+          allergies?: string[] | null
+          cooking_style?: string | null
           created_at?: string | null
+          cuisines?: string[] | null
+          diet_type?: string | null
+          dislikes?: string[] | null
           email?: string | null
+          food_notes?: string | null
           gender?: string | null
           has_seen_tutorial?: boolean | null
           height?: number | null
           id?: string
+          meals_per_day?: number | null
           onboarding_completed?: boolean | null
           profile_picture_url?: string | null
           units_preference?: string | null
