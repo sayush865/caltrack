@@ -647,19 +647,42 @@ Then, separately, read the AGGREGATE object (rolling 28 days, week over week) an
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      if (response.status === 429) return json({ error: "Rate limit exceeded. Please try again later.", insights: fallbackWithSpark, snapshot, state, source: "rules" }, 200);
-      if (response.status === 402) return json({ error: "AI credits exhausted.", insights: fallbackWithSpark, snapshot, state, source: "rules" }, 200);
-      return json({ insights: fallbackWithSpark, snapshot, state, source: "rules" });
+      const ruleBody = {
+        insights: fallbackWithSpark, snapshot, state, aggregate,
+        trends: trendFallback, verdict: verdictFallback, source: "rules",
+      };
+      if (response.status === 429) return json({ ...ruleBody, error: "Rate limit exceeded. Please try again later." }, 200);
+      if (response.status === 402) return json({ ...ruleBody, error: "AI credits exhausted." }, 200);
+      return json(ruleBody);
     }
 
     const aiData = await response.json();
     const content = String(aiData.choices?.[0]?.message?.content ?? "");
     let insights: OutInsight[] = fallbackWithSpark;
+    let trends: OutTrend[] = trendFallback;
+    let verdict = verdictFallback;
     let source = "rules";
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      const parsed = JSON.parse(cleaned) as { insights?: OutInsight[] } | OutInsight[];
+      const parsed = JSON.parse(cleaned) as
+        | { insights?: OutInsight[]; trends?: OutTrend[]; verdict?: string }
+        | OutInsight[];
       const arr = Array.isArray(parsed) ? parsed : parsed.insights;
+      if (!Array.isArray(parsed)) {
+        if (typeof parsed.verdict === "string" && parsed.verdict.trim()) verdict = parsed.verdict.slice(0, 200);
+        if (Array.isArray(parsed.trends)) {
+          const cleanTrends = parsed.trends
+            .filter((t) => t && typeof t.message === "string" && t.message.trim().length > 0)
+            .map((t) => ({
+              tag: ["win", "risk", "pattern", "experiment"].includes(String(t.tag)) ? String(t.tag) : "pattern",
+              title: String(t.title ?? "").slice(0, 70),
+              message: String(t.message).slice(0, 240),
+              metric: String(t.metric ?? "").slice(0, 28),
+            }))
+            .slice(0, 5);
+          if (cleanTrends.length) trends = cleanTrends;
+        }
+      }
       if (Array.isArray(arr) && arr.length > 0) {
         insights = arr
           .filter((i) => i && typeof i.message === "string" && i.message.trim().length > 0)
@@ -682,7 +705,7 @@ Then, separately, read the AGGREGATE object (rolling 28 days, week over week) an
       source = "rules";
     }
 
-    return json({ insights, snapshot, state, source });
+    return json({ insights, snapshot, state, aggregate, trends, verdict, source });
   } catch (error) {
     console.error("Error in generate-insights:", error);
     return json({
