@@ -44,14 +44,21 @@ export function isFuture(key: string): boolean {
   return parseDayKey(key).getTime() > localDayStart().getTime();
 }
 
-/** <11:00 breakfast, <15:30 lunch, <21:00 dinner, else snack. */
+/**
+ * Meal type from the clock, tuned to Indian eating hours:
+ * 04:00–11:00 breakfast · 11:00–15:30 lunch · 15:30–19:00 snack (chai/evening)
+ * 19:00–23:30 dinner · 23:30–04:00 snack (late night).
+ */
 export function suggestedMealType(d: Date = new Date()): MealType {
   const mins = d.getHours() * 60 + d.getMinutes();
+  if (mins < 4 * 60) return "snack";
   if (mins < 11 * 60) return "breakfast";
   if (mins < 15 * 60 + 30) return "lunch";
-  if (mins < 21 * 60) return "dinner";
+  if (mins < 19 * 60) return "snack";
+  if (mins < 23 * 60 + 30) return "dinner";
   return "snack";
 }
+
 
 /** "1:45 PM" */
 export function formatTime(iso: string): string {
