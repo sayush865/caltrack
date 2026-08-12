@@ -170,20 +170,26 @@ export type Database = {
           deleted_at: string | null
           fat: number | null
           fiber: number | null
+          folate: number | null
           food_name: string | null
           id: string
           image_url: string | null
           iron: number | null
           logged_at: string | null
+          magnesium: number | null
           meal_type: string | null
           notes: string | null
+          potassium: number | null
           protein: number | null
           sodium: number | null
           status: number
           sugar: number | null
           user_id: string
           vitamin_a: number | null
+          vitamin_b12: number | null
           vitamin_c: number | null
+          vitamin_d: number | null
+          zinc: number | null
         }
         Insert: {
           calcium?: number | null
@@ -193,20 +199,26 @@ export type Database = {
           deleted_at?: string | null
           fat?: number | null
           fiber?: number | null
+          folate?: number | null
           food_name?: string | null
           id?: string
           image_url?: string | null
           iron?: number | null
           logged_at?: string | null
+          magnesium?: number | null
           meal_type?: string | null
           notes?: string | null
+          potassium?: number | null
           protein?: number | null
           sodium?: number | null
           status?: number
           sugar?: number | null
           user_id: string
           vitamin_a?: number | null
+          vitamin_b12?: number | null
           vitamin_c?: number | null
+          vitamin_d?: number | null
+          zinc?: number | null
         }
         Update: {
           calcium?: number | null
@@ -216,20 +228,26 @@ export type Database = {
           deleted_at?: string | null
           fat?: number | null
           fiber?: number | null
+          folate?: number | null
           food_name?: string | null
           id?: string
           image_url?: string | null
           iron?: number | null
           logged_at?: string | null
+          magnesium?: number | null
           meal_type?: string | null
           notes?: string | null
+          potassium?: number | null
           protein?: number | null
           sodium?: number | null
           status?: number
           sugar?: number | null
           user_id?: string
           vitamin_a?: number | null
+          vitamin_b12?: number | null
           vitamin_c?: number | null
+          vitamin_d?: number | null
+          zinc?: number | null
         }
         Relationships: []
       }
@@ -241,12 +259,15 @@ export type Database = {
           created_at: string
           fat: number | null
           fiber: number | null
+          folate: number | null
           food_name: string
           id: string
           image_url: string | null
           iron: number | null
+          magnesium: number | null
           meal_type: string | null
           name: string
+          potassium: number | null
           protein: number | null
           sodium: number | null
           sugar: number | null
@@ -254,7 +275,10 @@ export type Database = {
           use_count: number
           user_id: string
           vitamin_a: number | null
+          vitamin_b12: number | null
           vitamin_c: number | null
+          vitamin_d: number | null
+          zinc: number | null
         }
         Insert: {
           calcium?: number | null
@@ -263,12 +287,15 @@ export type Database = {
           created_at?: string
           fat?: number | null
           fiber?: number | null
+          folate?: number | null
           food_name: string
           id?: string
           image_url?: string | null
           iron?: number | null
+          magnesium?: number | null
           meal_type?: string | null
           name: string
+          potassium?: number | null
           protein?: number | null
           sodium?: number | null
           sugar?: number | null
@@ -276,7 +303,10 @@ export type Database = {
           use_count?: number
           user_id: string
           vitamin_a?: number | null
+          vitamin_b12?: number | null
           vitamin_c?: number | null
+          vitamin_d?: number | null
+          zinc?: number | null
         }
         Update: {
           calcium?: number | null
@@ -285,12 +315,15 @@ export type Database = {
           created_at?: string
           fat?: number | null
           fiber?: number | null
+          folate?: number | null
           food_name?: string
           id?: string
           image_url?: string | null
           iron?: number | null
+          magnesium?: number | null
           meal_type?: string | null
           name?: string
+          potassium?: number | null
           protein?: number | null
           sodium?: number | null
           sugar?: number | null
@@ -298,7 +331,10 @@ export type Database = {
           use_count?: number
           user_id?: string
           vitamin_a?: number | null
+          vitamin_b12?: number | null
           vitamin_c?: number | null
+          vitamin_d?: number | null
+          zinc?: number | null
         }
         Relationships: []
       }
