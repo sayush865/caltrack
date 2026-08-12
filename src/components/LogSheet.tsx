@@ -14,6 +14,7 @@ import {
   Dumbbell,
   MessageSquareText,
   Scale,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -371,10 +372,22 @@ function LogSheetBody({ open, onOpenChange, dateKey }: LogSheetBodyProps) {
                   onClick={copyYesterday}
                 />
               )}
-              <ActionRow icon={Dumbbell} label="Log exercise" onClick={() => go("/exercise")} />
+              <ActionRow
+                icon={Dumbbell}
+                label="Log exercise"
+                caption="Browse activities or add minutes"
+                onClick={() => go(`/exercise?date=${dateKey}`)}
+              />
+              <ActionRow
+                icon={Sparkles}
+                label="Describe a workout"
+                caption="AI estimates minutes and calories"
+                onClick={() => go(`/exercise?date=${dateKey}&describe=1`)}
+              />
               <ActionRow
                 icon={Scale}
                 label="Log weight"
+                caption="Keeps your trend and goals honest"
                 onClick={() => {
                   close();
                   setWeightOpen(true);
