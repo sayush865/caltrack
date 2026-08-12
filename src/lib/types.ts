@@ -12,6 +12,11 @@ export interface MacroSet {
   fiber?: number;
   sugar?: number;
   sodium?: number;
+  /** Micronutrients — vitamin A in mcg RAE, vitamin C / calcium / iron in mg. */
+  vitaminA?: number;
+  vitaminC?: number;
+  calcium?: number;
+  iron?: number;
 }
 
 /** One editable item row in the review sheet (from AI or manual). */
@@ -53,6 +58,10 @@ export interface FoodLogRow {
   fiber: number | null;
   sugar: number | null;
   sodium: number | null;
+  vitamin_a: number | null;
+  vitamin_c: number | null;
+  calcium: number | null;
+  iron: number | null;
   meal_type: string | null;
   notes: string | null;
   logged_at: string;

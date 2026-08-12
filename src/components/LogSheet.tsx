@@ -14,7 +14,6 @@ import {
   Dumbbell,
   MessageSquareText,
   Scale,
-  Search,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -88,6 +87,10 @@ function rowToDraftItem(row: FoodLogRow): DraftItem {
     fiber: row.fiber != null ? row.fiber / quantity : undefined,
     sugar: row.sugar != null ? row.sugar / quantity : undefined,
     sodium: row.sodium != null ? row.sodium / quantity : undefined,
+    vitaminA: row.vitamin_a != null ? row.vitamin_a / quantity : undefined,
+    vitaminC: row.vitamin_c != null ? row.vitamin_c / quantity : undefined,
+    calcium: row.calcium != null ? row.calcium / quantity : undefined,
+    iron: row.iron != null ? row.iron / quantity : undefined,
   };
   return {
     id: newId(),
@@ -368,7 +371,6 @@ function LogSheetBody({ open, onOpenChange, dateKey }: LogSheetBodyProps) {
                   onClick={copyYesterday}
                 />
               )}
-              <ActionRow icon={Search} label="Food library" onClick={() => go("/foods")} />
               <ActionRow icon={Dumbbell} label="Log exercise" onClick={() => go("/exercise")} />
               <ActionRow
                 icon={Scale}
