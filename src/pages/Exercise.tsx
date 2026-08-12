@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { EmptyState, PageHeader, Shimmer, Surface } from "@/components/system";
+import { EmptyState, NameAutocomplete, PageHeader, Shimmer, Surface } from "@/components/system";
+import { useExerciseSuggestions } from "@/hooks/useNameSuggestions";
 import { DurationSheet, type SheetExercise } from "@/components/foods/DurationSheet";
 import { EXERCISE_SEED, exerciseCalories, intensityLabel } from "@/components/foods/exerciseSeed";
 import { useExerciseDatabase } from "@/components/foods/hooks";

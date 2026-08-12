@@ -19,7 +19,8 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { Shimmer, Surface, TimeField, useCountUp } from "@/components/system";
+import { NameAutocomplete, Shimmer, Surface, TimeField, useCountUp } from "@/components/system";
+import { useFoodSuggestions } from "@/hooks/useNameSuggestions";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLogMeal, useLogWater } from "@/hooks/useMutations";
