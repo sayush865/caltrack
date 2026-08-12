@@ -6,6 +6,7 @@
 import { AlertTriangle, CheckCircle2, FlaskConical, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { Shimmer, Surface } from "@/components/system";
 import { useInsight } from "@/hooks/useInsight";
+import { relativeTime } from "@/lib/dates";
 import type { InsightTrend } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -40,12 +41,17 @@ function Trend({ item, first }: { item: InsightTrend; first: boolean }) {
 }
 
 export function TrendsCard() {
-  const { trends, verdict, loading, hasData, refresh } = useInsight();
+  const { trends, verdict, loading, hasData, generatedAt, refresh } = useInsight();
 
   return (
     <Surface className="p-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-micro uppercase text-muted-foreground">The bigger picture · last 4 weeks</h2>
+        <div className="min-w-0">
+          <h2 className="text-micro uppercase text-muted-foreground">The bigger picture · last 4 weeks</h2>
+          {generatedAt && !loading && (
+            <p className="mt-0.5 text-micro text-muted-foreground">Updated {relativeTime(generatedAt)}</p>
+          )}
+        </div>
         <button
           type="button"
           aria-label={hasData ? "Refresh trends" : "Generate trends"}
