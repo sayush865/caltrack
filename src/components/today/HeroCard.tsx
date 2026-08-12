@@ -20,6 +20,14 @@ export interface HeroCardProps {
 // Sensible fallbacks so the ring renders even before user_goals exists.
 const DEFAULTS = { calories: 2000, protein: 120, carbs: 250, fat: 65, fiber: 30, water: 2000 };
 
+// Daily reference intakes (ICMR-NIN 2020, adult) — India-first defaults.
+const MICROS = [
+  { key: "vitaminA", label: "Vitamin A", unit: "mcg", rda: 900 },
+  { key: "vitaminC", label: "Vitamin C", unit: "mg", rda: 80 },
+  { key: "calcium", label: "Calcium", unit: "mg", rda: 1000 },
+  { key: "iron", label: "Iron", unit: "mg", rda: 19 },
+] as const;
+
 export function HeroCard({ day, goals, dayKey, className }: HeroCardProps) {
   const logWater = useLogWater();
   const [page, setPage] = useState(0);
@@ -186,11 +194,43 @@ export function HeroCard({ day, goals, dayKey, className }: HeroCardProps) {
             </div>
           </div>
         </div>
+
+        {/* ── Page 3: micronutrients vs ICMR daily reference ── */}
+        <div className="flex w-full shrink-0 snap-center flex-col justify-center px-5">
+          <p className="text-micro uppercase text-muted-foreground">
+            Micronutrients · % of daily reference
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            {MICROS.map(({ key, label, unit, rda }) => {
+              const value = day.totals[key] ?? 0;
+              const pct = Math.min(999, Math.round((value / rda) * 100));
+              return (
+                <div key={key} className="rounded-control border border-border p-3">
+                  <span className="text-micro uppercase text-muted-foreground">{label}</span>
+                  <p className="font-display text-[17px] font-semibold tabular-nums text-foreground">
+                    {value >= 100 ? Math.round(value) : Math.round(value * 10) / 10}
+                    <span className="text-caption font-medium text-muted-foreground">
+                      {" "}
+                      {unit}
+                    </span>
+                  </p>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-calories-track">
+                    <div
+                      className="h-full rounded-full bg-foreground transition-[width] duration-expressive ease-out"
+                      style={{ width: `${Math.min(100, pct)}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-caption tabular-nums text-muted-foreground">{pct}%</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Page dots (indicators, not targets) */}
       <div className="mt-4 flex justify-center gap-1.5" aria-hidden="true">
-        {[0, 1].map((i) => (
+        {[0, 1, 2].map((i) => (
           <span
             key={i}
             className={cn(
@@ -200,6 +240,7 @@ export function HeroCard({ day, goals, dayKey, className }: HeroCardProps) {
           />
         ))}
       </div>
+
     </Surface>
   );
 }

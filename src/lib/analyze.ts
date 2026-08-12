@@ -28,6 +28,10 @@ function toMacroSet(blob: Record<string, unknown>): MacroSet {
     fiber: num(blob.fiber),
     sugar: num(blob.sugar),
     sodium: num(blob.sodium),
+    vitaminA: num(blob.vitamin_a),
+    vitaminC: num(blob.vitamin_c),
+    calcium: num(blob.calcium),
+    iron: num(blob.iron),
   };
 }
 

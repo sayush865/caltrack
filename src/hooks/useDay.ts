@@ -16,6 +16,10 @@ type DbFoodLog = {
   fiber: number | null;
   sugar: number | null;
   sodium: number | null;
+  vitamin_a: number | null;
+  vitamin_c: number | null;
+  calcium: number | null;
+  iron: number | null;
   meal_type: string | null;
   notes: string | null;
   logged_at: string | null;
@@ -36,6 +40,10 @@ export function mapFoodRow(row: DbFoodLog): FoodLogRow {
     fiber: row.fiber === null ? null : Number(row.fiber),
     sugar: row.sugar === null ? null : Number(row.sugar),
     sodium: row.sodium === null ? null : Number(row.sodium),
+    vitamin_a: row.vitamin_a == null ? null : Number(row.vitamin_a),
+    vitamin_c: row.vitamin_c == null ? null : Number(row.vitamin_c),
+    calcium: row.calcium == null ? null : Number(row.calcium),
+    iron: row.iron == null ? null : Number(row.iron),
     meal_type: row.meal_type,
     notes: row.notes,
     logged_at: row.logged_at ?? row.created_at ?? new Date().toISOString(),
@@ -56,7 +64,10 @@ export function groupMeals(rows: FoodLogRow[]): Record<MealType, FoodLogRow[]> {
 }
 
 export function sumTotals(rows: FoodLogRow[]): MacroSet {
-  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 };
+  const totals = {
+    calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0,
+    vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0,
+  };
   for (const row of rows) {
     totals.calories += row.calories ?? 0;
     totals.protein += row.protein ?? 0;
@@ -65,6 +76,10 @@ export function sumTotals(rows: FoodLogRow[]): MacroSet {
     totals.fiber += row.fiber ?? 0;
     totals.sugar += row.sugar ?? 0;
     totals.sodium += row.sodium ?? 0;
+    totals.vitaminA += row.vitamin_a ?? 0;
+    totals.vitaminC += row.vitamin_c ?? 0;
+    totals.calcium += row.calcium ?? 0;
+    totals.iron += row.iron ?? 0;
   }
   return {
     calories: Math.round(totals.calories),
@@ -74,6 +89,10 @@ export function sumTotals(rows: FoodLogRow[]): MacroSet {
     fiber: Math.round(totals.fiber * 10) / 10,
     sugar: Math.round(totals.sugar * 10) / 10,
     sodium: Math.round(totals.sodium * 10) / 10,
+    vitaminA: Math.round(totals.vitaminA),
+    vitaminC: Math.round(totals.vitaminC * 10) / 10,
+    calcium: Math.round(totals.calcium),
+    iron: Math.round(totals.iron * 10) / 10,
   };
 }
 

@@ -358,6 +358,8 @@ export function ScanReviewSheet({
 
   const [items, setItems] = useState<DraftItem[]>(initialItems);
   const [mealType, setMealType] = useState<MealType>(() => suggestedMealType());
+  // Meal type follows the log time (Indian meal windows) until the user picks one.
+  const mealTypeTouched = useRef(false);
   const [dateKey, setDateKey] = useState<string>(() => {
     if (presetDayKey && /^\d{4}-\d{2}-\d{2}$/.test(presetDayKey)) return presetDayKey;
     return dayKey(new Date());
@@ -392,6 +394,12 @@ export function ScanReviewSheet({
       return next;
     });
   }, [dateKey]);
+
+  // Time of day drives the meal type (04:00 breakfast · 11:00 lunch · 15:30 snack · 19:00 dinner).
+  useEffect(() => {
+    if (mealTypeTouched.current) return;
+    setMealType(suggestedMealType(loggedTime));
+  }, [loggedTime]);
 
   const totals = useMemo(() => sumTotals(items), [items]);
 
@@ -548,7 +556,10 @@ export function ScanReviewSheet({
               key={value}
               type="button"
               aria-pressed={selected}
-              onClick={() => setMealType(value)}
+              onClick={() => {
+                mealTypeTouched.current = true;
+                setMealType(value);
+              }}
               className={cn(
                 "flex h-11 min-w-[44px] flex-1 items-center justify-center gap-1.5 rounded-full border text-label transition-transform duration-instant active:scale-[0.92]",
                 selected
