@@ -238,6 +238,159 @@ serve(async (req) => {
       exerciseMinutesToday: r(today.exMinutes),
     };
 
+    /* ── aggregate view: rolling 28 days, week over week ──────── */
+    const dayOf = (key: string) => new Date(`${key}T00:00:00Z`).getUTCDay(); // 0 Sun
+
+    const window28 = pastKeys.slice(-28);
+    const loggedKeys = window28.filter((k) => (byDay.get(k)!.calories ?? 0) > 0);
+    const wk = (keys: string[]) => keys.map((k) => byDay.get(k)!).filter((b) => b.calories > 0);
+    const thisWeekKeys = pastKeys.slice(-7);
+    const prevWeekKeys = pastKeys.slice(-14, -7);
+    const thisWeek = wk(thisWeekKeys);
+    const prevWeek = wk(prevWeekKeys);
+
+    const stat = (arr: Bucket[], pick: (b: Bucket) => number) => (arr.length ? r(avg(arr, pick)) : null);
+    const weekSummary = (arr: Bucket[], keys: string[]) => ({
+      daysLogged: arr.length,
+      daysInWindow: keys.length,
+      cal: stat(arr, (b) => b.calories),
+      net: stat(arr, (b) => b.calories - b.burned),
+      protein: stat(arr, (b) => b.protein),
+      fiber: stat(arr, (b) => b.fiber),
+      carbs: stat(arr, (b) => b.carbs),
+      fat: stat(arr, (b) => b.fat),
+      water: stat(arr, (b) => b.water),
+      burned: stat(arr, (b) => b.burned),
+      exerciseMinutes: r(arr.reduce((sum, b) => sum + b.exMinutes, 0)),
+      daysOverGoal: arr.filter((b) => b.calories - b.burned > goalCal * 1.05).length,
+      daysUnderGoal: arr.filter((b) => b.calories - b.burned < goalCal * 0.85).length,
+      daysOnTarget: arr.filter((b) => {
+        const n = b.calories - b.burned;
+        return n >= goalCal * 0.85 && n <= goalCal * 1.05;
+      }).length,
+    });
+
+    const allLogged = wk(loggedKeys);
+    const rate = (arr: Bucket[], ok: (b: Bucket) => boolean) =>
+      arr.length ? Math.round((arr.filter(ok).length / arr.length) * 100) : null;
+
+    // Where the day's calories land, averaged over logged days.
+    const mealSplit = (() => {
+      if (!allLogged.length) return null;
+      const totals = { breakfast: 0, lunch: 0, snack: 0, dinner: 0 };
+      let sum = 0;
+      for (const b of allLogged) {
+        for (const k of Object.keys(totals) as Array<keyof typeof totals>) totals[k] += b.byMeal[k] ?? 0;
+        sum += b.calories;
+      }
+      if (sum <= 0) return null;
+      return {
+        breakfastPct: Math.round((totals.breakfast / sum) * 100),
+        lunchPct: Math.round((totals.lunch / sum) * 100),
+        snackPct: Math.round((totals.snack / sum) * 100),
+        dinnerPct: Math.round((totals.dinner / sum) * 100),
+      };
+    })();
+
+    // Weekday vs weekend averages (Sat/Sun).
+    const weekendKeys = loggedKeys.filter((k) => [0, 6].includes(dayOf(k)));
+    const weekdayKeys = loggedKeys.filter((k) => ![0, 6].includes(dayOf(k)));
+
+    // Recurring foods across the window.
+    const foodCounts = new Map<string, number>();
+    for (const key of loggedKeys) {
+      for (const item of byDay.get(key)!.items) {
+        const name = item.trim().toLowerCase().slice(0, 40);
+        if (name) foodCounts.set(name, (foodCounts.get(name) ?? 0) + 1);
+      }
+    }
+    const topFoods = [...foodCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, count]) => ({ name, count }));
+
+    // Micronutrient adequacy vs ICMR-NIN 2020 adult references (India-first).
+    const MICRO_RDA = { vitaminA: 900, vitaminC: 80, calcium: 1000, iron: 19 };
+    const micros = allLogged.length
+      ? {
+          vitaminAPct: Math.round((avg(allLogged, (b) => b.vitaminA) / MICRO_RDA.vitaminA) * 100),
+          vitaminCPct: Math.round((avg(allLogged, (b) => b.vitaminC) / MICRO_RDA.vitaminC) * 100),
+          calciumPct: Math.round((avg(allLogged, (b) => b.calcium) / MICRO_RDA.calcium) * 100),
+          ironPct: Math.round((avg(allLogged, (b) => b.iron) / MICRO_RDA.iron) * 100),
+        }
+      : null;
+
+    // Weight trend across the logged history (rate per week).
+    const weightTrend = (() => {
+      if (weightLogs.length < 2) return null;
+      const sorted = [...weightLogs]
+        .map((w) => ({ w: Number(w.weight), t: new Date(String(w.logged_at)).getTime() }))
+        .filter((x) => Number.isFinite(x.w))
+        .sort((a, b) => a.t - b.t);
+      if (sorted.length < 2) return null;
+      const spanWeeks = (sorted[sorted.length - 1].t - sorted[0].t) / (7 * 86_400_000);
+      if (spanWeeks < 0.5) return null;
+      const delta = sorted[sorted.length - 1].w - sorted[0].w;
+      return {
+        from: sorted[0].w,
+        to: sorted[sorted.length - 1].w,
+        deltaTotal: Number(delta.toFixed(1)),
+        perWeek: Number((delta / spanWeeks).toFixed(2)),
+        spanWeeks: Number(spanWeeks.toFixed(1)),
+        entries: sorted.length,
+      };
+    })();
+
+    const lateCalorieShare = (() => {
+      let late = 0;
+      let total = 0;
+      for (const log of foodLogs) {
+        const iso = String(log.logged_at ?? "");
+        if (!iso) continue;
+        const cal = Number(log.calories ?? 0);
+        total += cal;
+        if (localHour(iso, offsetMin) >= 21) late += cal;
+      }
+      return total > 0 ? Math.round((late / total) * 100) : null;
+    })();
+
+    const aggregate = {
+      windowDays: window28.length,
+      daysLogged: loggedKeys.length,
+      loggingRate: window28.length ? Math.round((loggedKeys.length / window28.length) * 100) : null,
+      goal: goalCal,
+      goalType,
+      thisWeek: weekSummary(thisWeek, thisWeekKeys),
+      prevWeek: weekSummary(prevWeek, prevWeekKeys),
+      deltaVsPrevWeek: {
+        cal: thisWeek.length && prevWeek.length ? r(avg(thisWeek, (b) => b.calories) - avg(prevWeek, (b) => b.calories)) : null,
+        protein: thisWeek.length && prevWeek.length ? r(avg(thisWeek, (b) => b.protein) - avg(prevWeek, (b) => b.protein)) : null,
+        fiber: thisWeek.length && prevWeek.length ? r(avg(thisWeek, (b) => b.fiber) - avg(prevWeek, (b) => b.fiber)) : null,
+        water: thisWeek.length && prevWeek.length ? r(avg(thisWeek, (b) => b.water) - avg(prevWeek, (b) => b.water)) : null,
+      },
+      hitRates: {
+        caloriesOnTarget: rate(allLogged, (b) => {
+          const n = b.calories - b.burned;
+          return n >= goalCal * 0.85 && n <= goalCal * 1.05;
+        }),
+        protein: rate(allLogged, (b) => b.protein >= goalProtein * 0.9),
+        fiber: goalFiber > 0 ? rate(allLogged, (b) => b.fiber >= goalFiber * 0.9) : null,
+        water: goalWater > 0 ? rate(allLogged, (b) => b.water >= goalWater * 0.9) : null,
+      },
+      weekdayVsWeekend: {
+        weekdayCal: stat(wk(weekdayKeys), (b) => b.calories),
+        weekendCal: stat(wk(weekendKeys), (b) => b.calories),
+        weekendDays: weekendKeys.length,
+      },
+      mealSplit,
+      lateCalorieShare,
+      micros,
+      topFoods,
+      weightTrend,
+      streak: streak?.current_streak ?? 0,
+      longestStreak: streak?.longest_streak ?? 0,
+    };
+
     /* ── deterministic fallback insights ──────────────────────── */
     const walkMinutes = Math.max(15, Math.min(90, Math.round((overBy || projectedOverBy) / 5)));
     const fallback: OutInsight[] = (() => {
