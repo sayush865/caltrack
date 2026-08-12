@@ -80,6 +80,7 @@ Guidelines:
 - Account for cooking methods (fried adds oil, grilled is leaner)
 - Include hidden calories (oils, sauces, dressings)
 - Be conservative with estimates
+- Micronutrients: always estimate vitamin_a (mcg RAE), vitamin_c (mg), calcium (mg) and iron (mg) from standard food-composition data (IFCT/ICMR values for Indian dishes; USDA otherwise). Use 0 only when the food genuinely has none.
 - Hydration: also report water_ml, the water content of the described drinks in ml. Plain water, sparkling water, black tea/coffee and infusions ~100% of volume; chia water counts the full liquid volume (plus the chia calories); milk ~87%; juice ~85%; soup ~80%; soda ~89%; alcohol 0. Solid food only = 0.
 - Set drink_only to true when the description is nothing but drinks with no meaningful calories (e.g. "500ml water", "two glasses of water", "black coffee")
 
