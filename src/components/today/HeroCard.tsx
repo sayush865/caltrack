@@ -26,7 +26,14 @@ const MICROS = [
   { key: "vitaminC", label: "Vitamin C", unit: "mg", rda: 80 },
   { key: "calcium", label: "Calcium", unit: "mg", rda: 1000 },
   { key: "iron", label: "Iron", unit: "mg", rda: 19 },
+  { key: "vitaminB12", label: "Vitamin B12", unit: "mcg", rda: 2.2 },
+  { key: "folate", label: "Folate", unit: "mcg", rda: 300 },
+  { key: "vitaminD", label: "Vitamin D", unit: "mcg", rda: 15 },
+  { key: "zinc", label: "Zinc", unit: "mg", rda: 17 },
+  { key: "magnesium", label: "Magnesium", unit: "mg", rda: 440 },
+  { key: "potassium", label: "Potassium", unit: "mg", rda: 3500 },
 ] as const;
+
 
 export function HeroCard({ day, goals, dayKey, className }: HeroCardProps) {
   const logWater = useLogWater();
