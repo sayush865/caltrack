@@ -13,6 +13,7 @@ import { AnalysisTheater } from "@/components/scan/AnalysisTheater";
 import { classifyAnalysisError, BUSY_COPY } from "@/components/scan/analysisError";
 import { useAnalysisAbort, useNavigationGuard } from "@/components/scan/useAnalysisAbort";
 import { analyzeText } from "@/lib/analyze";
+import { matchNames, useFoodSuggestions } from "@/hooks/useNameSuggestions";
 import type { DraftItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -89,6 +90,23 @@ export default function Describe() {
   useNavigationGuard(phase === "loading");
 
   const speechCtor = useMemo(() => getSpeechRecognition(), []);
+
+  // Inline completion for the segment being typed (after the last comma), drawn
+  // from past logs so repeat foods keep one spelling.
+  const foodSuggestions = useFoodSuggestions();
+  const activeSegment = useMemo(() => {
+    const idx = Math.max(text.lastIndexOf(","), text.lastIndexOf("\n"));
+    return { start: idx + 1, value: text.slice(idx + 1).trimStart() };
+  }, [text]);
+  const nameMatches = useMemo(
+    () => (activeSegment.value.trim().length < 2 ? [] : matchNames(foodSuggestions, activeSegment.value, 4)),
+    [foodSuggestions, activeSegment.value],
+  );
+  const completeSegment = (name: string) => {
+    const head = text.slice(0, activeSegment.start);
+    setText(`${head}${head.length > 0 ? " " : ""}${name}`);
+    textareaRef.current?.focus();
+  };
 
   useEffect(() => {
     return () => recognitionRef.current?.abort();
@@ -324,6 +342,24 @@ export default function Describe() {
             </p>
           )}
         </Surface>
+
+        {nameMatches.length > 0 && (
+          <div className="mt-3">
+            <p className="text-micro uppercase text-muted-foreground">From your logs</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {nameMatches.map((m) => (
+                <button
+                  key={m.name}
+                  type="button"
+                  onClick={() => completeSegment(m.name)}
+                  className="min-h-11 max-w-full rounded-full border border-border bg-card px-4 py-2 text-left text-label text-secondary-text transition-transform duration-instant active:scale-[0.97]"
+                >
+                  <span className="block truncate">{m.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-4">
           <p className="text-micro uppercase text-muted-foreground">Try one of these</p>
