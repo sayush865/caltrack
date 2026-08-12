@@ -203,36 +203,37 @@ export function HeroCard({ day, goals, dayKey, className }: HeroCardProps) {
         </div>
 
         {/* ── Page 3: micronutrients vs ICMR daily reference ── */}
-        <div className="flex w-full shrink-0 snap-center flex-col justify-center px-5">
+        <div className="w-full shrink-0 snap-center px-5">
           <p className="text-micro uppercase text-muted-foreground">
             Micronutrients · % of daily reference
           </p>
-          <div className="mt-2 grid grid-cols-2 gap-3">
+          <div className="mt-2 divide-y divide-border rounded-control border border-border">
             {MICROS.map(({ key, label, unit, rda }) => {
               const value = day.totals[key] ?? 0;
               const pct = Math.min(999, Math.round((value / rda) * 100));
               return (
-                <div key={key} className="rounded-control border border-border p-3">
-                  <span className="text-micro uppercase text-muted-foreground">{label}</span>
-                  <p className="font-display text-[17px] font-semibold tabular-nums text-foreground">
-                    {value >= 100 ? Math.round(value) : Math.round(value * 10) / 10}
-                    <span className="text-caption font-medium text-muted-foreground">
-                      {" "}
-                      {unit}
-                    </span>
-                  </p>
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-calories-track">
+                <div key={key} className="flex items-center gap-3 px-3 py-2">
+                  <span className="w-[86px] shrink-0 truncate text-caption text-muted-foreground">
+                    {label}
+                  </span>
+                  <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-calories-track">
                     <div
                       className="h-full rounded-full bg-foreground transition-[width] duration-expressive ease-out"
                       style={{ width: `${Math.min(100, pct)}%` }}
                     />
                   </div>
-                  <p className="mt-1 text-caption tabular-nums text-muted-foreground">{pct}%</p>
+                  <span className="w-[74px] shrink-0 text-right text-caption tabular-nums text-foreground">
+                    {value >= 100 ? Math.round(value) : Math.round(value * 10) / 10} {unit}
+                  </span>
+                  <span className="w-[38px] shrink-0 text-right text-caption tabular-nums text-muted-foreground">
+                    {pct}%
+                  </span>
                 </div>
               );
             })}
           </div>
         </div>
+
       </div>
 
       {/* Page dots (indicators, not targets) */}
