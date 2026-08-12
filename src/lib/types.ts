@@ -107,6 +107,14 @@ export interface Profile {
   units_preference: "metric" | "imperial";
   onboarding_completed: boolean;
   has_seen_tutorial: boolean;
+  /* ── meal / food preferences (feed the AI coach) ── */
+  diet_type: string | null;
+  cuisines: string[] | null;
+  allergies: string[] | null;
+  dislikes: string[] | null;
+  meals_per_day: number | null;
+  cooking_style: string | null;
+  food_notes: string | null;
 }
 
 export interface Goals {
