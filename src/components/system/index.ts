@@ -12,3 +12,4 @@ export { MealEntryCard, type MealEntryCardProps } from "./MealEntryCard";
 export { ConfettiBurst, ConfettiHost, fireConfetti } from "./ConfettiBurst";
 export { TimeField, type TimeFieldProps } from "./TimeField";
 export { PageHeader, type PageHeaderProps } from "./PageHeader";
+export { NameAutocomplete, type NameSuggestion } from "./NameAutocomplete";
