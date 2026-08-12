@@ -11,6 +11,7 @@ import type {
   Insight,
   InsightPayload,
   InsightSnapshot,
+  InsightTrend,
   MacroSet,
 } from "./types";
 
