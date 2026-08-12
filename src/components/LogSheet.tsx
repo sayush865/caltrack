@@ -304,8 +304,9 @@ function LogSheetBody({ open, onOpenChange, dateKey }: LogSheetBodyProps) {
       <Sheet open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
         <SheetContent
           side="bottom"
-          className="rounded-t-[24px] border-t border-border bg-card px-4 pb-2 pt-5 shadow-raised"
+          className="max-h-[88vh] overflow-y-auto rounded-t-[24px] border-t border-border bg-card px-4 pb-2 pt-5 shadow-raised"
         >
+
           <SheetHeader className="text-left">
             <SheetTitle className="text-title text-foreground">Log something</SheetTitle>
             <SheetDescription className="sr-only">Choose how to log a meal, exercise, water, or weight.</SheetDescription>
