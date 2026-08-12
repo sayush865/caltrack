@@ -568,13 +568,37 @@ Rules:
 - Plain, calm, adult tone. No emoji, no exclamation marks, no hype, no "amazing journey" language.
 - Never suggest anything medically risky, never mention fasting for whole days, never shame the user.
 - Set action.kind to the screen that helps most: exercise (log activity), describe (log a meal by text), scan (photo a meal), water, weight, or none. action.label is max 18 chars, empty when kind is none.
-- The first insight in the array is the primary one; the motivation one is last.`;
+- The first insight in the array is the primary one; the motivation one is last.
+
+Then, separately, read the AGGREGATE object (rolling 28 days, week over week) and write:
+4. "verdict": one sentence (max 130 chars) that says where the last week actually landed versus the goal, with one number.
+5. "trends": 3 to 5 aggregate-level findings. Each has a tag ("win", "risk", "pattern" or "experiment"), a title (max 46 chars, the finding stated with its number), a message (max 170 chars, why it matters and what to change), and a metric (max 22 chars, the bare number, e.g. "2,140 vs 1,890 kcal").
+   - Work at the level of weeks, not single meals: week-over-week deltas, hit rates, meal-time distribution, weekday vs weekend, late-evening calorie share, micronutrient adequacy, recurring foods, weight rate per week, logging coverage.
+   - Prefer findings that connect two facts ("dinner carries 46% of intake and late-evening share is 22%, which is why over-target days cluster on weekends").
+   - Exactly one item should be tagged "experiment": a specific, small change to try for the next 7 days, framed as a test with a number.
+   - Never repeat a finding already covered by the daily insights, and never restate the same number in two trends.
+   - Say plainly when the data is too thin (few logged days) instead of inventing a trend.`;
 
     const schema = {
       type: "object",
       additionalProperties: false,
-      required: ["insights"],
+      required: ["insights", "verdict", "trends"],
       properties: {
+        verdict: { type: "string" },
+        trends: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["tag", "title", "message", "metric"],
+            properties: {
+              tag: { type: "string", enum: ["win", "risk", "pattern", "experiment"] },
+              title: { type: "string" },
+              message: { type: "string" },
+              metric: { type: "string" },
+            },
+          },
+        },
         insights: {
           type: "array",
           items: {
@@ -608,12 +632,12 @@ Rules:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.6-flash",
+        model: "google/gemini-3.1-pro-preview",
         messages: [
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Snapshot (JSON): ${JSON.stringify(snapshot)}\n\nProfile: age ${profile?.age ?? "unknown"}, gender ${profile?.gender ?? "unknown"}, activity ${profile?.activity_level ?? "moderate"}, units ${profile?.units_preference ?? "metric"}. Goal type: ${goalType}.\nRecent foods today: ${today.items.slice(0, 8).join(", ") || "none"}.`,
+            content: `Snapshot (JSON): ${JSON.stringify(snapshot)}\n\nAggregate (JSON): ${JSON.stringify(aggregate)}\n\nProfile: age ${profile?.age ?? "unknown"}, gender ${profile?.gender ?? "unknown"}, activity ${profile?.activity_level ?? "moderate"}, units ${profile?.units_preference ?? "metric"}. Goal type: ${goalType}.\nRecent foods today: ${today.items.slice(0, 8).join(", ") || "none"}.`,
           },
         ],
         response_format: { type: "json_schema", json_schema: { name: "insights", strict: true, schema } },
