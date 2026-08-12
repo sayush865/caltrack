@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, LogOut, Settings, Target, Trophy } from "lucide-react";
+import { ChevronRight, LogOut, Salad, Settings, Target, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,7 @@ import { formatWeight, weightUnit, type Units } from "@/lib/units";
 import { useAchievements } from "@/components/you/hooks";
 import { badgeById, BADGES } from "@/components/you/badges";
 import { GOAL_TYPE_LABELS, getPace, PACE_LABELS } from "@/components/you/prefs";
+import { prefsSummary } from "@/components/you/mealPrefs";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -248,6 +249,21 @@ export default function You() {
 
             {/* ── Settings list ──────────────────────────── */}
             <Surface className="overflow-hidden">
+              <button
+                type="button"
+                onClick={() => navigate("/you/preferences")}
+                className="flex min-h-[56px] w-full items-center gap-3 px-5 text-left transition-transform duration-instant active:scale-[0.97]"
+              >
+                <Salad className="h-5 w-5 shrink-0 text-secondary-text" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body text-foreground">Meal preferences</span>
+                  <span className="block truncate text-caption text-muted-foreground">
+                    {prefsSummary(profile ?? {})}
+                  </span>
+                </span>
+                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+              </button>
+              <div className="mx-5 h-px bg-border" />
               <button
                 type="button"
                 onClick={() => navigate("/you/settings")}
