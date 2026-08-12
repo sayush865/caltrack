@@ -20,6 +20,14 @@ export interface HeroCardProps {
 // Sensible fallbacks so the ring renders even before user_goals exists.
 const DEFAULTS = { calories: 2000, protein: 120, carbs: 250, fat: 65, fiber: 30, water: 2000 };
 
+// Daily reference intakes (ICMR-NIN 2020, adult) — India-first defaults.
+const MICROS = [
+  { key: "vitaminA", label: "Vitamin A", unit: "mcg", rda: 900 },
+  { key: "vitaminC", label: "Vitamin C", unit: "mg", rda: 80 },
+  { key: "calcium", label: "Calcium", unit: "mg", rda: 1000 },
+  { key: "iron", label: "Iron", unit: "mg", rda: 19 },
+] as const;
+
 export function HeroCard({ day, goals, dayKey, className }: HeroCardProps) {
   const logWater = useLogWater();
   const [page, setPage] = useState(0);
