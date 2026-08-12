@@ -65,6 +65,8 @@ export interface UseInsightResult {
   /** One-sentence read on the last week. */
   verdict: string | null;
   loading: boolean;
+  /** True once a payload exists (from cache or a generate run). */
+  hasData: boolean;
   refresh: () => void;
 }
 
@@ -88,7 +90,7 @@ export function useInsight(): UseInsightResult {
   }, [net, goal, mealCount]);
 
   const [payload, setPayload] = useState<CachedPayload | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const aliveRef = useRef(true);
 
   useEffect(() => {
@@ -138,11 +140,12 @@ export function useInsight(): UseInsightResult {
     [uid, todayKey, signature],
   );
 
+  // Cache-only hydration: AI never runs on mount. The user asks for it explicitly
+  // via refresh() (Generate / Refresh buttons), which keeps token spend intentional.
   useEffect(() => {
-    // Wait for the day query so the signature is real before the first call.
-    if (dayQuery.isLoading) return;
-    load(false);
-  }, [load, dayQuery.isLoading]);
+    if (dayQuery.isLoading || !uid) return;
+    setPayload(readCache(cacheKeyFor(uid, todayKey, signature)));
+  }, [uid, todayKey, signature, dayQuery.isLoading]);
 
   const refresh = useCallback(() => {
     load(true);
@@ -159,6 +162,7 @@ export function useInsight(): UseInsightResult {
     trends: payload?.trends ?? [],
     verdict: payload?.verdict ?? null,
     loading,
+    hasData: payload != null,
     refresh,
   };
 }
