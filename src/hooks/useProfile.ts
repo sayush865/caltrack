@@ -31,6 +31,13 @@ export function useProfile(): UseQueryResult<Profile | null> {
         units_preference: data.units_preference === "imperial" ? "imperial" : "metric",
         onboarding_completed: !!data.onboarding_completed,
         has_seen_tutorial: !!data.has_seen_tutorial,
+        diet_type: data.diet_type ?? null,
+        cuisines: data.cuisines ?? null,
+        allergies: data.allergies ?? null,
+        dislikes: data.dislikes ?? null,
+        meals_per_day: data.meals_per_day === null || data.meals_per_day === undefined ? null : Number(data.meals_per_day),
+        cooking_style: data.cooking_style ?? null,
+        food_notes: data.food_notes ?? null,
       };
     },
   });

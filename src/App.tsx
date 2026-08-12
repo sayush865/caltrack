@@ -23,6 +23,7 @@ import MealDetail from "./pages/MealDetail";
 import YouGoals from "./pages/YouGoals";
 import YouWeight from "./pages/YouWeight";
 import YouMilestones from "./pages/YouMilestones";
+import YouPreferences from "./pages/YouPreferences";
 import YouSettings from "./pages/YouSettings";
 import NotFound from "./pages/NotFound";
 
@@ -157,6 +158,7 @@ const App = () => (
               <Route path="/you/goals" element={<YouGoals />} />
               <Route path="/you/weight" element={<YouWeight />} />
               <Route path="/you/milestones" element={<YouMilestones />} />
+              <Route path="/you/preferences" element={<YouPreferences />} />
               <Route path="/you/settings" element={<YouSettings />} />
             </Route>
 
