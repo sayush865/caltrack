@@ -54,7 +54,7 @@ function Row({ item, primary }: { item: Insight; primary?: boolean }) {
 }
 
 export function TodayBriefing() {
-  const { primary, briefing, snapshot, loading, refresh } = useInsight();
+  const { primary, briefing, snapshot, loading, hasData, refresh } = useInsight();
 
   return (
     <Surface className="p-4">
@@ -62,7 +62,7 @@ export function TodayBriefing() {
         <h2 className="text-micro uppercase text-muted-foreground">Today's briefing</h2>
         <button
           type="button"
-          aria-label="Refresh briefing"
+          aria-label={hasData ? "Refresh briefing" : "Generate briefing"}
           disabled={loading}
           onClick={refresh}
           className="-my-2.5 -mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted-foreground transition-transform duration-instant hover:text-foreground active:scale-[0.92] disabled:opacity-60"
@@ -91,9 +91,19 @@ export function TodayBriefing() {
           ))}
         </div>
       ) : (
-        <p className="mt-1 text-body text-muted-foreground">
-          Log a meal today and your briefing appears here.
-        </p>
+        <div className="mt-1">
+          <p className="text-body text-muted-foreground">
+            Your AI read runs only when you ask for it.
+          </p>
+          <button
+            type="button"
+            onClick={refresh}
+            className="mt-3 inline-flex h-11 items-center gap-2 rounded-control bg-primary px-4 text-label text-primary-foreground transition-transform duration-instant active:scale-[0.92]"
+          >
+            <Sparkles className="h-4 w-4" />
+            Generate briefing
+          </button>
+        </div>
       )}
     </Surface>
   );
