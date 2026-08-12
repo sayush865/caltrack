@@ -76,14 +76,14 @@ export default function Today() {
         ) : dayQuery.data ? (
           <>
             <HeroCard day={dayQuery.data} goals={goals ?? null} dayKey={todayKey} />
+            <MoveWaterRow day={dayQuery.data} goals={goals ?? null} dayKey={todayKey} />
             <MealsToday day={dayQuery.data} dayKey={todayKey} />
           </>
         ) : null}
-
-
 
         <QuickLogRow />
       </div>
     </div>
   );
 }
+
