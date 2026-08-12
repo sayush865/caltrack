@@ -24,6 +24,13 @@ interface OutInsight {
   action?: { kind: ActionKind; label: string };
 }
 
+interface OutTrend {
+  tag: string;
+  title: string;
+  message: string;
+  metric: string;
+}
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -75,12 +82,12 @@ serve(async (req) => {
       : localKey(nowIso, offsetMin);
     const hourNow = localHour(nowIso, offsetMin);
 
-    const since = new Date(Date.now() - 15 * 86_400_000).toISOString();
+    const since = new Date(Date.now() - 29 * 86_400_000).toISOString();
 
     const [profileRes, goalsRes, logsRes, waterRes, exerciseRes, weightRes, streakRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
       supabase.from("user_goals").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("food_logs").select("food_name, calories, protein, carbs, fat, fiber, meal_type, logged_at")
+      supabase.from("food_logs").select("food_name, calories, protein, carbs, fat, fiber, vitamin_a, vitamin_c, calcium, iron, meal_type, logged_at")
         .eq("user_id", user.id).eq("status", 1).gte("logged_at", since),
       supabase.from("water_logs").select("amount_ml, logged_at").eq("user_id", user.id).gte("logged_at", since),
       supabase.from("exercise_logs").select("exercise_name, duration_minutes, calories_burned, logged_at")
@@ -107,12 +114,16 @@ serve(async (req) => {
     /* ── bucket per local day ─────────────────────────────────── */
     type Bucket = {
       calories: number; protein: number; carbs: number; fat: number; fiber: number;
+      vitaminA: number; vitaminC: number; calcium: number; iron: number;
       water: number; burned: number; exMinutes: number; times: number[];
       items: string[];
+      byMeal: Record<string, number>;
     };
     const empty = (): Bucket => ({
-      calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, water: 0, burned: 0,
-      exMinutes: 0, times: [], items: [],
+      calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0,
+      vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0,
+      water: 0, burned: 0, exMinutes: 0, times: [], items: [],
+      byMeal: { breakfast: 0, lunch: 0, snack: 0, dinner: 0 },
     });
     const byDay = new Map<string, Bucket>();
     const bucket = (key: string): Bucket => {
@@ -130,6 +141,12 @@ serve(async (req) => {
       b.carbs += Number(log.carbs ?? 0);
       b.fat += Number(log.fat ?? 0);
       b.fiber += Number(log.fiber ?? 0);
+      b.vitaminA += Number(log.vitamin_a ?? 0);
+      b.vitaminC += Number(log.vitamin_c ?? 0);
+      b.calcium += Number(log.calcium ?? 0);
+      b.iron += Number(log.iron ?? 0);
+      const mt = String(log.meal_type ?? "snack").toLowerCase();
+      if (mt in b.byMeal) b.byMeal[mt] += Number(log.calories ?? 0);
       b.times.push(localHour(iso, offsetMin));
       if (log.food_name) b.items.push(String(log.food_name));
     }
@@ -228,6 +245,159 @@ serve(async (req) => {
       exerciseMinutesToday: r(today.exMinutes),
     };
 
+    /* ── aggregate view: rolling 28 days, week over week ──────── */
+    const dayOf = (key: string) => new Date(`${key}T00:00:00Z`).getUTCDay(); // 0 Sun
+
+    const window28 = pastKeys.slice(-28);
+    const loggedKeys = window28.filter((k) => (byDay.get(k)!.calories ?? 0) > 0);
+    const wk = (keys: string[]) => keys.map((k) => byDay.get(k)!).filter((b) => b.calories > 0);
+    const thisWeekKeys = pastKeys.slice(-7);
+    const prevWeekKeys = pastKeys.slice(-14, -7);
+    const thisWeek = wk(thisWeekKeys);
+    const prevWeek = wk(prevWeekKeys);
+
+    const stat = (arr: Bucket[], pick: (b: Bucket) => number) => (arr.length ? r(avg(arr, pick)) : null);
+    const weekSummary = (arr: Bucket[], keys: string[]) => ({
+      daysLogged: arr.length,
+      daysInWindow: keys.length,
+      cal: stat(arr, (b) => b.calories),
+      net: stat(arr, (b) => b.calories - b.burned),
+      protein: stat(arr, (b) => b.protein),
+      fiber: stat(arr, (b) => b.fiber),
+      carbs: stat(arr, (b) => b.carbs),
+      fat: stat(arr, (b) => b.fat),
+      water: stat(arr, (b) => b.water),
+      burned: stat(arr, (b) => b.burned),
+      exerciseMinutes: r(arr.reduce((sum, b) => sum + b.exMinutes, 0)),
+      daysOverGoal: arr.filter((b) => b.calories - b.burned > goalCal * 1.05).length,
+      daysUnderGoal: arr.filter((b) => b.calories - b.burned < goalCal * 0.85).length,
+      daysOnTarget: arr.filter((b) => {
+        const n = b.calories - b.burned;
+        return n >= goalCal * 0.85 && n <= goalCal * 1.05;
+      }).length,
+    });
+
+    const allLogged = wk(loggedKeys);
+    const rate = (arr: Bucket[], ok: (b: Bucket) => boolean) =>
+      arr.length ? Math.round((arr.filter(ok).length / arr.length) * 100) : null;
+
+    // Where the day's calories land, averaged over logged days.
+    const mealSplit = (() => {
+      if (!allLogged.length) return null;
+      const totals = { breakfast: 0, lunch: 0, snack: 0, dinner: 0 };
+      let sum = 0;
+      for (const b of allLogged) {
+        for (const k of Object.keys(totals) as Array<keyof typeof totals>) totals[k] += b.byMeal[k] ?? 0;
+        sum += b.calories;
+      }
+      if (sum <= 0) return null;
+      return {
+        breakfastPct: Math.round((totals.breakfast / sum) * 100),
+        lunchPct: Math.round((totals.lunch / sum) * 100),
+        snackPct: Math.round((totals.snack / sum) * 100),
+        dinnerPct: Math.round((totals.dinner / sum) * 100),
+      };
+    })();
+
+    // Weekday vs weekend averages (Sat/Sun).
+    const weekendKeys = loggedKeys.filter((k) => [0, 6].includes(dayOf(k)));
+    const weekdayKeys = loggedKeys.filter((k) => ![0, 6].includes(dayOf(k)));
+
+    // Recurring foods across the window.
+    const foodCounts = new Map<string, number>();
+    for (const key of loggedKeys) {
+      for (const item of byDay.get(key)!.items) {
+        const name = item.trim().toLowerCase().slice(0, 40);
+        if (name) foodCounts.set(name, (foodCounts.get(name) ?? 0) + 1);
+      }
+    }
+    const topFoods = [...foodCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, count]) => ({ name, count }));
+
+    // Micronutrient adequacy vs ICMR-NIN 2020 adult references (India-first).
+    const MICRO_RDA = { vitaminA: 900, vitaminC: 80, calcium: 1000, iron: 19 };
+    const micros = allLogged.length
+      ? {
+          vitaminAPct: Math.round((avg(allLogged, (b) => b.vitaminA) / MICRO_RDA.vitaminA) * 100),
+          vitaminCPct: Math.round((avg(allLogged, (b) => b.vitaminC) / MICRO_RDA.vitaminC) * 100),
+          calciumPct: Math.round((avg(allLogged, (b) => b.calcium) / MICRO_RDA.calcium) * 100),
+          ironPct: Math.round((avg(allLogged, (b) => b.iron) / MICRO_RDA.iron) * 100),
+        }
+      : null;
+
+    // Weight trend across the logged history (rate per week).
+    const weightTrend = (() => {
+      if (weightLogs.length < 2) return null;
+      const sorted = [...weightLogs]
+        .map((w) => ({ w: Number(w.weight), t: new Date(String(w.logged_at)).getTime() }))
+        .filter((x) => Number.isFinite(x.w))
+        .sort((a, b) => a.t - b.t);
+      if (sorted.length < 2) return null;
+      const spanWeeks = (sorted[sorted.length - 1].t - sorted[0].t) / (7 * 86_400_000);
+      if (spanWeeks < 0.5) return null;
+      const delta = sorted[sorted.length - 1].w - sorted[0].w;
+      return {
+        from: sorted[0].w,
+        to: sorted[sorted.length - 1].w,
+        deltaTotal: Number(delta.toFixed(1)),
+        perWeek: Number((delta / spanWeeks).toFixed(2)),
+        spanWeeks: Number(spanWeeks.toFixed(1)),
+        entries: sorted.length,
+      };
+    })();
+
+    const lateCalorieShare = (() => {
+      let late = 0;
+      let total = 0;
+      for (const log of foodLogs) {
+        const iso = String(log.logged_at ?? "");
+        if (!iso) continue;
+        const cal = Number(log.calories ?? 0);
+        total += cal;
+        if (localHour(iso, offsetMin) >= 21) late += cal;
+      }
+      return total > 0 ? Math.round((late / total) * 100) : null;
+    })();
+
+    const aggregate = {
+      windowDays: window28.length,
+      daysLogged: loggedKeys.length,
+      loggingRate: window28.length ? Math.round((loggedKeys.length / window28.length) * 100) : null,
+      goal: goalCal,
+      goalType,
+      thisWeek: weekSummary(thisWeek, thisWeekKeys),
+      prevWeek: weekSummary(prevWeek, prevWeekKeys),
+      deltaVsPrevWeek: {
+        cal: thisWeek.length && prevWeek.length ? r(avg(thisWeek, (b) => b.calories) - avg(prevWeek, (b) => b.calories)) : null,
+        protein: thisWeek.length && prevWeek.length ? r(avg(thisWeek, (b) => b.protein) - avg(prevWeek, (b) => b.protein)) : null,
+        fiber: thisWeek.length && prevWeek.length ? r(avg(thisWeek, (b) => b.fiber) - avg(prevWeek, (b) => b.fiber)) : null,
+        water: thisWeek.length && prevWeek.length ? r(avg(thisWeek, (b) => b.water) - avg(prevWeek, (b) => b.water)) : null,
+      },
+      hitRates: {
+        caloriesOnTarget: rate(allLogged, (b) => {
+          const n = b.calories - b.burned;
+          return n >= goalCal * 0.85 && n <= goalCal * 1.05;
+        }),
+        protein: rate(allLogged, (b) => b.protein >= goalProtein * 0.9),
+        fiber: goalFiber > 0 ? rate(allLogged, (b) => b.fiber >= goalFiber * 0.9) : null,
+        water: goalWater > 0 ? rate(allLogged, (b) => b.water >= goalWater * 0.9) : null,
+      },
+      weekdayVsWeekend: {
+        weekdayCal: stat(wk(weekdayKeys), (b) => b.calories),
+        weekendCal: stat(wk(weekendKeys), (b) => b.calories),
+        weekendDays: weekendKeys.length,
+      },
+      mealSplit,
+      lateCalorieShare,
+      micros,
+      topFoods,
+      weightTrend,
+      streak: streak?.current_streak ?? 0,
+      longestStreak: streak?.longest_streak ?? 0,
+    };
+
     /* ── deterministic fallback insights ──────────────────────── */
     const walkMinutes = Math.max(15, Math.min(90, Math.round((overBy || projectedOverBy) / 5)));
     const fallback: OutInsight[] = (() => {
@@ -321,7 +491,57 @@ serve(async (req) => {
     };
     const fallbackWithSpark = [...fallback, motivation];
 
-    if (!lovableApiKey) return json({ insights: fallbackWithSpark, snapshot, state, source: "rules" });
+    /* ── deterministic aggregate trends (always available) ────── */
+    const trendFallback = (() => {
+      const out: OutTrend[] = [];
+      const tw = aggregate.thisWeek;
+      const pw = aggregate.prevWeek;
+      if (tw.cal !== null && pw.cal !== null) {
+        const d = tw.cal - pw.cal;
+        out.push({
+          tag: Math.abs(d) < 75 ? "pattern" : d > 0 ? "risk" : "win",
+          title: Math.abs(d) < 75 ? "Intake is steady week over week" : `${d > 0 ? "Up" : "Down"} ${Math.abs(d)} kcal a day`,
+          message: `Last 7 days averaged ${tw.cal} kcal against ${pw.cal} the week before, on a ${goalCal} target.`,
+          metric: `${tw.cal} vs ${pw.cal} kcal`,
+        });
+      }
+      if (aggregate.hitRates.protein !== null) {
+        out.push({
+          tag: aggregate.hitRates.protein >= 70 ? "win" : "risk",
+          title: `Protein hit on ${aggregate.hitRates.protein}% of days`,
+          message: `You averaged ${tw.protein ?? avg14Protein}g against a ${goalProtein}g target across ${aggregate.daysLogged} logged days.`,
+          metric: `${aggregate.hitRates.protein}% of days`,
+        });
+      }
+      if (aggregate.mealSplit) {
+        out.push({
+          tag: "pattern",
+          title: `Dinner carries ${aggregate.mealSplit.dinnerPct}% of your day`,
+          message: `Split runs breakfast ${aggregate.mealSplit.breakfastPct}%, lunch ${aggregate.mealSplit.lunchPct}%, snacks ${aggregate.mealSplit.snackPct}%, dinner ${aggregate.mealSplit.dinnerPct}%.`,
+          metric: `${aggregate.mealSplit.dinnerPct}% at dinner`,
+        });
+      }
+      if (aggregate.loggingRate !== null) {
+        out.push({
+          tag: aggregate.loggingRate >= 70 ? "win" : "risk",
+          title: `Logged ${aggregate.daysLogged} of the last ${aggregate.windowDays} days`,
+          message: "Gaps in the record are the main reason averages drift. Consistency beats precision here.",
+          metric: `${aggregate.loggingRate}% coverage`,
+        });
+      }
+      return out.slice(0, 4);
+    })();
+
+    const verdictFallback = aggregate.thisWeek.cal !== null
+      ? `${aggregate.thisWeek.daysLogged} days logged this week at ${aggregate.thisWeek.cal} kcal a day against a ${goalCal} target.`
+      : "Not enough logged days yet to read a trend. A few more days and the patterns show up.";
+
+    if (!lovableApiKey) {
+      return json({
+        insights: fallbackWithSpark, snapshot, state, aggregate,
+        trends: trendFallback, verdict: verdictFallback, source: "rules",
+      });
+    }
 
 
     /* ── AI pass ──────────────────────────────────────────────── */
@@ -348,13 +568,37 @@ Rules:
 - Plain, calm, adult tone. No emoji, no exclamation marks, no hype, no "amazing journey" language.
 - Never suggest anything medically risky, never mention fasting for whole days, never shame the user.
 - Set action.kind to the screen that helps most: exercise (log activity), describe (log a meal by text), scan (photo a meal), water, weight, or none. action.label is max 18 chars, empty when kind is none.
-- The first insight in the array is the primary one; the motivation one is last.`;
+- The first insight in the array is the primary one; the motivation one is last.
+
+Then, separately, read the AGGREGATE object (rolling 28 days, week over week) and write:
+4. "verdict": one sentence (max 130 chars) that says where the last week actually landed versus the goal, with one number.
+5. "trends": 3 to 5 aggregate-level findings. Each has a tag ("win", "risk", "pattern" or "experiment"), a title (max 46 chars, the finding stated with its number), a message (max 170 chars, why it matters and what to change), and a metric (max 22 chars, the bare number, e.g. "2,140 vs 1,890 kcal").
+   - Work at the level of weeks, not single meals: week-over-week deltas, hit rates, meal-time distribution, weekday vs weekend, late-evening calorie share, micronutrient adequacy, recurring foods, weight rate per week, logging coverage.
+   - Prefer findings that connect two facts ("dinner carries 46% of intake and late-evening share is 22%, which is why over-target days cluster on weekends").
+   - Exactly one item should be tagged "experiment": a specific, small change to try for the next 7 days, framed as a test with a number.
+   - Never repeat a finding already covered by the daily insights, and never restate the same number in two trends.
+   - Say plainly when the data is too thin (few logged days) instead of inventing a trend.`;
 
     const schema = {
       type: "object",
       additionalProperties: false,
-      required: ["insights"],
+      required: ["insights", "verdict", "trends"],
       properties: {
+        verdict: { type: "string" },
+        trends: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["tag", "title", "message", "metric"],
+            properties: {
+              tag: { type: "string", enum: ["win", "risk", "pattern", "experiment"] },
+              title: { type: "string" },
+              message: { type: "string" },
+              metric: { type: "string" },
+            },
+          },
+        },
         insights: {
           type: "array",
           items: {
@@ -388,12 +632,12 @@ Rules:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.6-flash",
+        model: "google/gemini-3.1-pro-preview",
         messages: [
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Snapshot (JSON): ${JSON.stringify(snapshot)}\n\nProfile: age ${profile?.age ?? "unknown"}, gender ${profile?.gender ?? "unknown"}, activity ${profile?.activity_level ?? "moderate"}, units ${profile?.units_preference ?? "metric"}. Goal type: ${goalType}.\nRecent foods today: ${today.items.slice(0, 8).join(", ") || "none"}.`,
+            content: `Snapshot (JSON): ${JSON.stringify(snapshot)}\n\nAggregate (JSON): ${JSON.stringify(aggregate)}\n\nProfile: age ${profile?.age ?? "unknown"}, gender ${profile?.gender ?? "unknown"}, activity ${profile?.activity_level ?? "moderate"}, units ${profile?.units_preference ?? "metric"}. Goal type: ${goalType}.\nRecent foods today: ${today.items.slice(0, 8).join(", ") || "none"}.`,
           },
         ],
         response_format: { type: "json_schema", json_schema: { name: "insights", strict: true, schema } },
@@ -403,19 +647,42 @@ Rules:
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      if (response.status === 429) return json({ error: "Rate limit exceeded. Please try again later.", insights: fallbackWithSpark, snapshot, state, source: "rules" }, 200);
-      if (response.status === 402) return json({ error: "AI credits exhausted.", insights: fallbackWithSpark, snapshot, state, source: "rules" }, 200);
-      return json({ insights: fallbackWithSpark, snapshot, state, source: "rules" });
+      const ruleBody = {
+        insights: fallbackWithSpark, snapshot, state, aggregate,
+        trends: trendFallback, verdict: verdictFallback, source: "rules",
+      };
+      if (response.status === 429) return json({ ...ruleBody, error: "Rate limit exceeded. Please try again later." }, 200);
+      if (response.status === 402) return json({ ...ruleBody, error: "AI credits exhausted." }, 200);
+      return json(ruleBody);
     }
 
     const aiData = await response.json();
     const content = String(aiData.choices?.[0]?.message?.content ?? "");
     let insights: OutInsight[] = fallbackWithSpark;
+    let trends: OutTrend[] = trendFallback;
+    let verdict = verdictFallback;
     let source = "rules";
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      const parsed = JSON.parse(cleaned) as { insights?: OutInsight[] } | OutInsight[];
+      const parsed = JSON.parse(cleaned) as
+        | { insights?: OutInsight[]; trends?: OutTrend[]; verdict?: string }
+        | OutInsight[];
       const arr = Array.isArray(parsed) ? parsed : parsed.insights;
+      if (!Array.isArray(parsed)) {
+        if (typeof parsed.verdict === "string" && parsed.verdict.trim()) verdict = parsed.verdict.slice(0, 200);
+        if (Array.isArray(parsed.trends)) {
+          const cleanTrends = parsed.trends
+            .filter((t) => t && typeof t.message === "string" && t.message.trim().length > 0)
+            .map((t) => ({
+              tag: ["win", "risk", "pattern", "experiment"].includes(String(t.tag)) ? String(t.tag) : "pattern",
+              title: String(t.title ?? "").slice(0, 70),
+              message: String(t.message).slice(0, 240),
+              metric: String(t.metric ?? "").slice(0, 28),
+            }))
+            .slice(0, 5);
+          if (cleanTrends.length) trends = cleanTrends;
+        }
+      }
       if (Array.isArray(arr) && arr.length > 0) {
         insights = arr
           .filter((i) => i && typeof i.message === "string" && i.message.trim().length > 0)
@@ -438,7 +705,7 @@ Rules:
       source = "rules";
     }
 
-    return json({ insights, snapshot, state, source });
+    return json({ insights, snapshot, state, aggregate, trends, verdict, source });
   } catch (error) {
     console.error("Error in generate-insights:", error);
     return json({

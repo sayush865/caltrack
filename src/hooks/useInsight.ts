@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchDailyInsights } from "@/lib/analyze";
 import { dayKey } from "@/lib/dates";
-import type { Insight, InsightPayload, InsightSnapshot } from "@/lib/types";
+import type { Insight, InsightPayload, InsightSnapshot, InsightTrend } from "@/lib/types";
 import { useDay } from "./useDay";
 import { useGoals } from "./useGoals";
 import { useSession } from "./useSession";
@@ -17,10 +17,12 @@ interface CachedPayload {
   insights: Insight[];
   snapshot: InsightSnapshot | null;
   state: string | null;
+  trends: InsightTrend[];
+  verdict: string | null;
 }
 
 function cacheKeyFor(uid: string, day: string, signature: string): string {
-  return `ct-insight-v2-${uid}-${day}-${signature}`;
+  return `ct-insight-v3-${uid}-${day}-${signature}`;
 }
 
 function readCache(key: string): CachedPayload | null {
@@ -58,6 +60,10 @@ export interface UseInsightResult {
   briefing: Insight[];
   snapshot: InsightSnapshot | null;
   state: string | null;
+  /** Aggregate week-over-week findings (rolling 28 days). */
+  trends: InsightTrend[];
+  /** One-sentence read on the last week. */
+  verdict: string | null;
   loading: boolean;
   refresh: () => void;
 }
@@ -117,6 +123,8 @@ export function useInsight(): UseInsightResult {
           insights: fresh.insights,
           snapshot: fresh.snapshot,
           state: fresh.state,
+          trends: fresh.trends,
+          verdict: fresh.verdict,
         };
         writeCache(key, next);
         if (aliveRef.current) setPayload(next);
@@ -148,6 +156,8 @@ export function useInsight(): UseInsightResult {
     briefing: insights ? insights.slice(1) : [],
     snapshot: payload?.snapshot ?? null,
     state: payload?.state ?? null,
+    trends: payload?.trends ?? [],
+    verdict: payload?.verdict ?? null,
     loading,
     refresh,
   };

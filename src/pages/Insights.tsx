@@ -12,6 +12,7 @@ import {
   usePlateau,
   WeeklyCalorieChart,
   TodayBriefing,
+  TrendsCard,
   WeeklyCheckinCard,
   WeightTrendCard,
 } from "@/components/insights";
@@ -24,6 +25,7 @@ export default function Insights() {
       <PageHeader title="Insights" />
       <main className="mx-auto max-w-md space-y-3 px-4 pt-1">
         <TodayBriefing />
+        <TrendsCard />
         <WeeklyCheckinCard />
         {plateau && <PlateauCard info={plateau} />}
         <WeeklyCalorieChart />
